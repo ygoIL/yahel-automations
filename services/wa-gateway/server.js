@@ -41,7 +41,7 @@ async function handleIncoming(p, depth = 0) {
     }
     if (d.reply) await wa.send(r.chatId, d.reply);
     if (d.mode !== 'deny') makeDsAdd(DS_BOT_LOG, r.id, { a: d.reply || '', q: r.text, ts: ilStamp(), rep: d.rep || '', phone: r.sender, topic: d.topic || '' });
-    if (d.advSubmit && MAKE_FALLBACK) { try { await post('https://hook.eu2.make.com/x9p7y4lwz3mbnapzd6e2djc5qrwqjqq1', d.advSubmit); } catch (e) { log({ ev: 'adv_fwd_err', err: String(e) }); } }
+    if (d.advSubmit) { try { await post(E.ADV_HOOK || 'https://make-runner-production.up.railway.app/hook/x9p7y4lwz3mbnapzd6e2djc5qrwqjqq1', d.advSubmit); } catch (e) { log({ ev: 'adv_fwd_err', err: String(e) }); } }
     return;
   }
   if (r.kind === 'group') {
