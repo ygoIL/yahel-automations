@@ -1,5 +1,5 @@
 // Offline engine test with a synthetic blueprint: webhook -> code -> iterator -> aggregator -> router -> datastore/http (dry).
-process.env.DATA_DIR = require('path').join(__dirname, '.data');
+process.env.DATA_DIR = require('path').join(__dirname, '.data'); require('fs').rmSync(process.env.DATA_DIR, { recursive: true, force: true });
 const assert = require('assert');
 const engine = require('../src/engine');
 const sc = { id: 1, name: 'test', blueprint: { flow: [

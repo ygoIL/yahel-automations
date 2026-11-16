@@ -1,5 +1,5 @@
 module.exports = (reg) => {
-  reg('elevenlabs:createSpeechToText', { run: async (mp) => {
+  reg('elevenlabs:createSpeechToText', { write: true, dryResult: () => ({ text: '', words: [] }), run: async (mp) => {
     const fd = new FormData();
     for (const [k, v] of Object.entries(mp)) { if (v === undefined || v === null || v === '' || k === 'file') continue; fd.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v)); }
     if (mp.file && mp.file.data) fd.append('file', new Blob([mp.file.data]), mp.file.fileName || 'audio');
