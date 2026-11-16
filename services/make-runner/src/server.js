@@ -68,6 +68,11 @@ http.createServer(async (req, res) => {
       if (req.method === 'POST') { const n = await require('./tools').importDataStore(m[1]); return send(res, 200, { imported: n }); }
       return send(res, 200, store.ds(m[1], u.searchParams.get('dry') === '1'));
     }
+    if (u.pathname === '/admin/gapi') { // read-only Google API passthrough for diagnostics
+      const g = require('./google'); const api = u.searchParams.get('api') === 'drive' ? g.drive : g.sheets;
+      const method = req.method === 'POST' ? (body.method || 'PUT') : 'GET';
+      return send(res, 200, await api({ url: u.searchParams.get('url'), method, body: req.method === 'POST' ? body.body : undefined, qs: body.qs }).catch((e) => ({ error: String(e.message) })));
+    }
     if (u.pathname === '/admin/check') return send(res, 200, await require('./tools').check(u.searchParams.get('only')));
     if (u.pathname === '/admin/tochat' && req.method === 'POST') return send(res, 200, await require('./modules/tochat').call(body).catch((e) => ({ error: String(e.message) })));
     return send(res, 404, { error: 'not found' });
