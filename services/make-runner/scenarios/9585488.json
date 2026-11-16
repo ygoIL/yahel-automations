@@ -1,0 +1,590 @@
+{
+ "id": 9585488,
+ "name": "הקדמת התקנה",
+ "scheduling": {
+  "days": [
+   1,
+   2,
+   3,
+   4,
+   0
+  ],
+  "time": "12:00",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:48:39.761Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 2,
+    "filter": null,
+    "mapper": {
+     "from": "drive",
+     "limit": "1000",
+     "filter": [
+      [
+       {
+        "a": "G",
+        "o": "notexist"
+       }
+      ]
+     ],
+     "sheetId": "בקשות להקדמה",
+     "sortOrder": "asc",
+     "spreadsheetId": "12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+     "tableFirstRow": "A1:CZ1",
+     "includesHeaders": true,
+     "valueRenderOption": "FORMATTED_VALUE",
+     "dateTimeRenderOption": "FORMATTED_STRING"
+    },
+    "module": "google-sheets:filterRows",
+    "version": 2,
+    "metadata": {
+     "restore": {
+      "expect": {
+       "from": {
+        "label": "Select from My Drive"
+       },
+       "orderBy": {
+        "mode": "chose"
+       },
+       "sheetId": {
+        "mode": "chose",
+        "label": "בקשות להקדמה"
+       },
+       "sortOrder": {
+        "mode": "chose",
+        "label": "Ascending"
+       },
+       "spreadsheetId": {
+        "mode": "chose",
+        "label": " דוח מכר מירי וירדן"
+       },
+       "tableFirstRow": {
+        "label": "A-CZ"
+       },
+       "includesHeaders": {
+        "mode": "chose",
+        "label": "Yes"
+       },
+       "valueRenderOption": {
+        "mode": "chose",
+        "label": "Formatted value"
+       },
+       "dateTimeRenderOption": {
+        "mode": "chose",
+        "label": "Formatted string"
+       }
+      },
+      "parameters": {
+       "__IMTCONN__": {
+        "data": {
+         "scoped": "true",
+         "connection": "google"
+        },
+        "label": "My Google connection (yordon1234@gmail.com)"
+       }
+      }
+     },
+     "designer": {
+      "x": -135,
+      "y": -23
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 13,
+    "filter": {
+     "name": "",
+     "conditions": [
+      [
+       {
+        "a": "{{2.`__IMTLENGTH__`}}",
+        "b": "0",
+        "o": "text:notequal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "number": "{{2.`2`}}",
+     "defaultCountry": "IL"
+    },
+    "module": "phonenumber:TransformerParseNumber",
+    "version": 1,
+    "metadata": {
+     "restore": {
+      "expect": {
+       "defaultCountry": {
+        "mode": "chose",
+        "label": "Israel (IL)"
+       }
+      }
+     },
+     "designer": {
+      "x": 209,
+      "y": -52
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "limit": "100",
+     "cFieldId": 14028645,
+     "cFieldValue": "{{13.countryCallingCode}}{{13.phone}}"
+    },
+    "module": "manychat:FindSubscriberByCustomField",
+    "version": 1,
+    "metadata": {
+     "restore": {
+      "expect": {
+       "cFieldId": {
+        "mode": "chose",
+        "label": "WA ID"
+       }
+      },
+      "parameters": {
+       "__IMTCONN__": {
+        "data": {
+         "scoped": "true",
+         "connection": "manychat"
+        },
+        "label": "My ManyChat connection"
+       }
+      }
+     },
+     "designer": {
+      "x": 509,
+      "y": -52
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 6,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 7,
+        "filter": {
+         "name": "מצא",
+         "conditions": [
+          [
+           {
+            "a": "{{5.id}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "actions": [
+          {
+           "value": "{{2.`3`}},{{2.`4`}}",
+           "action": "set_field_value",
+           "field_name": "תאריך התקנה"
+          },
+          {
+           "value": "{{first(split(trim(2.`5`); \" \"))}}",
+           "action": "set_field_value",
+           "field_name": "שם נציג"
+          }
+         ],
+         "subscriberId": "{{5.id}}"
+        },
+        "module": "manychat:PerformAction",
+        "version": 1,
+        "metadata": {
+         "restore": {
+          "expect": {
+           "actions": {
+            "mode": "chose",
+            "items": [
+             {
+              "action": {
+               "mode": "chose",
+               "label": "Set a custom field"
+              }
+             },
+             {
+              "action": {
+               "mode": "chose",
+               "label": "Set a custom field"
+              }
+             }
+            ]
+           }
+          },
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1061,
+          "y": -389
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 8,
+        "mapper": {
+         "flowName": "content20260728133615_773505",
+         "subscriberId": "{{5.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "version": 1,
+        "metadata": {
+         "restore": {
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1361,
+          "y": -389
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 14,
+        "mapper": {
+         "from": "share",
+         "mode": "select",
+         "values": {
+          "6": "כן",
+          "14": "{{5.id}}"
+         },
+         "sheetId": "בקשות להקדמה",
+         "rowNumber": "{{2.`__ROW_NUMBER__`}}",
+         "spreadsheetId": "/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+         "includesHeaders": true,
+         "useColumnHeaders": false,
+         "valueInputOption": "USER_ENTERED"
+        },
+        "module": "google-sheets:updateRow",
+        "version": 2,
+        "metadata": {
+         "restore": {
+          "expect": {
+           "from": {
+            "label": "Shared with me"
+           },
+           "mode": {
+            "label": "Search by path"
+           },
+           "sheetId": {
+            "label": "בקשות להקדמה"
+           },
+           "spreadsheetId": {
+            "path": [
+             " דוח מכר מירי וירדן"
+            ]
+           },
+           "includesHeaders": {
+            "label": "Yes"
+           },
+           "useColumnHeaders": {
+            "label": "No"
+           },
+           "valueInputOption": {
+            "mode": "chose",
+            "label": "User entered"
+           }
+          },
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "google"
+            },
+            "label": "My Google connection (yordon1234@gmail.com)"
+           }
+          }
+         },
+         "designer": {
+          "x": 1661,
+          "y": -389
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 9,
+        "filter": {
+         "name": "",
+         "conditions": [
+          [
+           {
+            "a": "{{5.id}}",
+            "o": "notexist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "email": "",
+         "phone": "{{13.countryCallingCode}}{{13.phone}}",
+         "gender": "",
+         "lastName": "",
+         "firstName": "{{2.`1`}}",
+         "hasOptInSms": true,
+         "consentPhrase": "true",
+         "hasOptInEmail": true,
+         "whatsAppPhone": "{{13.countryCallingCode}}{{13.phone}}"
+        },
+        "module": "manychat:CreateSubscriber",
+        "onerror": [
+         {
+          "id": 10,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1250,
+            "y": 362
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "restore": {
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1148,
+          "y": 64
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 11,
+        "mapper": {
+         "actions": [
+          {
+           "value": "{{2.`3`}},{{2.`4`}}",
+           "action": "set_field_value",
+           "field_name": "תאריך התקנה"
+          },
+          {
+           "value": "{{first(split(trim(2.`5`); \" \"))}}",
+           "action": "set_field_value",
+           "field_name": "שם נציג"
+          }
+         ],
+         "subscriberId": "{{9.data.id}}"
+        },
+        "module": "manychat:PerformAction",
+        "version": 1,
+        "metadata": {
+         "restore": {
+          "expect": {
+           "actions": {
+            "mode": "chose",
+            "items": [
+             {
+              "action": {
+               "mode": "chose",
+               "label": "Set a custom field"
+              }
+             },
+             {
+              "action": {
+               "mode": "chose",
+               "label": "Set a custom field"
+              }
+             }
+            ]
+           }
+          },
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1361,
+          "y": -89
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 12,
+        "mapper": {
+         "flowName": "content20260728133615_773505",
+         "subscriberId": "{{9.data.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "version": 1,
+        "metadata": {
+         "restore": {
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1661,
+          "y": -89
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 15,
+        "mapper": {
+         "from": "share",
+         "mode": "select",
+         "values": {
+          "6": "כן",
+          "14": "{{9.data.id}}"
+         },
+         "sheetId": "בקשות להקדמה",
+         "rowNumber": "{{2.`__ROW_NUMBER__`}}",
+         "spreadsheetId": "/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+         "includesHeaders": true,
+         "useColumnHeaders": false,
+         "valueInputOption": "USER_ENTERED"
+        },
+        "module": "google-sheets:updateRow",
+        "version": 2,
+        "metadata": {
+         "restore": {
+          "expect": {
+           "from": {
+            "label": "Shared with me"
+           },
+           "mode": {
+            "label": "Search by path"
+           },
+           "sheetId": {
+            "label": "בקשות להקדמה"
+           },
+           "spreadsheetId": {
+            "path": [
+             " דוח מכר מירי וירדן"
+            ]
+           },
+           "includesHeaders": {
+            "label": "Yes"
+           },
+           "useColumnHeaders": {
+            "label": "No"
+           },
+           "valueInputOption": {
+            "mode": "chose",
+            "label": "User entered"
+           }
+          },
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "google"
+            },
+            "label": "My Google connection (yordon1234@gmail.com)"
+           }
+          }
+         },
+         "designer": {
+          "x": 1983,
+          "y": -116
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 912,
+      "y": -72
+     }
+    }
+   }
+  ],
+  "name": "הקדמת התקנה",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "slots": null,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

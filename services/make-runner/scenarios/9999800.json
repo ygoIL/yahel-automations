@@ -1,0 +1,151 @@
+{
+ "id": 9999800,
+ "name": "Claude - טוצ'ט: העלאת לידים מגיליון לקמפיין",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:06.443Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/{{var.input.spreadsheetId}}/values:batchGetByDataFilter",
+     "body": "{\"dataFilters\": [{\"a1Range\": \"{{var.input.range}}\"}], \"valueRenderOption\": \"FORMATTED_VALUE\"}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "values",
+       "value": "{{1.body.valueRanges[1].valueRange.values}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const rows=(input.values||[]);\nconst seen=new Set();\nconst all=[];\nfor(let i=1;i<rows.length;i++){\n const r=rows[i]||[];\n let p=String(r[0]||'').replace(/\\D/g,'');\n if(p.length===9) p='0'+p;\n if(!/^05\\d{8}$/.test(p) || seen.has(p)) continue;\n seen.add(p);\n const aud=String(r[3]||'');\n const note=String(r[5]||'').trim();\n all.push({phone:p, firstName:String(r[1]||''), lastName:String(r[2]||''), audience:aud, notes: note || ('נתק אותי – '+aud+(r[4]?(' ('+String(r[4]).slice(0,10)+')'):'')), customLeadFields:{}});\n}\nconst batches=[];\nfor(let i=0;i<all.length;i+=200) batches.push({customers: all.slice(i,i+200), idx: batches.length+1, n: Math.min(200, all.length-i)});\nreturn {batches, total: all.length};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "array": "{{2.result.batches}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "customers": "{{3.customers}}",
+     "campaignId": "{{var.input.campaignId}}",
+     "dataSource": {
+      "name": "{{var.input.sourceName}}",
+      "priority": 20,
+      "newCustomersOnly": false,
+      "shouldCheckWithDontCallMe": false,
+      "shouldOverrideCustomerData": false
+     }
+    },
+    "module": "app#tochat-cannon-7utvne:AddLeadsToCampaign2",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "qs": [
+      {
+       "key": "valueInputOption",
+       "value": "RAW"
+      }
+     ],
+     "url": "spreadsheets/{{var.input.spreadsheetId}}/values/log!A1:append",
+     "body": "{\"values\": [[\"{{formatDate(now; \"DD/MM HH:mm\"; \"Asia/Jerusalem\")}}\", \"batch {{3.idx}} sent {{3.n}}\", \"failed {{length(4.failed)}}\", \"{{join(map(4.failed; \"reason\"); \",\")}}\"]]}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: העלאת לידים מגיליון לקמפיין",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

@@ -1,0 +1,63 @@
+{
+ "id": 10038136,
+ "name": "Claude - טוצ'ט: רענון רשימת קמפיינים (קריאה בלבד)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:14.237Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "url": "/campaigns",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "object": "{{1.body}}"
+    },
+    "module": "json:TransformToJSON",
+    "version": 1,
+    "parameters": {
+     "space": ""
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "key": "campaigns",
+     "data": {
+      "data": "{{2.json}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 196925
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: רענון רשימת קמפיינים (קריאה בלבד)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

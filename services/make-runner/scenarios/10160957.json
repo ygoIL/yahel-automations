@@ -1,0 +1,120 @@
+{
+ "id": 10160957,
+ "name": "Claude - הזדמנות שניה: העלאת לידים עם סיבה לכל ליד (סינון חסומים)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:40.717Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/deny-list",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "d",
+       "value": "{{1.body}}"
+      },
+      {
+       "name": "data",
+       "value": "{{var.input.data}}"
+      },
+      {
+       "name": "aud",
+       "value": "{{var.input.audience}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const d=typeof input.d==='string'?JSON.parse(input.d):input.d;\nconst deny=new Set((d||[]).map(x=>{let s=String(x.id||x.phone||'').replace(/\\D/g,'');if(s.startsWith('972'))s='0'+s.slice(3);return s;}));\nlet rows=[];try{rows=JSON.parse(input.data)}catch(e){rows=[]}\nconst all=[];const seen=new Set();let blocked=0;\nfor(const r of rows){let p=String(r.p||'').replace(/\\D/g,'');if(p.startsWith('972'))p='0'+p.slice(3);if(p.length===9)p='0'+p;\nif(!/^05\\d{8}$/.test(p)||seen.has(p))continue;seen.add(p);if(deny.has(p)){blocked++;continue;}\nconst nm=String(r.n||'').trim().split(/\\s+/);\nall.push({phone:p,firstName:nm[0]||'',lastName:nm.slice(1).join(' '),audience:input.aud,notes:String(r.note||'').slice(0,480),customLeadFields:{}});}\nconst batches=[];for(let i=0;i<all.length;i+=200)batches.push({customers:all.slice(i,i+200),idx:batches.length+1,n:Math.min(200,all.length-i)});\nreturn {batches,total:all.length,blocked,denySize:deny.size};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "key": "sc_upl_{{var.input.part}}_summary",
+     "data": {
+      "data": "total {{2.result.total}} blocked {{2.result.blocked}} deny {{2.result.denySize}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "array": "{{2.result.batches}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "customers": "{{3.customers}}",
+     "campaignId": "{{var.input.campaignId}}",
+     "dataSource": {
+      "name": "{{var.input.sourceName}}",
+      "priority": 20,
+      "newCustomersOnly": false,
+      "shouldCheckWithDontCallMe": false,
+      "shouldOverrideCustomerData": false
+     }
+    },
+    "module": "app#tochat-cannon-7utvne:AddLeadsToCampaign2",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "key": "sc_upl_{{var.input.part}}_b{{3.idx}}",
+     "data": {
+      "data": "sent {{3.n}} created {{length(4.created)}} updated {{length(4.updated)}} failed {{length(4.failed)}} {{join(map(4.failed; \"reason\"); \",\")}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - הזדמנות שניה: העלאת לידים עם סיבה לכל ליד (סינון חסומים)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

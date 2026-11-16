@@ -1,0 +1,797 @@
+{
+ "id": 9924268,
+ "name": "Claude - תשובה חופשית מלקוח ← נציג פלאפון / לידים חמים סלולר",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4417584,
+ "hookUdid": "qhvvm8omp64f7qj1938o25um6thvmwmv",
+ "exportedAt": "2026-11-16T16:48:04.653Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4417584,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "filter": {
+     "name": "יש מזהה",
+     "conditions": [
+      [
+       {
+        "a": "{{1.id}}",
+        "o": "exist"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "subscriberId": "{{1.id}}"
+    },
+    "module": "manychat:GetSubscriberInfo",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "input": [
+      {
+       "name": "cf",
+       "value": "{{2.custom_fields}}"
+      },
+      {
+       "name": "t1",
+       "value": "{{1.last_input_text}}"
+      },
+      {
+       "name": "t2",
+       "value": "{{2.last_input_text}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const cf={}; for(const f of (input.cf||[])){ if(f && f.name) cf[f.name]=f.value; }\nconst repWa=String(cf['טלפון נציג פלאפון']||'').replace(/\\D/g,'');\nconst answered=String(cf['זמן חזרה פלאפון']||'').trim();\nlet text=String(input.t1||'').trim(); if(!text || text.includes('{{')) text=String(input.t2||'').trim();\nconst greet=/^(היי|הי|היי היי|שלום|שלום לך|אהלן|הלו|בוקר טוב|ערב טוב|תודה|תודה רבה|ok|אוקי|אוקיי|כן|👍|🙏)[\\s!.,?🙏😊]*$/i;\nlet forward=true, reason='';\nif(!repWa){forward=false;reason='not a pelephone sims customer';}\nelse if(answered){forward=false;reason='already answered: '+answered;}\nelse if(!text){forward=false;reason='no text';}\nelse if(greet.test(text)){forward=false;reason='greeting only';}\nreturn {forward, reason, text: text.slice(0,500)};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 9,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 20,
+        "filter": {
+         "name": "סטיב ביקש סטטוס",
+         "conditions": [
+          [
+           {
+            "a": "{{2.whatsapp_phone}}",
+            "b": "544604246",
+            "o": "text:contain"
+           },
+           {
+            "a": "{{3.result.text}}",
+            "b": "סטטוס",
+            "o": "text:contain"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values/%27%D7%A1%D7%98%D7%98%D7%95%D7%A1%20%D7%90%D7%97%D7%A8%D7%95%D7%9F%27%21A2%3AB2",
+         "method": "GET",
+         "headers": []
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": -450
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13008399
+        }
+       },
+       {
+        "id": 24,
+        "mapper": {
+         "cFieldId": 14739095,
+         "cFieldValue": "{{ifempty(get(get(20.body.values; 1); 1); \"אין עדיין סטטוס שמור\")}}",
+         "subscriberId": "{{1.id}}"
+        },
+        "module": "manychat:SetSubscriberCustomField",
+        "onerror": [
+         {
+          "id": 25,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1350,
+            "y": -300
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1350,
+          "y": -450
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 21,
+        "mapper": {
+         "flowName": "content20260930150123_063231",
+         "subscriberId": "{{1.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "onerror": [
+         {
+          "id": 22,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": -300
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": -450
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 14390747
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 4,
+        "filter": {
+         "name": "להעביר לנציג",
+         "conditions": [
+          [
+           {
+            "a": "{{3.result.forward}}",
+            "b": "true",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "cFieldId": 15032248,
+         "cFieldValue": "{{3.result.text}}",
+         "subscriberId": "{{1.id}}"
+        },
+        "module": "manychat:SetSubscriberCustomField",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 5,
+        "mapper": {
+         "url": "https://hook.eu2.make.com/j98joflkdo9xge5mshngejsypxg4vin5",
+         "method": "post",
+         "contentType": "urlEncoded",
+         "shareCookies": false,
+         "parseResponse": false,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "urlEncodedBodyContent": [
+          {
+           "name": "id",
+           "value": "{{1.id}}"
+          },
+          {
+           "name": "choice",
+           "value": "{{3.result.text}}"
+          }
+         ],
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       },
+       {
+        "id": 26,
+        "mapper": {
+         "cFieldId": 14739095,
+         "cFieldValue": "תודה רבה! ✅ העברנו לנציג שלנו, והוא יחזור אליך בזמן שביקשת כדי לבצע את הניוד 📱🙏",
+         "subscriberId": "{{1.id}}"
+        },
+        "module": "manychat:SetSubscriberCustomField",
+        "onerror": [
+         {
+          "id": 27,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1650,
+            "y": 0
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1650,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 6,
+        "mapper": {
+         "flowName": "content20260930150123_063231",
+         "subscriberId": "{{1.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "onerror": [
+         {
+          "id": 7,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1800,
+            "y": 0
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1800,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 14390747
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 50,
+        "filter": {
+         "name": "לא לקוח סימים פלאפון",
+         "conditions": [
+          [
+           {
+            "a": "{{3.result.reason}}",
+            "b": "not a pelephone sims customer",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.whatsapp_phone}}",
+            "b": "544604246",
+            "o": "text:notcontain"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "key": "{{replace(2.whatsapp_phone; \"+\"; \"\")}}",
+         "returnWrapped": true
+        },
+        "module": "datastore:GetRecord",
+        "onerror": [
+         {
+          "id": 51,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1350,
+            "y": 450
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1050,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "datastore": 202662
+        }
+       },
+       {
+        "id": 10,
+        "mapper": {
+         "input": [
+          {
+           "name": "cf",
+           "value": "{{2.custom_fields}}"
+          },
+          {
+           "name": "t1",
+           "value": "{{1.last_input_text}}"
+          },
+          {
+           "name": "t2",
+           "value": "{{2.last_input_text}}"
+          },
+          {
+           "name": "wa",
+           "value": "{{2.whatsapp_phone}}"
+          },
+          {
+           "name": "ph",
+           "value": "{{2.phone}}"
+          },
+          {
+           "name": "rating",
+           "value": "{{50.data.rating}}"
+          },
+          {
+           "name": "rec",
+           "value": "{{50.data.phone}}"
+          },
+          {
+           "name": "sentAt",
+           "value": "{{50.data.sentAt}}"
+          }
+         ],
+         "language": "javascript",
+         "inputFormat": "editor",
+         "dependencies": [],
+         "codeEditorJavascript": "const cf={}; for(const f of (input.cf||[])){ if(f && f.name) cf[f.name]=f.value; }\nlet raw=String(input.t1||'').trim(); if(!raw || raw.includes('{{')) raw=String(input.t2||'').trim();\nconst repWa=String(cf['טלפון נציג פלאפון']||'').replace(/\\D/g,'');\nlet phone=String(input.wa||'').replace(/\\D/g,''); if(!phone) phone=String(cf['WA ID']||input.ph||'').replace(/\\D/g,'');\nconst rep=String(cf['שם נציג']||'').trim();\nconst isFollowup=String(cf['תאריך ושעת שיחה']||'').trim()!=='';\nfunction detect(raw){\n  let t=String(raw||'').replace(/\\s+/g,' ').trim();\n  if(!t || t.includes('{{')) return {match:false, reason:'no text'};\n  if(/(הסר|תסיר|תורידו|לא מעוני|לא רלוונטי|תפסיקו|אל תתקשר|לא צריך|לא תודה|לא סלולר|אין צורך|נשאר עם|נשארת עם|נשארים עם|מהעבודה|ממקום העבודה|ממקום עבודה)/.test(t)) return {match:false, reason:'refusal'};\n  const ops=[[/(פרטנר|partner)/i,'פרטנר'],[/(סלקום|cellcom)/i,'סלקום'],[/(הוט ?מובייל|hot ?mobile)/i,'הוט מובייל'],[/(פלא?פון(?!ים)|pelephone)/i,'פלאפון'],[/(גולן|golan)/i,'גולן טלקום'],[/(רמי ?לוי)/,'רמי לוי'],[/(וואלה|walla)/i,'וואלה מובייל'],[/(we ?4g|וי ?פור ?ג|וי4ג|wecom)/i,'WE4G'],[/(אקספון|xphone)/i,'אקספון'],[/(019)/,'019'],[/(012)/,'012 מובייל'],[/(018)/,'018'],[/(ביג ?טוק)/,'ביגטוק'],[/(הוט|hot)/i,'הוט']];\n  const found=[]; for(const [re,l] of ops){ if(re.test(t) && !(l==='הוט' && found.some(f=>f.startsWith('הוט')))) found.push(l); }\n  const words={'אחד':1,'אחת':1,'שניים':2,'שתיים':2,'שתים':2,'שני':2,'שתי':2,'שלוש':3,'שלושה':3,'ארבע':4,'ארבעה':4,'חמש':5,'חמישה':5,'שש':6,'שישה':6,'שבע':7,'שבעה':7,'שמונה':8,'תשע':9,'תשעה':9,'עשר':10,'עשרה':10};\n  const W=Object.keys(words).join('|');\n  const unit='(קווים|קוים|קווי|קו|מנויים|מנוי|סימים|סים|מכשירים|טלפונים|פלאפונים|ניידים)';\n  let count=null, m;\n  m=t.match(new RegExp('(\\\\d{1,2})\\\\s*'+unit)); if(m) count=+m[1];\n  if(count===null){ m=t.match(new RegExp('('+W+')\\\\s*'+unit)); if(m) count=words[m[1]]; }\n  if(count===null){ m=t.match(new RegExp(unit+'\\\\s*(\\\\d{1,2})(?!\\\\d)')); if(m) count=+m[2]; }\n  if(count===null){ m=t.match(new RegExp(unit+'\\\\s*('+W+')')); if(m) count=words[m[2]]; }\n  if(count===null && found.length && t.length<=20 && !/(טלוויז|טלויז|ממיר|מגה|גיגה|שח|ש\"ח|₪)/.test(t)){ m=t.match(/(^|\\D)(\\d{1,2})(\\D|$)/); if(m) count=+m[2]; }\n  if(count!==null && (count<1||count>40)) count=null;\n  const match = count!==null;\n  return {match, count: count===null?'':String(count), operator: found.join(' / '), text: t.slice(0,300), reason: match?'':'no line count'};\n}\nconst d=detect(raw);\nlet match=d.match;\nlet reason=d.reason||'';\nif(match && repWa){ match=false; reason='pelephone sims customer'; }\nif(match && d.operator.includes('פלאפון')){ match=false; reason='already pelephone'; }\nif(match && phone.length<9){ match=false; reason='no phone'; }\nconst rt=String(input.rating||'').trim(); const rec=String(input.rec||'').trim()!==''; let recent=false; { const ms=String(input.sentAt||'').match(/(\\d{4})-(\\d{2})-(\\d{2})/); if(ms){ const nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'})); recent=(nowIL-new Date(+ms[1],+ms[2]-1,+ms[3]))/86400000<=8; } }\nif(match && (rt==='5'||rt==='4'||(rec&&recent))){ match=false; reason='post-install rating customer - sent as task to the selling rep'; }\nconst summary=(d.count?d.count+' קווים':'כמות לא צוינה')+' | '+(d.operator||'חברה לא צוינה');\nconst notes='🔥 ליד חם מוואטסאפ: '+summary+'\\nמחובר ל: '+(d.operator||'לא הייציין')+'\\nכמות קווים: '+(d.count||'לא הייציין')+'\\nתשובת הלקוח: \"'+(d.text||'')+'\"'+(rep?('\\nנציג הפולואפ: '+rep):'');\nreturn {match, reason, phone, count:d.count||'', operator:d.operator||'', text:d.text||'', rep, summary, notes};\n"
+        },
+        "module": "code:ExecuteCode",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": 200
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 11,
+        "filter": {
+         "name": "ענה כמה קווים (עם או בלי חברה)",
+         "conditions": [
+          [
+           {
+            "a": "{{10.result.match}}",
+            "b": "true",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "customers": [
+          {
+           "notes": "{{10.result.notes}}",
+           "phone": "{{10.result.phone}}",
+           "audience": "🔥 {{10.result.summary}}",
+           "firstName": "{{ifempty(2.name; 2.first_name)}}",
+           "customLeadFields": {}
+          }
+         ],
+         "campaignId": "A1zQSggck7wzPeGWCuDm",
+         "dataSource": {
+          "name": "וואטסאפ פולואפ",
+          "priority": 20,
+          "newCustomersOnly": false,
+          "shouldCheckWithDontCallMe": false,
+          "shouldOverrideCustomerData": false
+         }
+        },
+        "module": "app#tochat-cannon-7utvne:AddLeadsToCampaign2",
+        "onerror": [
+         {
+          "id": 13,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": 400
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12553633
+        }
+       },
+       {
+        "id": 12,
+        "mapper": {
+         "from": "drive",
+         "mode": "select",
+         "values": {
+          "0": "{{formatDate(now; \"DD/MM/YYYY HH:mm\"; \"Asia/Jerusalem\")}}",
+          "1": "אוטומטי",
+          "2": "{{ifempty(2.name; 2.first_name)}}",
+          "3": "'{{10.result.phone}}",
+          "4": "{{ifempty(10.result.operator; \"לא הייציין\")}}",
+          "5": "{{10.result.count}}",
+          "6": "{{10.result.text}}",
+          "7": "{{10.result.rep}}",
+          "8": "{{if(length(11.failed) = 0; \"✅ נכנס לקמפיין\"; if(first(map(11.failed; \"reason\")) = \"ALREADY_IN_CAMPAIGN\"; \"✅ כבר בקמפיין\"; if(first(map(11.failed; \"reason\")) = \"IN_DENY_LIST\"; \"⛔ ברשימה השחורה – לא נכנס\"; \"❌ \" + first(map(11.failed; \"reason\")))))}}"
+         },
+         "sheetId": "לידים חמים סלולר",
+         "spreadsheetId": "/1-mXfg-H5pZzGtTLTYOcU_SBgOEu8S2FnTrvz3Brc_7M",
+         "includesHeaders": true,
+         "insertDataOption": "INSERT_ROWS",
+         "useColumnHeaders": false,
+         "valueInputOption": "USER_ENTERED",
+         "insertUnformatted": false
+        },
+        "module": "google-sheets:addRow",
+        "onerror": [
+         {
+          "id": 14,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1800,
+            "y": 400
+           }
+          }
+         }
+        ],
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1800,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13008399
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 40,
+        "filter": {
+         "name": "שביעות רצון: העברה לסצנריו דירוג/טקסט לאחר התקנה",
+         "conditions": [
+          [
+           {
+            "a": "{{2.whatsapp_phone}}",
+            "o": "exist"
+           },
+           {
+            "a": "{{2.whatsapp_phone}}",
+            "b": "544604246",
+            "o": "text:notcontain"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://hook.eu2.make.com/9x6gchbdt49mdcijyn5empn19y8je25u",
+         "method": "post",
+         "contentType": "urlEncoded",
+         "shareCookies": false,
+         "parseResponse": false,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "urlEncodedBodyContent": [
+          {
+           "name": "id",
+           "value": "{{1.id}}"
+          },
+          {
+           "name": "name",
+           "value": "{{ifempty(2.first_name; 2.name)}}"
+          },
+          {
+           "name": "phone",
+           "value": "{{2.whatsapp_phone}}"
+          },
+          {
+           "name": "text",
+           "value": "{{ifempty(2.last_input_text; 1.last_input_text)}}"
+          }
+         ],
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 41,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": 800
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": 700
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth",
+         "authenticationMethod": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 60,
+        "filter": {
+         "name": "פנייה דחופה אחרי התקנה: העברה לנציג מוכר",
+         "conditions": [
+          [
+           {
+            "a": "{{2.whatsapp_phone}}",
+            "o": "exist"
+           },
+           {
+            "a": "{{2.whatsapp_phone}}",
+            "b": "544604246",
+            "o": "text:notcontain"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://hook.eu2.make.com/bdy6geqrtp3s3941q3k9tobg2fupi7k5",
+         "method": "post",
+         "contentType": "urlEncoded",
+         "shareCookies": false,
+         "parseResponse": false,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "urlEncodedBodyContent": [
+          {
+           "name": "id",
+           "value": "{{1.id}}"
+          },
+          {
+           "name": "name",
+           "value": "{{ifempty(2.first_name; 2.name)}}"
+          },
+          {
+           "name": "phone",
+           "value": "{{2.whatsapp_phone}}"
+          },
+          {
+           "name": "text",
+           "value": "{{ifempty(2.last_input_text; 1.last_input_text)}}"
+          }
+         ],
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 61,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": 1100
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": 1000
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth",
+         "authenticationMethod": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 70,
+        "filter": {
+         "name": "תשובה לפולואפ / עסקה נסגרה (יש שם נציג): העברה לסצנריו תשובה לפולואפ",
+         "conditions": [
+          [
+           {
+            "a": "{{join(map(2.tags; \"name\"); \",\")}}",
+            "b": "קיבל פולואפ",
+            "o": "text:contain"
+           }
+          ],
+          [
+           {
+            "a": "{{first(map(2.custom_fields; \"value\"; \"name\"; \"שם נציג\"))}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://hook.eu2.make.com/7k0rycewsedpny3mhwjhr9oh2ue1fmbh",
+         "method": "post",
+         "contentType": "urlEncoded",
+         "shareCookies": false,
+         "parseResponse": false,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "urlEncodedBodyContent": [
+          {
+           "name": "id",
+           "value": "{{1.id}}"
+          },
+          {
+           "name": "name",
+           "value": "{{ifempty(2.name; 2.first_name)}}"
+          },
+          {
+           "name": "phone",
+           "value": "{{2.whatsapp_phone}}"
+          },
+          {
+           "name": "text",
+           "value": "{{ifempty(2.last_input_text; 1.last_input_text)}}"
+          }
+         ],
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 71,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": 1400
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": 1300
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth",
+         "authenticationMethod": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - תשובה חופשית מלקוח ← נציג פלאפון / לידים חמים סלולר",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

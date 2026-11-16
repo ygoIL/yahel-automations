@@ -1,0 +1,241 @@
+{
+ "id": 10112529,
+ "name": "Claude - תשובת נציג על ניתוק / ביטול → דוח מכר",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4493128,
+ "hookUdid": "19jyvp8p7ufrll7xc66akf8znt11q35i",
+ "exportedAt": "2026-11-16T16:48:13.728Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4493128,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?fields=sheets.properties.title",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 200,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{7.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst titles=arr(input.sheets).map(s=>String(((s||{}).properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(const off of [0,-1]){ const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+off,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t); }\nconst q=s=>\"'\"+s+\"'\";\nconst f=[{a1Range:\"'יעדים'!A2:U200\"}];\nif(titles.includes('ניתוקים')) f.push({a1Range:\"'ניתוקים'!A1:M5000\"});\ntabs.forEach(t=>f.push({a1Range:q(t)+'!A1:Z1500'}));\nreturn {tabs:JSON.stringify(tabs), readBody:JSON.stringify({dataFilters:f, valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 400,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{8.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "phone",
+       "value": "{{1.phone}}"
+      },
+      {
+       "name": "text",
+       "value": "{{1.text}}"
+      },
+      {
+       "name": "d1",
+       "value": "{{2.body.valueRanges}}"
+      },
+      {
+       "name": "tabs",
+       "value": "{{8.result.tabs}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const norm=s=>String(s==null?'':s).replace(/\\s+/g,' ').trim();\nconst digits=s=>String(s==null?'':s).replace(/\\D/g,'');\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst vals=x=>((x&&x.valueRange)||x||{}).values||[];\nconst ALIAS={'אוסי':'אוסי גיאן','אופק פ':'אופק','דוד':'דוד חי','איתמר':'איתמר ששון'};\nconst d1=arr(input.d1).map(v=>(v&&v.valueRange)||v||{});\nconst byName=n=>{ const x=d1.find(v=>{ const r=norm(v.range).replace(/^'/,''); return r.startsWith(n+\"'!\")||r.startsWith(n+'!'); }); return (x&&x.values)||[]; };\nconst tabs=arr(input.tabs).map(norm);\nconst targets=byName('יעדים'), dtab=byName('ניתוקים');\nconst ph=digits(input.phone); const p9=ph.slice(-9);\nconst outPhone=ph.startsWith('972')?ph:('972'+ph.replace(/^0+/,''));\nconst pad=n=>('0'+n).slice(-2);\nconst now=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst todayTxt=pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear();\nconst todayDM=pad(now.getDate())+'/'+pad(now.getMonth()+1);\nconst res=(ack,wr)=>({ok:!!(wr&&wr.length), ack, outPhone, writeBody:JSON.stringify({valueInputOption:'RAW',data:wr||[]}), writeCount:(wr||[]).length});\nconst names=targets.map(r=>norm((r||[])[0])).filter(Boolean);\nconst resolve=c=>{ c=norm(c); if(ALIAS[c]) c=ALIAS[c]; if(!c) return ''; if(names.includes(c)) return c;\n  const cand=names.filter(n=>n.split(' ')[0]===c||c.split(' ')[0]===n); return cand.length===1?cand[0]:''; };\nlet rep='';\ntargets.forEach(r=>{ if(!r) return; const n=norm(r[0]); if(n && p9.length===9 && digits(r[1]).slice(-9)===p9) rep=n; });\nif(!rep) return res('לא מצאתי אותך ברשימת הנציגים. תדבר עם סטיב.');\nconst raw=String(input.text==null?'':input.text).trim();\n// RULE (Steve 10/11/2026): an answer without the word ביטול/ניתוק (\"1 ...\", \"2 ...\") is matched to what is open for the rep (cancellations or disconnects); the number may be followed by just a space. Do not remove.\nconst dk=s=>{ const m=norm(s).match(/^(\\d{1,2})\\/(\\d{1,2})(?:\\/(\\d{4}))?/); return m?((+(m[3]||now.getFullYear()))*10000+(+m[2])*100+(+m[1])):0; };\nconst getItems=cancel=>{ const items={}; let maxD=0; const mine=[];\n  if(!cancel){\n    dtab.forEach((r,i)=>{ if(!r) return; if(digits(r[1]).length<6) return; if(norm(r[4])!==rep) return; const d=dk(r[8]); const n=Number(norm(r[12]))||0; if(!d||!n) return; mine.push({i,r,d,n}); if(d>maxD) maxD=d; });\n    mine.filter(x=>x.d===maxD).forEach(x=>{ items[x.n]={kind:'d', row:x.i+1, name:norm(x.r[2]), ans:String(x.r[10]==null?'':x.r[10])}; });\n  } else {\n    tabs.forEach(tb=>{ const rows=byName(tb); const hE=(rows[0]||[]).map(norm).findIndex(x=>x.startsWith('הסבר נציג')); if(hE<0) return;\n      rows.forEach((r,i)=>{ if(i===0||!r) return; const ev=norm(r[hE]); const mk=ev.match(/^⏳\\D*(\\d{1,2}\\/\\d{1,2})\\s*#(\\d+)/); if(!mk) return;\n        if(resolve(r[7])!==rep) return; const d=dk(mk[1]); mine.push({tb,hE,i,name:norm(r[2]),d,n:+mk[2]}); if(d>maxD) maxD=d; }); });\n    mine.filter(x=>x.d===maxD).forEach(x=>{ items[x.n]={kind:'c', tb:x.tb, col:x.hE, row:x.i+1, name:x.name}; });\n  }\n  return items; };\nconst hasKW=/^\\s*(ניתוקים?|ביטולים?|נפילה)/.test(raw);\nlet isCancel=/^\\s*(ביטול|ביטולים|נפילה)/.test(raw);\nlet items;\nif(hasKW) items=getItems(isCancel);\nelse { const ci=getItems(true), di=getItems(false);\n  const cn=Object.keys(ci).length, dn=Object.keys(di).filter(k=>!di[k].ans).length;\n  if(cn&&!dn){ isCancel=true; items=ci; }\n  else if(dn&&!cn){ isCancel=false; items=di; }\n  else if(cn&&dn) return res('יש לך גם ביטולים וגם ניתוקים שמחכים לתשובה. תכתבו לפני כל תשובה את המילה, למשל:\\nביטול 1 - ...\\nניתוק 1 - ...');\n  else return res('אין לך כרגע ביטול או ניתוק שמחכה להסבר 👍'); }\nconst KW=isCancel?'ביטול':'ניתוק';\nconst t=raw.replace(/^\\s*(ניתוקים?|ביטולים?|נפילה)\\s*[:\\-–]?\\s*/,'').trim();\nconst nums=Object.keys(items).map(Number).sort((a,b)=>a-b);\nif(!nums.length) return res(isCancel?'אין לך כרגע ביטול שמחכה להסבר 👍':'אין לך כרגע ניתוק פתוח שמחכה לתשובה 👍');\nif(t.length<2) return res('חסר פירוט. תכתבו ככה: '+KW+' 1 - '+(isCancel?'מה קרה ולמה הלקוח ביטל':'מה קרה, שימרתם או לא, ולמה הוא התנתק'));\nconst re=new RegExp('(?:^|\\\\n)\\\\s*(?:'+KW+'\\\\s*)?(\\\\d{1,2})(\\\\s*[-–.):]\\\\s*|\\\\s+)','g'); const ms=[]; let m;\nwhile((m=re.exec(t))!==null){ const n=+m[1]; if(!/[-–.):]/.test(m[2])&&!items[n]) continue; ms.push({n,s:m.index,e:re.lastIndex}); }\nconst segs={};\nif(ms.length){ ms.forEach((x,i)=>{ const end=i+1<ms.length?ms[i+1].s:t.length; const s=t.slice(x.e,end).trim(); if(s) segs[x.n]=s; }); }\nelse if(nums.length===1){ segs[nums[0]]=t; }\nelse return res('יש לך '+nums.length+' '+(isCancel?'ביטולים':'ניתוקים')+' בהודעה, צריך מספר לפני כל תשובה. למשל:\\n'+KW+' 1 - ...\\n'+KW+' 2 - ...');\nconst classify=s=>{ if(/לא\\s*(שומר|שימר|שימרתי|שימרנו|הצלחתי|הצלחנו|נשאר|רוצה להישאר)|נותק|ניתק|מתנתק|עזב|עוזב|עבר ל/.test(s)) return 'לא שומר';\n  if(/שומר|שימרתי|שימרנו|נשאר|ביטל[הו]?\\s*(את\\s*)?ה?ניתוק/.test(s)) return 'שומר'; return 'לא ברור'; };\nconst colL=n=>{ let s=''; n++; while(n>0){ const k=(n-1)%26; s=String.fromCharCode(65+k)+s; n=Math.floor((n-1)/26); } return s; };\nconst wr=[]; const okL=[], missL=[], badN=[];\nObject.keys(segs).map(Number).forEach(n=>{ if(!items[n]) badN.push(n); });\nnums.forEach(n=>{ const it=items[n]; const s=segs[n];\n  if(!s){ if(!(it.kind==='d'&&it.ans)) missL.push(n+'. '+it.name); return; }\n  const text=s.slice(0,500);\n  if(it.kind==='d'){ const full=it.ans?(it.ans.includes(text)?it.ans:it.ans+' | '+text):text;\n    wr.push({range:\"'ניתוקים'!J\"+it.row+\":L\"+it.row, values:[[classify(full), full, todayTxt]]}); }\n  else wr.push({range:\"'\"+it.tb+\"'!\"+colL(it.col)+it.row, values:[[text+' (נציג '+todayDM+')']]});\n  okL.push(it.name); });\nconst lines=[];\nif(okL.length) lines.push((isCancel?'רשמתי את ההסבר בדוח המכר: ':'רשמתי בחוצץ הניתוקים: ')+okL.join(', ')+' 👍');\nif(badN.length) lines.push('מספר '+badN.join(', ')+' לא מופיע בהודעה ששלחתי לך.');\nif(missL.length) lines.push('עוד חסרה תשובה על:\\n'+missL.join('\\n')+'\\nתכתבו: '+KW+' <מספר> - '+(isCancel?'מה קרה ולמה הלקוח ביטל':'מה קרה, שימרתם או לא, ולמה הוא התנתק'));\nreturn res(lines.join('\\n')||'לא הבנתי. תכתבו ככה: '+KW+' 1 - ...',wr);\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 10,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 5,
+        "filter": {
+         "name": "יש מה לכתוב",
+         "conditions": [
+          [
+           {
+            "a": "{{4.result.writeCount}}",
+            "b": "0",
+            "o": "number:greater"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+         "body": "{{4.result.writeBody}}",
+         "method": "POST",
+         "headers": [
+          {
+           "key": "Content-Type",
+           "value": "application/json"
+          }
+         ]
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": 0
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 6,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{4.result.outPhone}}@c.us",
+          "message": "{{4.result.ack}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": 0
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1100,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - תשובת נציג על ניתוק / ביטול → דוח מכר",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

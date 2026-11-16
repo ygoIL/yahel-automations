@@ -1,0 +1,113 @@
+{
+ "id": 10042710,
+ "name": "Claude - איתותי קנייה: בדיקת סטטוס לקוחות בטוצ'ט (קריאה בלבד)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:34.430Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "array": "{{split(var.input.phones; \",\")}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/customers/{{trim(1.value)}}",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "onerror": [
+     {
+      "id": 21,
+      "mapper": {
+       "body": "{}",
+       "statusCode": 0
+      },
+      "module": "builtin:Resume",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "object": "{{2.body}}"
+    },
+    "module": "json:TransformToJSON",
+    "version": 1,
+    "parameters": {
+     "space": ""
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "j": "{{3.json}}",
+     "p": "{{trim(1.value)}}"
+    },
+    "module": "builtin:BasicAggregator",
+    "version": 1,
+    "parameters": {
+     "feeder": 1
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "arr",
+       "value": "{{4.array}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const p=v=>typeof v==='string'?JSON.parse(v):v;\nconst out=[];\nfor(const a of (p(input.arr)||[])){let b={};try{b=JSON.parse(a.j)}catch(e){}\nconst act=(b.activeLeads||[]).map(l=>({c:l.campaignName,st:l.status,sub:l.subStatus,fd:l.followDate,fb:l.followByName}));\nconst inact=(b.inactiveCampaigns||[]).slice().sort((x,y)=>String(y.timestamp).localeCompare(String(x.timestamp))).slice(0,3).map(l=>({c:l.name,r:l.reason,sr:l.subReason&&l.subReason.name,ag:l.agentName,t:l.timestamp,n:l.note}));\nconst fu=act.filter(l=>/follow|פולו/i.test(String(l.st||'')+' '+String(l.sub||''))||(l.fd&&l.fb));\nconst sale=inact.filter(l=>String(l.r||'').toUpperCase()==='CLOSED'||/מכירה|נסגר|עסקה/.test(String(l.sr||'')));\nconst rec={phone:a.p,active:act,closed:inact};\nconst why=[];\nif(fu.length){rec.followup_open=true;why.push('פולואפ פתוח בטוצ\\'ט ('+fu.map(l=>(l.fb||'נציג')+(l.fd?' ל-'+l.fd:'')).join(', ')+')');}\nif(sale.length){rec.deal_closed=true;why.push('עסקה נסגרה ('+sale.map(l=>(l.ag||'נציג')+' '+String(l.t||'').slice(0,10)).join(', ')+')');}\nif(why.length){rec.skip=true;rec.skip_reason=why.join(' + ')+' – אסור להכניס לדוח איתותי קנייה.';}\nout.push(rec);}\nreturn JSON.stringify(out);"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "key": "status",
+     "data": {
+      "data": "{{5.result}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - איתותי קנייה: בדיקת סטטוס לקוחות בטוצ'ט (קריאה בלבד)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

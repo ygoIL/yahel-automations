@@ -1,0 +1,70 @@
+{
+ "id": 10171789,
+ "name": "Claude - טוצ'ט: אבחון לידים פתוחים בקמפיין (קריאה בלבד)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:58.269Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "limit": 50000,
+     "campaignId": "{{var.input.c}}"
+    },
+    "module": "app#tochat-cannon-7utvne:GetOpenLeadsPage",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "l",
+       "value": "{{1.leads}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const L=typeof input.l==='string'?JSON.parse(input.l):(input.l||[]);\nconst keys=L.length?Object.keys(L[0]):[];\nconst st={};for(const x of L){st[x.status]=(st[x.status]||0)+1;}\nconst sample=L.slice(0,2);\nconst rows=L.map(x=>{const o={p:x.displayPhone,s:x.status};for(const k of Object.keys(x)){if(/follow|agent|assign|rep|owner|user/i.test(k)){o[k]=x[k];}}o.a=x.audience;o.c=String(x.createDate||x.createdAt||'').slice(0,16);return o;});\nreturn JSON.stringify({n:L.length,keys,st,sample,rows});"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "key": "diag_{{var.input.c}}",
+     "data": {
+      "data": "{{2.result}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: אבחון לידים פתוחים בקמפיין (קריאה בלבד)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

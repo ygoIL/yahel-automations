@@ -1,0 +1,598 @@
+{
+ "id": 10140179,
+ "name": "Claude - תשובה לפולואפ ← הודעה לנציג (Green API)",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4504458,
+ "hookUdid": "7k0rycewsedpny3mhwjhr9oh2ue1fmbh",
+ "exportedAt": "2026-11-16T16:48:07.653Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4504458,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "filter": {
+     "name": "יש מזהה",
+     "conditions": [
+      [
+       {
+        "a": "{{1.id}}",
+        "o": "exist"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "subscriberId": "{{1.id}}"
+    },
+    "module": "manychat:GetSubscriberInfo",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 10,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?fields=sheets.properties.title",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 100,
+      "mapper": {
+       "body": {
+        "sheets": []
+       }
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 450,
+        "y": 550
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 450,
+      "y": 250
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 11,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{10.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst titles=arr(input.sheets).map(s=>String(((s||{}).properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(const off of [0,-1,1]){ const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+off,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t); }\nconst q=s=>\"'\"+s+\"'\";\nconst filters=tabs.length? tabs.map(t=>({a1Range:q(t)+'!A1:H2000'})) : [{a1Range:q('הגדרות')+'!A1:A1'}];\nreturn {readBody: JSON.stringify({dataFilters:filters, valueRenderOption:'FORMATTED_VALUE'})};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 250
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 12,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{11.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 101,
+      "mapper": {
+       "body": {
+        "valueRanges": []
+       }
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 750,
+        "y": 550
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 750,
+      "y": 250
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values/יעדים!A2:B80",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 30,
+      "mapper": {
+       "body": {
+        "values": []
+       }
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 600,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 13,
+    "mapper": {
+     "key": "{{replace(replace(ifempty(2.whatsapp_phone; 2.phone); \"+\"; \"\"); \" \"; \"\")}}",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "onerror": [
+     {
+      "id": 131,
+      "mapper": {
+       "repFull": ""
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 750,
+        "y": -450
+       }
+      }
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 750,
+      "y": -250
+     }
+    },
+    "parameters": {
+     "datastore": 207742
+    }
+   },
+   {
+    "id": 14,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/customers/{{replace(replace(ifempty(2.whatsapp_phone; 2.phone); \"+\"; \"\"); \" \"; \"\")}}",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "onerror": [
+     {
+      "id": 141,
+      "mapper": {
+       "body": {}
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1050,
+        "y": -450
+       }
+      }
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1050,
+      "y": -250
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 15,
+    "mapper": {
+     "object": "{{14.body}}"
+    },
+    "module": "json:TransformToJSON",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": -250
+     }
+    },
+    "parameters": {
+     "space": ""
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "cf",
+       "value": "{{2.custom_fields}}"
+      },
+      {
+       "name": "tags",
+       "value": "{{2.tags}}"
+      },
+      {
+       "name": "text",
+       "value": "{{1.text}}"
+      },
+      {
+       "name": "text2",
+       "value": "{{2.last_input_text}}"
+      },
+      {
+       "name": "wa",
+       "value": "{{2.whatsapp_phone}}"
+      },
+      {
+       "name": "ph",
+       "value": "{{2.phone}}"
+      },
+      {
+       "name": "name",
+       "value": "{{ifempty(2.name; ifempty(2.first_name; 1.name))}}"
+      },
+      {
+       "name": "targets",
+       "value": "{{3.body.values}}"
+      },
+      {
+       "name": "sales",
+       "value": "{{12.body.valueRanges}}"
+      },
+      {
+       "name": "repFull",
+       "value": "{{13.repFull}}"
+      },
+      {
+       "name": "sentAt",
+       "value": "{{13.sentAt}}"
+      },
+      {
+       "name": "tc",
+       "value": "{{15.json}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const digits=s=>String(s==null?'':s).replace(/\\D/g,'');\nconst norm=s=>String(s==null?'':s).replace(/\\s+/g,' ').trim();\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst cf={}; for(const f of arr(input.cf)){ if(f && f.name) cf[f.name]=f.value; }\nconst tags=arr(input.tags).map(t=>norm((t&&t.name)||t));\nconst gotFollowup=tags.includes('קיבל פולואפ');\nconst mcRep=norm(cf['שם נציג']);\n// RULE (15/11/2026): full rep name is kept only in the Followup data store (repFull), never in a ManyChat field the customer can see. Priority: דוח מכר > repFull > ManyChat 'שם נציג' (first name only). Do not remove.\nconst repFull=norm(input.repFull);\nconst rawDate=norm(cf['תאריך ושעת שיחה']);\nlet text=norm(input.text); if(!text || text.includes('{{')) text=norm(input.text2);\ntext=text.slice(0,500);\n// RULE (Steve 15/11/2026): a reply that is only a high rating (4 or 5, e.g. \"5\", \"5/5\", \"5 🙏\") is not sent to the rep. Low ratings and any real text still go. Do not remove.\nconst highOnly=/^[45]\\s*(?:\\/\\s*5|מתוך\\s*5)?(?:\\s|[!.,]|🙏|👍|❤️|😊)*$/.test(text);\nlet phone=digits(input.wa); if(!phone) phone=digits(cf['WA ID']||input.ph);\nconst custPhone=phone.length>=9?('0'+phone.slice(-9)):phone;\nconst name=norm(input.name)||'לא ידוע';\n// תאריך השיחה שנקבע בפולואפ – מציגים בשעון ישראל; לקוח שהשיחה שלו לפני יותר מ-14 יום כבר לא נחשב תשובה לפולואפ\nlet dateStr='', old=false;\nif(rawDate){ const d=new Date(rawDate); if(!isNaN(d)){ dateStr=d.toLocaleString('he-IL',{timeZone:'Asia/Jerusalem',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); old=(Date.now()-d.getTime())/86400000>14; } else dateStr=rawDate; }\n// RULE (Steve 12/11/2026): the followup reply goes to the selling rep in the דוח מכר (current/previous/next month) when the customer's phone is there; the ManyChat 'שם נציג' field is only a fallback (it gets overwritten). A phone listed for 2+ different customers -> Steve + Yarden, not a guess. Do not remove.\nconst k9=phone.slice(-9); const names={};\nif(k9.length===9){ for(const vr of arr(input.sales)){ const vals=((vr&&vr.valueRange)||vr||{}).values||[]; for(const r of vals.slice(1)){ if(r&&digits(r[3]).slice(-9)===k9){ const n=norm(r[2]); if(n) names[n]=norm(r[7]); } } } }\nconst nk=Object.keys(names); const dup=nk.length>1;\n// RULE (Yarden 16/11/2026): a customer who got the 'עסקה נסגרה' message (Railway sets only ManyChat 'שם נציג', no tag) is handled like a followup reply: דוח מכר first, then the rep name. If the rep is not ours -> WhatsApp group 'טו צ׳אט' (no 48h limit). Our customer -> nothing is sent. A followup older than 14 days falls back to this path. Do not remove.\nconst isFollow=gotFollowup&&!old;\nlet tc={}; try{ tc=typeof input.tc==='string'?JSON.parse(input.tc||'{}'):(input.tc||{}); }catch(e){ tc={}; }\nconst tcClosed=(tc.inactiveCampaigns||[]).filter(c=>c&&String(c.reason||'').toUpperCase()==='CLOSED'&&norm(c.agentName)).sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));\nconst tcCloser=tcClosed.length?norm(tcClosed[0].agentName):'';\nconst tcFollow=(tc.activeLeads||[]).map(l=>norm(l&&l.followByName)).filter(Boolean);\nconst isClosed=!isFollow&&!!mcRep;\nconst mcFirst=mcRep.split(' ')[0];\nconst tcFollowMatch=mcFirst?(tcFollow.find(n=>n.split(' ')[0]===mcFirst)||''):'';\nconst rep=norm((nk.length===1&&names[nk[0]])?names[nk[0]]:(isFollow?(tcFollowMatch||repFull||mcRep):(tcCloser||mcRep)));\nconst showName=nk.length===1?nk[0]:name;\n// RULE (Yarden 16/11/2026): ownership is decided by the rep's FULL name, because Liran's/Yossi's team also has first names like ours (e.g. 'דניאל דמוזה' is NOT ours). Full name sources: דוח מכר -> ToChat (agentName of the latest CLOSED deal / followByName of an open followup) -> Followup data store repFull -> ManyChat first name (fallback only). A full name matches our rep only if it equals a name in יעדים, or יעדים has a single-word entry with that first name and NO full-name entry with the same first name. If ANY known full name is ours, the customer is ours and never goes to the group. Do not remove.\nconst rows=arr(input.targets).filter(r=>r&&r[0]&&r[1]).map(r=>({n:norm(r[0]),p:digits(r[1])}));\nconst toIntl=p=>{ p=String(p||''); if(p.startsWith('0')) p='972'+p.slice(1); return /^9725\\d{8}$/.test(p)?p:''; };\nconst lookup=(nm)=>{ nm=norm(nm); if(!nm) return {hit:null,amb:[]};\n  const ex=rows.find(r=>r.n===nm); if(ex) return {hit:ex,amb:[]};\n  const first=nm.split(' ')[0]; const same=rows.filter(r=>r.n.split(' ')[0]===first);\n  if(nm.includes(' ')){ const fulls=same.filter(r=>r.n.includes(' ')); const singles=same.filter(r=>!r.n.includes(' ')); return {hit:(fulls.length===0&&singles.length===1)?singles[0]:null,amb:[]}; }\n  if(same.length===1) return {hit:same[0],amb:[]};\n  if(same.length>1) return {hit:null,amb:same.map(r=>r.n)};\n  const sw=rows.filter(r=>r.n.startsWith(nm)||nm.startsWith(r.n)); return {hit:sw.length===1?sw[0]:null,amb:[]};\n};\nconst isOur=nm=>{ const l=lookup(nm); return !!(l.hit&&toIntl(l.hit.p)); };\nlet repPhone=''; let amb=[];\nif(rep){ const l=lookup(rep); amb=l.amb; if(l.hit) repPhone=toIntl(l.hit.p); }\nconst fullKnown=[...nk.map(n=>names[n]), tcCloser, ...tcFollow, repFull].map(norm).filter(Boolean);\nconst oursByAny=fullKnown.some(isOur);\nlet reason='';\nif(!isFollow&&!isClosed) reason=gotFollowup?'followup older than 14 days, no rep name':'no followup tag and no rep name';\nelse if(!text) reason='no text';\nelse if(highOnly) reason='high rating only (4/5) - not sent';\nelse if(!rep) reason='no rep name';\nelse if(!repPhone) reason='rep phone not found: '+rep;\nelse if(isClosed) reason='closed deal - our rep ('+rep+') - not sent';\nconst send=isFollow&&!dup&&reason==='';\n// RULE (Steve 16/11/2026): the דוח מכר is always checked first by the customer's phone. If the phone is not there and the rep name matches 2+ of OUR reps (e.g. 'דניאל' = דניאל אלימלך / דניאל קראוז), the reply goes to the WhatsApp group 'טו צ׳אט' (not Steve+Yarden). Do not remove.\n// RULE (Yarden 16/11/2026): replaces the 48h part of the rule below - a followup reply of a rep that is not ours ALWAYS goes to the WhatsApp group 'טו צ׳אט', with no time limit (no more 'over 48h -> Steve + Yarden'). Do not remove.\n// (old) RULE (Steve/Yarden 15/11/2026): any rep we don't recognize (no rep name, or a name with no phone in יעדים) is one of Liran's/Yossi's reps. If the customer replied within 48h of the followup being sent (data store sentAt) -> send to the WhatsApp group 'טו צ׳אט' (120363429258204378@g.us), without saying 'not recognized'. Over 48h -> Steve + Yarden in private. No sentAt -> group. Do not remove.\nconst base=!dup&&(isFollow||isClosed)&&!!text&&!highOnly&&!repPhone;\nconst ourAmb=amb.length>1;\nconst sentMs=Date.parse(norm(input.sentAt));\nconst hrs=isNaN(sentMs)?null:(Date.now()-sentMs)/3600000;\n// RULE (Yarden 16/11/2026): if the יעדים sheet could not be read (no reps loaded), every rep looks 'not ours' - never send to the group then; alert Steve + Yarden instead. Do not remove.\nconst targetsOk=rows.length>0;\n// RULE (Yardiv 16/11/2026): a customer who got a followup MORE than 14 days ago and writes again ('לקוח חזר לכתוב') is NOT sent to the WhatsApp group 'טו צ׳אט' - nothing is sent for him. Do not remove.\nconst oldFollowBack=isClosed&&gotFollowup;\nconst toGroup=base&&!oursByAny&&targetsOk&&!oldFollowBack;\nconst lateOther=false;\nconst repMissing=base&&(oursByAny||!targetsOk);\nconst sendMgr=(dup&&(isFollow||isClosed)&&!!text&&!highOnly)||repMissing||lateOther;\nconst details='שם הלקוח: '+showName+'\\nנייד: '+custPhone+(dateStr&&isFollow?'\\nשיחה שנקבעה: '+dateStr:'')+'\\nמה הלקוח כתב: \"'+text+'\"';\nconst msg='📩 לקוח ענה להודעת הפולואפ שלך\\n\\n'+details+'\\n\\n⚠️ אי אפשר להגיב כאן – תשובה להודעה הזאת לא מגיעה ללקוח. חובה לשלוח ללקוח הודעה מהוואטסאפ הפרטי או להתקשר אליו.';\nconst groupMsg=(isClosed?(gotFollowup?'📩 לקוח חזר לכתוב (קיבל פולואפ לפני יותר מ-14 יום)':'📩 לקוח ענה להודעת \"עסקה נסגרה\"'):'📩 לקוח ענה להודעת הפולואפ')+(rep?' (נציג: '+rep+')':'')+'\\n\\n'+details;\nconst lateMsg='📩 לקוח של הנציגים של לירן/יוסי ענה לפולואפ אחרי יותר מ-48 שעות'+(rep?' (נציג: '+rep+')':'')+'\\n\\n'+details;\nconst dupMsg='⚠️ מספר כפול בדוח מכר – לקוח ענה לפולואפ ולא העברתי לנציג, כי לא ברור של מי הלקוח\\nהנייד '+custPhone+' רשום על:\\n'+nk.map(n=>n+' – '+(names[n]||'בלי נציג')).join('\\n')+'\\nמה הלקוח כתב: \"'+text+'\"\\n\\nצריך לבדוק מי הלקוח, להעביר לנציג שלו ולתקן את הנייד בדוח.';\nconst missMsg=!targetsOk?('⚠️ לקוח ענה ולא העברתי – לא הצלחתי לקרוא את גיליון יעדים, אז אין לי איך לדעת אם הנציג \"'+rep+'\" שלנו\\n\\n'+details+'\\n\\nצריך לבדוק ולהעביר ידנית.'):oursByAny?('⚠️ לקוח ענה ולא העברתי – הנציג \"'+rep+'\" לא נמצא ביעדים, אבל הלקוח רשום גם אצל נציג שלנו ('+fullKnown.filter(isOur).join(', ')+')\\n\\n'+details+'\\n\\nצריך להעביר לנציג הנכון.'):('⚠️ לקוח ענה לפולואפ ולא העברתי לנציג – השם \"'+rep+'\" מתאים לכמה נציגים ('+amb.join(', ')+')\\n\\n'+details+'\\n\\nצריך להעביר לנציג הנכון ולתקן את שם הנציג (שם מלא) בפולואפ.');\nreturn {send, sendMgr, toGroup, reason, source:isClosed?'closed':(isFollow?'followup':'none'), rep, repPhone, hrs, msg, groupMsg, mgrMsg: dup?dupMsg:(lateOther?lateMsg:missMsg), dup, mgr1:'972544604246', mgr2:'972504445169', groupId:'120363429258204378@g.us'};\n\n\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 20,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 5,
+        "filter": {
+         "name": "לשלוח לנציג הפולואפ",
+         "conditions": [
+          [
+           {
+            "a": "{{4.result.send}}",
+            "b": "true",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{4.result.repPhone}}@c.us",
+          "message": "{{4.result.msg}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 21,
+        "filter": {
+         "name": "מספר כפול בדוח מכר ← סטיב+ירדן",
+         "conditions": [
+          [
+           {
+            "a": "{{4.result.sendMgr}}",
+            "b": "true",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{4.result.mgr1}}@c.us",
+          "message": "{{4.result.mgrMsg}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 121,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": 550
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": 250
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       },
+       {
+        "id": 22,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{4.result.mgr2}}@c.us",
+          "message": "{{4.result.mgrMsg}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 122,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": 550
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1800,
+          "y": 250
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 23,
+        "filter": {
+         "name": "נציג לא שלנו (פולואפ / עסקה נסגרה) ← קבוצת טו צ׳אט",
+         "conditions": [
+          [
+           {
+            "a": "{{4.result.toGroup}}",
+            "b": "true",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{4.result.groupId}}",
+          "message": "{{4.result.groupMsg}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 123,
+          "mapper": {
+           "count": "3",
+           "retry": true,
+           "interval": "1"
+          },
+          "module": "builtin:Break",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": 850
+           }
+          },
+          "parameters": {}
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": 650
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - תשובה לפולואפ ← הודעה לנציג (Green API)",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": true,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

@@ -1,0 +1,168 @@
+{
+ "id": 9903461,
+ "name": "Claude - קליטת פרפורמה יומית",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 300,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "time": [
+     "04:00",
+     "09:30"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   },
+   {
+    "days": [
+     5
+    ],
+    "time": [
+     "04:00",
+     "14:00"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:40.166Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "microsoft-email:watchMessages",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "limit": 5,
+     "folder": "",
+     "search": "פרפורמת משווקים",
+     "select": "all",
+     "triggerBy": "createdDateTime",
+     "__IMTCONN__": 14638980
+    }
+   },
+   {
+    "id": 2,
+    "filter": {
+     "name": "רק המייל של יוסי",
+     "conditions": [
+      [
+       {
+        "a": "{{1.from.emailAddress.address}}",
+        "b": "yossi@active-sale.com",
+        "o": "text:contain:ci"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "limit": 10,
+     "message": "{{1.id}}"
+    },
+    "module": "microsoft-email:listAttachments",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 14638980
+    }
+   },
+   {
+    "id": 3,
+    "filter": {
+     "name": "רק קובץ אקסל",
+     "conditions": [
+      [
+       {
+        "a": "{{2.name}}",
+        "b": ".xlsx",
+        "o": "text:endwith:ci"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "data": "{{2.data}}",
+     "title": "{{replace(2.name; \".xlsx\"; \"\")}}",
+     "select": "map",
+     "convert": true,
+     "filename": "{{2.name}}",
+     "folderId": "root",
+     "targetType": "application/vnd.google-apps.spreadsheet"
+    },
+    "module": "google-drive:uploadAFile",
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 14638985
+    }
+   }
+  ],
+  "name": "Claude - קליטת פרפורמה יומית",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

@@ -1,0 +1,254 @@
+{
+ "id": 9923631,
+ "name": "Claude - מילוי אוטומטי: התקנות של מחר (מדוח מכר)",
+ "scheduling": {
+  "days": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "time": "16:10",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:59.712Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [
+      {
+       "key": "fields",
+       "value": "sheets.properties.title"
+      }
+     ],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst OFFSET=1; const SHEET=\"התקנות של מחר\";\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst d=new Date(nowIL.getFullYear(),nowIL.getMonth(),nowIL.getDate()+OFFSET);\nconst tab=MONTHS[d.getMonth()]+' '+d.getFullYear();\nconst key=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();\nconst hasTab=titles.includes(tab);\nconst q=s=>\"'\"+s+\"'\";\nreturn {key, tab, hasTab, sheet:SHEET,\n readBody: JSON.stringify({dataFilters:[{a1Range: hasTab ? q(tab)+'!A1:Z800' : q('הגדרות')+'!A1:A1'}], valueRenderOption:'FORMATTED_VALUE'}),\n markerBody: JSON.stringify({dataFilters:[{a1Range: q(SHEET)+'!Z1'},{a1Range: q(SHEET)+'!A1:F1000'}], valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE/values:batchGetByDataFilter",
+     "body": "{{2.result.markerBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "values",
+       "value": "{{4.body.valueRanges[1].valueRange.values}}"
+      },
+      {
+       "name": "marker",
+       "value": "{{3.body.valueRanges[1].valueRange.values}}"
+      },
+      {
+       "name": "existing",
+       "value": "{{3.body.valueRanges[2].valueRange.values}}"
+      },
+      {
+       "name": "key",
+       "value": "{{2.result.key}}"
+      },
+      {
+       "name": "sheet",
+       "value": "{{2.result.sheet}}"
+      },
+      {
+       "name": "hasTab",
+       "value": "{{2.result.hasTab}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS={'ינואר':1,'פברואר':2,'מרץ':3,'אפריל':4,'מאי':5,'יוני':6,'יולי':7,'אוגוסט':8,'ספטמבר':9,'אוקטובר':10,'נובמבר':11,'דצמבר':12};\nconst key=input.key, sheet=input.sheet, q=s=>\"'\"+s+\"'\";\nconst mv=input.marker||[]; const marker=String((mv[0]&&mv[0][0])||'').trim();\nconst stamp='עודכן ל-'+key;\nconst same=(marker===stamp);\nconst ex=(input.existing||[]); const exPh=new Set();\nlet lastRow=1; ex.forEach((r,i)=>{ if(i===0) return; const p=String((r&&r[1])||'').replace(/\\D/g,'').replace(/^972/,'').replace(/^0/,''); if(p){exPh.add(p);} if(r&&r.some(c=>String(c||'').trim()!=='')) lastRow=i+1; });\nconst norm=s=>String(s||'').replace(/\\s+/g,' ').trim();\nconst rows=[]; const seen=new Set();\nconst hdr=((input.values||[])[0]||[]).map(h=>norm(h));\nconst iNote=hdr.findIndex(h=>h.startsWith('הערות'));\nif(input.hasTab===true || input.hasTab==='true'){\n for(const r of (input.values||[]).slice(1)){\n  const m=norm(r[4]).match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/); if(!m) continue;\n  const mon=MONTHS[m[2]]; if(!mon) continue;\n  if((+m[1])+'/'+mon+'/'+m[3]!==key) continue;\n  const name=norm(r[2]); const ph=String(r[3]||'').replace(/\\D/g,'');\n  if(!name||ph.length<9) continue;\n  if(iNote>=0 && /בוטל|ביטול|ביטל|לא מעוניין/.test(norm(r[iNote]))) continue;\n  const k=ph.replace(/^972/,'').replace(/^0/,''); if(seen.has(k)) continue; seen.add(k);\n  rows.push([name, norm(r[3]), norm(r[4]), norm(r[5]), norm(r[7]), '']);\n }\n}\nif(same){\n const add=rows.filter(r=>!exPh.has(String(r[1]).replace(/\\D/g,'').replace(/^972/,'').replace(/^0/,'')));\n if(!add.length) return {write:false, append:false, count:0, reason:'up to date for '+key};\n return {write:false, append:true, count:add.length,\n  clearBody: JSON.stringify({ranges:[q(sheet)+'!Y1']}),\n  writeBody: JSON.stringify({valueInputOption:'RAW', data:[{range:q(sheet)+'!A'+(lastRow+1)+':F'+(lastRow+add.length), values:add}]})};\n}\nconst data=[{range:q(sheet)+'!Z1', values:[[stamp]]}];\nif(rows.length) data.push({range:q(sheet)+'!A2:F'+(rows.length+1), values:rows});\nreturn {write:true, append:false, count:rows.length,\n clearBody: JSON.stringify({ranges:[q(sheet)+'!A2:F1000']}),\n writeBody: JSON.stringify({valueInputOption:'RAW', data})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "filter": {
+     "name": "יש מה לכתוב",
+     "conditions": [
+      [
+       {
+        "a": "{{5.result.write}}",
+        "b": "true",
+        "o": "boolean:equal"
+       }
+      ],
+      [
+       {
+        "a": "{{5.result.append}}",
+        "b": "true",
+        "o": "boolean:equal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE/values:batchClear",
+     "body": "{{5.result.clearBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE/values:batchUpdate",
+     "body": "{{5.result.writeBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   }
+  ],
+  "name": "Claude - מילוי אוטומטי: התקנות של מחר (מדוח מכר)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

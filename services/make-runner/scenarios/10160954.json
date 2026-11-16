@@ -1,0 +1,112 @@
+{
+ "id": 10160954,
+ "name": "Claude - הזדמנות שניה: בדיקת סטטוס לקוחות בטוצ'ט (קריאה בלבד)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:39.172Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "array": "{{split(var.input.phones; \",\")}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/customers/{{trim(1.value)}}",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "onerror": [
+     {
+      "id": 21,
+      "mapper": {
+       "body": "{}",
+       "statusCode": 0
+      },
+      "module": "builtin:Resume",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "object": "{{2.body}}"
+    },
+    "module": "json:TransformToJSON",
+    "version": 1,
+    "parameters": {
+     "space": ""
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "j": "{{3.json}}",
+     "p": "{{trim(1.value)}}"
+    },
+    "module": "builtin:BasicAggregator",
+    "version": 1,
+    "parameters": {
+     "feeder": 1
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "arr",
+       "value": "{{4.array}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const p=v=>typeof v==='string'?JSON.parse(v):v;\nconst out=[];\nconst BAD=/פעיל|מוטרד|הסר|הסיר|אל תתקשר|לא להתקשר|תשתית|כבר לקוח|לקוח קיים|חסום/;\nfor(const a of (p(input.arr)||[])){let b={};try{b=JSON.parse(a.j)}catch(e){}\nconst act=b.activeLeads||[];const inact=b.inactiveCampaigns||[];\nconst why=[];\nconst fu=act.filter(l=>/FOLLOW/i.test(String(l.status||'')));\nif(fu.length)why.push('פולואפ פתוח: '+fu.map(l=>(l.followByName||'')+' '+String(l.campaignName||'')).join(', '));\nif(act.some(l=>String(l.campaignName||'').trim()==='הזדמנות שניה'))why.push('כבר בקמפיין הזדמנות שניה');\nconst sale=inact.filter(l=>String(l.reason||'').toUpperCase()==='CLOSED');\nif(sale.length)why.push('עסקה נסגרה: '+sale.map(l=>(l.agentName||'')+' '+String(l.timestamp||'').slice(0,10)).join(', '));\nconst bad=inact.filter(l=>BAD.test(String((l.subReason&&l.subReason.name)||'')+' '+String(l.note||'')));\nif(bad.length)why.push('סטטוס חוסם: '+bad.map(l=>(l.subReason&&l.subReason.name)||'').join(', '));\nconst last=inact.slice().sort((x,y)=>String(y.timestamp).localeCompare(String(x.timestamp)))[0];\nout.push({p:a.p,ok:!why.length,why:why.join(' | '),last:last?((last.reason||'')+'/'+((last.subReason&&last.subReason.name)||'')+'/'+(last.agentName||'')+'/'+String(last.timestamp||'').slice(0,16)):'',act:act.map(l=>l.campaignName+':'+l.status).join(',')});}\nreturn JSON.stringify(out);\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "key": "sc_status_{{var.input.part}}",
+     "data": {
+      "data": "{{5.result}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - הזדמנות שניה: בדיקת סטטוס לקוחות בטוצ'ט (קריאה בלבד)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

@@ -1,0 +1,196 @@
+{
+ "id": 10115673,
+ "name": "Claude - הקדמות 5: יום ראשון בבוקר - לקוח שלא הוקדם ← הודעה לנציג לשלוח דרך משווקים יס",
+ "scheduling": {
+  "days": [
+   0
+  ],
+  "time": "08:05",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:47.116Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "input": [],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const d=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst p=n=>String(n).padStart(2,'0');\nreturn {today:d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values/יעדים!A2:B80",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 90,
+      "mapper": {
+       "body": {
+        "values": []
+       }
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 200,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 200,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "filter": [
+      [
+       {
+        "a": "short_date",
+        "b": "{{1.result.today}}",
+        "o": "text:equal"
+       },
+       {
+        "a": "status",
+        "b": "אושר",
+        "o": "text:notequal"
+       }
+      ]
+     ]
+    },
+    "module": "datastore:SearchRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 400,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "limit": 50,
+     "datastore": 191414,
+     "continueWhenNoRes": false
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "targets",
+       "value": "{{2.body.values}}"
+      },
+      {
+       "name": "rep",
+       "value": "{{3.data.rep_name}}"
+      },
+      {
+       "name": "cname",
+       "value": "{{3.data.customer_name}}"
+      },
+      {
+       "name": "cnum",
+       "value": "{{3.data.customer_number}}"
+      },
+      {
+       "name": "slot",
+       "value": "{{3.data.new_slot}}"
+      },
+      {
+       "name": "status",
+       "value": "{{3.data.status}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst norm=s=>String(s==null?'':s).replace(/\\s+/g,' ').trim();\nconst dg=s=>String(s==null?'':s).replace(/\\D/g,'');\nconst rep=norm(input.rep);\nlet phone='';\nfor(const r of arr(input.targets)){ if(r&&norm(r[0])===rep) phone=dg(r[1]).slice(-9); }\nlet warn='';\nif(phone.length!==9){ phone='544604246'; warn='לא מצאתי את המספר של הנציג ('+rep+'). ההודעה בשבילו:\\n\\n'; }\nconst st=norm(input.status);\nconst why = st==='ממתין' ? 'הבקשה עדיין ממתינה לתשובה מהחברה' : (st==='נדחה' ? 'הבקשה נדחתה' : 'הבקשה לא אושרה');\nconst msg=warn+'בוקר טוב '+rep.split(' ')[0]+'\\nביקשת להקדים להיום את '+norm(input.cname)+' (מספר '+norm(input.cnum)+')'+(norm(input.slot)?' ('+norm(input.slot)+')':'')+', אבל '+why+', אז זה עדיין לא הוקדם.\\n\\nאם רוצים להתקין היום, שולחים בקשה בוואטסאפ למשווקים יס (050-2552817):\\n1. הודעה ראשונה: \"הקדמת לקוח חדש\"\\n2. אחריה הודעה אחת עם: מספר לקוח, כתובת, כמות ממירים, התקנת סיב (כן/לא), סיב קיים (כן/לא/לא רלוונטי), חלון זמן מועדף ושם הנציג.';\nreturn {chatId:'972'+phone+'@c.us', message:msg};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "dataStructure",
+     "shareCookies": false,
+     "parseResponse": true,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "bodyDataStructure": 656096,
+     "dataStructureBodyContent": {
+      "chatId": "{{4.result.chatId}}",
+      "message": "{{4.result.message}}"
+     },
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 800,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   }
+  ],
+  "name": "Claude - הקדמות 5: יום ראשון בבוקר - לקוח שלא הוקדם ← הודעה לנציג לשלוח דרך משווקים יס",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false
+   }
+  }
+ }
+}

@@ -1,0 +1,123 @@
+{
+ "id": 10131174,
+ "name": "Claude - מצטרפים: אחוז לקוחות פעילים לפי קהל (קריאה בלבד)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:08.293Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1Zr8LinwSfON9R8rmPS5y5WVyHPpQxXdVe7ANwO1n40I/values/מצטרפים0811!A2:D7001",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1Zr8LinwSfON9R8rmPS5y5WVyHPpQxXdVe7ANwO1n40I/values/מצטרפים_מקור!A2:D14603",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "end": "{{formatDate(addDays(now; 1); \"YYYY-MM-DD\")}}",
+     "start": "2026-11-08",
+     "campaignId": "OxHFSf7EnoHq06qEZMIZ"
+    },
+    "module": "app#tochat-cannon-7utvne:GetClosedLeads",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "a": "{{2.displayPhone}}",
+     "s": "{{2.subReason.name}}"
+    },
+    "module": "builtin:BasicAggregator",
+    "version": 1,
+    "parameters": {
+     "feeder": 2
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "closed",
+       "value": "{{3.array}}"
+      },
+      {
+       "name": "up",
+       "value": "{{1.body.values}}"
+      },
+      {
+       "name": "up2",
+       "value": "{{6.body.values}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const parse=(v)=>typeof v==='string'?JSON.parse(v):v;\nconst c=parse(input.closed)||[];const up=(parse(input.up)||[]).concat(parse(input.up2)||[]);\nconst norm=(p)=>{p=String(p||'').replace(/\\D/g,'');if(p.startsWith('972'))p='0'+p.slice(3);if(p.length===9)p='0'+p;return p;};\nconst aud={};up.forEach(r=>{r=[].concat(r);const p=norm(r[0]);if(p)aud[p]=String(r[3]||'?');});\nconst f={};c.forEach(x=>{const p=norm(x.a);if(!p)return;const s=String(x.s||'');let k='O';if(/לקוח פעיל/.test(s))k='A';else if(/לא ענה|לא עונה|אין מענה/.test(s))k='N';else if(/להסיר|מוטרד/.test(s))k='R';if(!f[p]||k==='A')f[p]=k;});\nconst t={};Object.keys(f).forEach(p=>{if(f[p]==='N')return;const a=aud[p]||'(אחר)';t[a]=t[a]||{n:0,A:0,R:0};t[a].n++;if(f[p]==='A')t[a].A++;if(f[p]==='R')t[a].R++;});\nconst rows=Object.keys(t).sort((x,y)=>t[y].n-t[x].n).map(a=>[a,t[a].n,t[a].A,Math.round(100*t[a].A/t[a].n)+'%',t[a].R]);\nrows.unshift(['קהל','נענו ונסגרו','לקוח פעיל','אחוז פעילים','הסרה']);\nfor(let i=0;i<20;i++)rows.push(['','','','','']);rows.push(['עודכן: '+new Date().toISOString(),'','','','']);\nreturn {body: JSON.stringify({values: rows})};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "qs": [
+      {
+       "key": "valueInputOption",
+       "value": "RAW"
+      }
+     ],
+     "url": "spreadsheets/1Zr8LinwSfON9R8rmPS5y5WVyHPpQxXdVe7ANwO1n40I/values/act!R1",
+     "body": "{{4.result.body}}",
+     "method": "PUT",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   }
+  ],
+  "name": "Claude - מצטרפים: אחוז לקוחות פעילים לפי קהל (קריאה בלבד)",
+  "metadata": {
+   "instant": false,
+   "version": 1
+  }
+ }
+}

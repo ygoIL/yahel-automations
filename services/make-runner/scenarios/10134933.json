@@ -1,0 +1,56 @@
+{
+ "id": 10134933,
+ "name": "Claude - ספירת לידים פתוחים בפולואפים כל הזמנים",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:19.939Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/campaigns/ZquT0Z1L9NDzpEEAySsR/openLeads",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "qs": [
+      {
+       "key": "valueInputOption",
+       "value": "RAW"
+      }
+     ],
+     "url": "spreadsheets/1Zr8LinwSfON9R8rmPS5y5WVyHPpQxXdVe7ANwO1n40I/values/act!X1:Y1",
+     "body": "{\"values\": [[{{length(1.body)}}, \"{{formatDate(now; \"YYYY-MM-DD HH:mm\"; \"Asia/Jerusalem\")}}\"]]}",
+     "method": "PUT",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   }
+  ],
+  "name": "Claude - ספירת לידים פתוחים בפולואפים כל הזמנים",
+  "metadata": {
+   "instant": false,
+   "version": 1
+  }
+ }
+}

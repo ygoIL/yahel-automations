@@ -1,0 +1,103 @@
+{
+ "id": 10151077,
+ "name": "Claude - טוצ'ט: העלאת לידים לקמפיין מהדפדפן (webhook, עם סינון חסומים)",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4509554,
+ "hookUdid": "iggg2watok2c076rwnow1llu9x1aw71b",
+ "exportedAt": "2026-11-16T16:46:03.216Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "parameters": {
+     "hook": 4509554,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/deny-list",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "input": [
+      {
+       "name": "d",
+       "value": "{{2.body}}"
+      },
+      {
+       "name": "data",
+       "value": "{{1.phones}}"
+      },
+      {
+       "name": "aud",
+       "value": "{{1.audience}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const d=typeof input.d==='string'?JSON.parse(input.d):input.d;const deny=new Set((d||[]).map(x=>{let s=String(x.id||x.phone||'').replace(/\\D/g,'');if(s.startsWith('972'))s='0'+s.slice(3);return s;}));const all=[];const seen=new Set();let blocked=0;for(const x of String(input.data||'').split(',')){let p=x.trim().replace(/\\D/g,'');if(p.length===9)p='0'+p;if(!/^05\\d{8}$/.test(p)||seen.has(p))continue;seen.add(p);if(deny.has(p)){blocked++;continue;}all.push({phone:p,firstName:'',lastName:'',audience:input.aud,notes:input.aud,customLeadFields:{}});}return {customers:all,total:all.length,blocked,denySize:deny.size};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "customers": "{{3.result.customers}}",
+     "campaignId": "{{1.campaignId}}",
+     "dataSource": {
+      "name": "{{1.sourceName}}",
+      "priority": 20,
+      "newCustomersOnly": false,
+      "shouldCheckWithDontCallMe": false,
+      "shouldOverrideCustomerData": false
+     }
+    },
+    "module": "app#tochat-cannon-7utvne:AddLeadsToCampaign2",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "body": "{\"sent\":{{3.result.total}},\"blocked\":{{3.result.blocked}},\"deny\":{{3.result.denySize}},\"failed\":{{length(4.failed)}},\"reasons\":\"{{join(map(4.failed; \"reason\"); \",\")}}\"}",
+     "status": "200",
+     "headers": []
+    },
+    "module": "gateway:WebhookRespond",
+    "version": 1,
+    "parameters": {}
+   }
+  ],
+  "name": "Claude - טוצ'ט: העלאת לידים לקמפיין מהדפדפן (webhook, עם סינון חסומים)",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

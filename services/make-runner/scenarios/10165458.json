@@ -1,0 +1,92 @@
+{
+ "id": 10165458,
+ "name": "Claude - בוט נציגים: דוח שבועי (שאלות בלי תשובה + 👍/👎)",
+ "scheduling": {
+  "days": [
+   0
+  ],
+  "time": "08:37",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:35.994Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "url": "https://reps-bot-production.up.railway.app/weekly?key=__ENV:REPS_BOT_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "jsonString",
+     "shareCookies": false,
+     "parseResponse": true,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "jsonStringBodyContent": "{\"days\": 7}",
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0,
+      "name": "Claude - דוח שבועי"
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "dataStructure",
+     "shareCookies": false,
+     "parseResponse": true,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "bodyDataStructure": 656096,
+     "dataStructureBodyContent": {
+      "chatId": "972544604246@c.us",
+      "message": "{{1.data.text}}"
+     },
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0,
+      "name": "שליחה לסטיב (Green API)"
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   }
+  ],
+  "name": "Claude - בוט נציגים: דוח שבועי (שאלות בלי תשובה + 👍/👎)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

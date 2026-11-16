@@ -1,0 +1,204 @@
+{
+ "id": 10171978,
+ "name": "Claude - רשימת פולואפים פתוחים מכל הקמפיינים (לסינון לפני העלאה)",
+ "scheduling": {
+  "days": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "time": "07:05",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:43.003Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "key": "campaigns",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 196925
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "list",
+       "value": "{{1.data}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "let arr = [];\ntry { arr = JSON.parse(String(input.list || '[]')); } catch (e) { arr = []; }\nconst seen = new Set();\nconst ids = [];\narr.forEach((c) => { const id = String(c.id || '').trim(); if (id && !seen.has(id)) { seen.add(id); ids.push({ id, name: c.name || '' }); } });\nreturn { ids, n: ids.length };\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "array": "{{2.result.ids}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/campaigns/{{3.id}}/openLeads",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "onerror": [
+     {
+      "id": 9,
+      "module": "builtin:Ignore",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "value": "{{join(map(4.body; \"displayPhone\"; \"status\"; \"FOLLOWUP\"); \",\")}},{{join(map(4.body; \"displayPhone\"; \"status\"; \"INCOMING_FOLLOWUP\"); \",\")}}"
+    },
+    "module": "util:TextAggregator",
+    "version": 1,
+    "parameters": {
+     "feeder": 3,
+     "rowSeparator": "\n"
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "input": [
+      {
+       "name": "text",
+       "value": "{{5.text}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const raw = String(input.text || '');\nconst set = new Set();\nraw.split(/[,\\n;]+/).forEach((x) => {\n  let d = x.replace(/\\D/g, '');\n  if (!d) return;\n  if (d.startsWith('972')) d = '0' + d.slice(3);\n  else if (!d.startsWith('0')) d = '0' + d;\n  if (d.length >= 9) set.add(d);\n});\nconst arr = [...set];\nconst now = new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });\nconst values = [['טלפון', 'עודכן', now]].concat(arr.map((p) => [p]));\nconst tab = \"'פולואפים פתוחים'\";\nreturn { count: arr.length, body: JSON.stringify({ values }), range: tab + '!A1:C' + values.length, clear: tab + '!A1:C30000:clear' };\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "url": "spreadsheets/1-mXfg-H5pZzGtTLTYOcU_SBgOEu8S2FnTrvz3Brc_7M/values/{{6.result.clear}}",
+     "body": "{}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "qs": [
+      {
+       "key": "valueInputOption",
+       "value": "RAW"
+      }
+     ],
+     "url": "spreadsheets/1-mXfg-H5pZzGtTLTYOcU_SBgOEu8S2FnTrvz3Brc_7M/values/{{6.result.range}}",
+     "body": "{{6.result.body}}",
+     "method": "PUT",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   },
+   {
+    "id": 10,
+    "mapper": {
+     "url": "spreadsheets/1Zr8LinwSfON9R8rmPS5y5WVyHPpQxXdVe7ANwO1n40I/values/{{6.result.clear}}",
+     "body": "{}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   },
+   {
+    "id": 11,
+    "mapper": {
+     "qs": [
+      {
+       "key": "valueInputOption",
+       "value": "RAW"
+      }
+     ],
+     "url": "spreadsheets/1Zr8LinwSfON9R8rmPS5y5WVyHPpQxXdVe7ANwO1n40I/values/{{6.result.range}}",
+     "body": "{{6.result.body}}",
+     "method": "PUT",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   }
+  ],
+  "name": "Claude - רשימת פולואפים פתוחים מכל הקמפיינים (לסינון לפני העלאה)",
+  "metadata": {
+   "instant": false,
+   "version": 1
+  }
+ }
+}

@@ -1,0 +1,470 @@
+{
+ "id": 9937792,
+ "name": "ניודים 1 - בקשה מנציג ← מייל לניודים בשעה שביקש",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4423154,
+ "hookUdid": "ovvjb22zfn4codhcar2qm5div19wwobo",
+ "exportedAt": "2026-11-16T16:48:42.773Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4423154,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "qs": [
+      {
+       "key": "fields",
+       "value": "sheets.properties.title"
+      }
+     ],
+     "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 450,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{2.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\n// RULE (15/11/2026): porting searches ONLY the current month tab of דוח מכר פלאפון (old tabs held duplicate rows without a customer number). Do not remove.\nfor(let k=0;k<=0;k++){const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+k,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t);}\nreturn {count:tabs.length, body: JSON.stringify({dataFilters: tabs.map(t=>({a1Range:\"'\"+t+\"'!A1:AC3000\"})), valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg/values:batchGetByDataFilter",
+     "body": "{{3.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{\"dataFilters\": [{\"a1Range\": \"'יעדים'!A1:B200\"}], \"valueRenderOption\": \"FORMATTED_VALUE\"}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "input": [
+      {
+       "name": "text",
+       "value": "{{1.last_input_text}}"
+      },
+      {
+       "name": "repWa",
+       "value": "{{1.whatsapp_phone}}"
+      },
+      {
+       "name": "repName",
+       "value": "{{1.name}}"
+      },
+      {
+       "name": "ranges",
+       "value": "{{4.body.valueRanges}}"
+      },
+      {
+       "name": "reps",
+       "value": "{{5.body.valueRanges}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// inputs: text, repWa, repName, ranges, reps (valueRanges of 'יעדים' A:B)\n// RULE (Steve 12/11/2026): the rep writes only ניוד + customer name OR a phone + when. Customer number, main phone and ID are taken from the דוח מכר פלאפון. A phone the rep writes that is not the main one (son, wife...) is the call-back number in the email. Not found in the report -> do not send, tell the rep. Do not remove.\nconst wa9 = v => String(v || '').replace(/\\D/g, '').replace(/^972/, '').replace(/^0/, '');\nlet repRows = input.reps || [];\nif (repRows.length && repRows[0] && repRows[0].valueRange) repRows = repRows[0].valueRange.values || [];\nconst repSet = new Set(['544604246']);\nfor (const r of repRows) { const p = wa9(r && r[1]); if (/^5\\d{8}$/.test(p)) repSet.add(p); }\nif (!repSet.has(wa9(input.repWa))) return {action: 'notrep', reply: '⛔ המספר שלך לא רשום כנציג (לשונית יעדים), אז לא שלחתי בקשת ניוד. פנה/י לירדן.', key: '', phone: ''};\nconst TZ = 'Asia/Jerusalem';\nconst fmt = new Intl.DateTimeFormat('en-US', {timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short'});\nfunction ilParts(t) { const o = {}; for (const p of fmt.formatToParts(new Date(t))) o[p.type] = p.value; return {y: +o.year, m: +o.month - 1, d: +o.day, h: +o.hour % 24, mi: +o.minute, wd: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(o.weekday)}; }\nfunction ilToUtc(y, m, d, h, mi) { const want = Date.UTC(y, m, d, h, mi); let t = want; for (let i = 0; i < 3; i++) { const p = ilParts(t); t += want - Date.UTC(p.y, p.m, p.d, p.h, p.mi); } return t; }\nconst pad = n => String(n).padStart(2, '0');\nconst norm = s => String(s || '').replace(/[\\s‏‎]+/g, ' ').trim();\nconst digits = s => String(s || '').replace(/\\D/g, '');\nconst DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];\nconst now = input.nowMs ? +input.nowMs : Date.now();\nconst np = ilParts(now);\n\nfunction plan(text) {\n  let c = ' ' + text.replace(/[״\"׳']/g, '') + ' ';\n  let dayOffset = null, explicitDay = false, h = null, mi = 0, target = null;\n  const dm = c.match(/(\\d{1,2})\\s*[./]\\s*(\\d{1,2})(?:\\s*[./]\\s*\\d{2,4})?/);\n  if (dm) {\n    const d = +dm[1], m = +dm[2] - 1;\n    if (d >= 1 && d <= 31 && m >= 0 && m <= 11) {\n      let y = np.y; if (Date.UTC(y, m, d) < Date.UTC(np.y, np.m, np.d) - 60 * 864e5) y++;\n      target = {y, m, d}; explicitDay = true;\n    }\n    c = c.replace(dm[0], ' ');\n  }\n  if (!target) {\n    if (/מחרתיים/.test(c)) { dayOffset = 2; explicitDay = true; }\n    else if (/מחר/.test(c)) { dayOffset = 1; explicitDay = true; }\n    else if (/היום|הערב(?!\\S)/.test(c)) { dayOffset = 0; explicitDay = true; }\n    else {\n      for (let i = 0; i < 7; i++) {\n        if (new RegExp('יום\\\\s*' + DAYS[i] + '(?!\\\\S)').test(c) || new RegExp('\\\\s' + DAYS[i] + '\\\\s').test(c)) {\n          dayOffset = (i - np.wd + 7) % 7; explicitDay = true; break;\n        }\n      }\n    }\n  }\n  const hm = c.match(/(\\d{1,2})\\s*:\\s*(\\d{2})/);\n  const evening = /ערב/.test(c), morningWord = /בוקר/.test(c), noonWord = /אחה|אחר הצהריים|צהריים|צהרים/.test(c);\n  if (hm) { h = +hm[1]; mi = +hm[2]; }\n  else { const bare = c.match(/(?:^|[^\\d])(\\d{1,2})(?![\\d:./])/); if (bare) { h = +bare[1]; mi = 0; } }\n  if (h !== null) {\n    if (evening && h < 12) h += 12;\n    else if (!morningWord && h >= 1 && h <= 7) h += 12;\n    if (h > 23 || mi > 59) return null;\n  } else if (/עכשיו|מיידי|מייד|מיד|כעת|דחוף/.test(c)) h = 'now';\n  else if (morningWord) { h = 10; mi = 0; }\n  else if (noonWord) { h = 17; mi = 30; }\n  else return null;\n  let base;\n  if (target) base = target;\n  else { const t = new Date(Date.UTC(np.y, np.m, np.d + (dayOffset || 0))); base = {y: t.getUTCFullYear(), m: t.getUTCMonth(), d: t.getUTCDate()}; }\n  let when = h === 'now' ? now : ilToUtc(base.y, base.m, base.d, h, mi);\n  if (when < now - 5 * 60e3) {\n    if (explicitDay) return {past: true};\n    when = ilToUtc(base.y, base.m, base.d + 1, h, mi);\n  }\n  let wp = ilParts(when);\n  if (wp.wd === 6) { const hh = h === 'now' ? 10 : h, mm = h === 'now' ? 0 : mi; when = ilToUtc(wp.y, wp.m, wp.d + 1, hh, mm); }\n  if (when < now) when = now;\n  wp = ilParts(when);\n  const diff = Math.round((Date.UTC(wp.y, wp.m, wp.d) - Date.UTC(np.y, np.m, np.d)) / 864e5);\n  const isNow = when - now < 6 * 60e3;\n  const dayTxt = diff === 0 ? 'היום' : diff === 1 ? 'מחר' : 'ביום ' + DAYS[wp.wd] + ' ' + pad(wp.d) + '/' + pad(wp.m + 1);\n  return {iso: new Date(when).toISOString(), text: isNow ? 'עכשיו (תוך כמה דקות)' : dayTxt + ' ב-' + pad(wp.h) + ':' + pad(wp.mi)};\n}\n\nconst raw = String(input.text || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').replace(/[‐-―−­]/g, '-').replace(/ /g, ' ');\nconst force = /(^|[^֐-׿])שוב(?![֐-׿])/.test(raw);\nlet t = ' ' + raw.replace(/^\\s*ניוד(ים)?\\s*[:\\-–]?/, ' ').replace(/(^|[^֐-׿])שוב(?![֐-׿])/g, '$1 ').replace(/בבקשה|תודה|לנייד|ניוד/g, ' ') + ' ';\nlet phone = '', idNum = '', custNum = '', m;\nm = t.match(/(?:ת\\.?\\s*ז\\.?|ת[\"'״׳]ז|תעודת\\s*זהות)\\s*[:\\-]?\\s*(\\d{7,9})/); if (m) { idNum = m[1]; t = t.replace(m[0], ' '); }\nm = t.match(/(?:מס(?:פר)?['׳.]?\\s*לקוח|לקוח|מ[\"'״׳]ל)\\s*[:\\-]?\\s*(\\d{5,9})/); if (m) { custNum = m[1]; t = t.replace(m[0], ' '); }\nm = t.match(/(?:\\+?972[-\\s]?|0)(5\\d)[-\\s]?(\\d{3})[-\\s]?(\\d{4})(?!\\d)/); if (m) { phone = '0' + m[1] + m[2] + m[3]; t = t.replace(m[0], ' '); }\nconst loose = [];\nt = t.replace(/(?<![\\d/.:])\\d{5,10}(?![\\d/.:])/g, x => { loose.push(x); return ' '; });\n\nconst rows = [];\nfor (const vr of (input.ranges || [])) {\n  const tab = String((vr.valueRange || {}).range || '').split('!')[0].replace(/^'|'$/g, '');\n  const vals = (vr.valueRange && vr.valueRange.values) || [];\n  for (let i = 1; i < vals.length; i++) {\n    const r = vals[i];\n    rows.push({tab, row: i + 1, name: norm(r[2]), phone: digits(r[3]).replace(/^972/, '').replace(/^0/, ''), id: digits(r[4]).replace(/^0+/, ''), cust: digits(r[9]), qty: parseInt(r[14], 10) || 0, rep: norm(r[0]), lines: r.slice(15, 25).map(x => digits(x).replace(/^972/, '').replace(/^0/, '')).filter(Boolean)});\n  }\n}\nconst n0 = s => digits(s).replace(/^0+/, '');\nfor (const x of loose) {\n  const v = n0(x);\n  if (!custNum && rows.some(r => r.cust && r.cust === v)) { custNum = v; continue; }\n  if (!idNum && rows.some(r => r.id && r.id === v)) { idNum = v; continue; }\n  if (!phone && /^0?5\\d{8}$/.test(x)) { phone = '0' + x.replace(/^0/, ''); continue; }\n  if (!idNum && x.length >= 9) { idNum = x; continue; }\n  if (!custNum) { custNum = v; continue; }\n  if (!idNum) idNum = x;\n}\nconst local9 = phone ? phone.slice(1) : '';\nlet hit = null;\n// RULE (Steve, 05/11/2026): the phone written in the rep's message is the one that goes in the email (not the customer's main number). A phone of ANY of the customer's lines (main or מספר 1-10) finds the customer.\nconst byPhone = local9 ? rows.filter(r => r.phone === local9 || r.lines.includes(local9)) : [];\nconst byCust = custNum ? rows.filter(r => r.cust === n0(custNum)) : [];\nconst byId = idNum ? rows.filter(r => r.id === n0(idNum)) : [];\n// RULE (15/11/2026, כפילויות): אותו לקוח בשתי שורות בדוח - לוקחים את השורה עם מספר לקוח (אח\"כ עם ת\"ז, אח\"כ המאוחרת). אם יש שני מספרי לקוח שונים - כמו קודם (השורה הראשונה). Do not remove.\nconst PICK = a => { if (!a.length) return null; if (new Set(a.map(r => r.cust).filter(Boolean)).size > 1) return a[0]; const sc = r => (r.cust ? 2 : 0) + (r.id ? 1 : 0); let b = a[0]; for (const r of a) if (sc(r) >= sc(b)) b = r; return b; };\nhit = PICK(byCust.length ? byCust : byPhone.length ? byPhone : byId);\nif (byCust.length > 1 && local9) hit = PICK(byCust.filter(r => r.phone === local9 || r.lines.includes(local9))) || hit;\nconst PREF = w => w.replace(/^[לבהו](?=[֐-׿]{2,})/, '');\nconst tw = /^(ב?שעה|בשעות|שעות|היום|מחר|מחרתיים|הערב|ערב|בערב|בוקר|בבוקר|אחה|אחהצ|צהריים|בצהריים|עכשיו|מיד|מיידי|דחוף|יום|ביום|ראשון|שני|שלישי|רביעי|חמישי|שישי|של|את|עם|הלקוח|לקוח|ללקוח|הלקוחה|לקוחה|טלפון|נייד|תז|מס|מספר|למספר|קווים|קו|כעת|אחר|הצהריים|אחרי|רוצה|רוצים|לחזור|חזרה|להתקשר|לחייג|של|הבן|הבת|האישה|הבעל|שלו|שלה|ב|ל)$/;\nconst nw0 = t.replace(/[^֐-׿\\s]/g, ' ').split(/\\s+/).filter(w => w && w.length > 1 && !tw.test(w));\nlet nameMulti = [];\nif (!hit && nw0.length) {\n  const match = ws => rows.filter(r => r.name && ws.every(w => r.name.includes(w)));\n  let found = match(nw0);\n  if (!found.length) found = match(nw0.map(PREF));\n  // RULE (15/11/2026, כפילויות): חיפוש לפי שם - שתי שורות עם אותו טלפון (בלי שני מספרי לקוח שונים) הן לקוח אחד; שומרים את השורה עם מספר לקוח. Do not remove.\n  const uniq = []; const seen = []; for (const r of found) { const k = r.cust || r.phone; const j = seen.findIndex(g => g.keys.has(k) || (r.phone && g.phones.has(r.phone) && !(r.cust && g.custs.size && !g.custs.has(r.cust)))); if (j < 0) { seen.push({keys: new Set([k]), phones: new Set([r.phone].filter(Boolean)), custs: new Set([r.cust].filter(Boolean))}); uniq.push(r); } else { const g = seen[j]; g.keys.add(k); if (r.phone) g.phones.add(r.phone); if (r.cust) g.custs.add(r.cust); if (!uniq[j].cust && r.cust) uniq[j] = r; } }\n  if (uniq.length === 1) hit = uniq[0]; else if (uniq.length > 1) nameMulti = uniq;\n}\nif (hit) {\n  if (!custNum) custNum = hit.cust;\n  if (!phone && hit.phone) phone = '0' + hit.phone;\n  if (!idNum && hit.id) idNum = hit.id;\n}\nconst timeWords = /^(ב?שעה|בשעות|שעות|היום|מחר|מחרתיים|הערב|ערב|בערב|בוקר|בבוקר|אחה|אחהצ|אחה\"צ|אחה״צ|צהריים|בצהריים|עכשיו|מיד|מיידי|דחוף|יום|ביום|ראשון|שני|שלישי|רביעי|חמישי|שישי|ב|ל|של|את|עם|הלקוח|לקוח|ללקוח|טלפון|נייד|תז|ת\"ז|ת.ז|מס|מספר|קווים|קו|ב-|כעת|אחר|הצהריים|אחרי)$/;\nconst nameWords = t.replace(/[^֐-׿a-zA-Z\\s\"'״׳]/g, ' ').split(/\\s+/).filter(w => w && w.length > 1 && !timeWords.test(w.replace(/[\"'״׳]/g, '')));\nlet name = hit && hit.name ? hit.name : nameWords.slice(0, 3).join(' ');\n\nconst sched = plan(t);\n\nconst errors = [];\nif (!hit && !(phone && custNum)) {\n  if (nameMulti.length) errors.push('מצאתי כמה לקוחות בשם הזה: ' + nameMulti.slice(0, 4).map(r => r.name + ' ' + ('0' + r.phone)).join(' | ') + ' - שלח/י שוב עם השם המלא או הטלפון הראשי במנוי');\n  else errors.push('לא מצאתי את הלקוח בדוח מכר פלאפון' + (local9 ? ' לפי הטלפון ' + phone : '') + (nw0.length ? (local9 ? ' או' : '') + ' לפי השם ' + nw0.join(' ') : '') + ' - שלח/י את השם המלא או הטלפון הראשי במנוי. אם העסקה עוד לא בדוח, צריך להוסיף אותה קודם');\n}\nelse if (!custNum) errors.push('ללקוח ' + name + ' אין מספר לקוח בדוח מכר פלאפון - צריך לעדכן אותו בדוח');\nelse if (!phone) errors.push('אין טלפון ללקוח בדוח - שלח/י את המספר שפלאפון יחזרו אליו');\nif (!sched) errors.push('לא זיהיתי מתי לנייד (למשל: עכשיו / היום 14:00 / מחר בבוקר / אחה\"צ)');\nelse if (sched.past) errors.push('השעה שביקשת כבר עברה');\n\nconst help = '❗ ' + errors.join('\\n❗ ') + '\\n\\nכותבים: ניוד + שם הלקוח או הטלפון הראשי במנוי + מתי. למשל:\\nניוד ישראל ישראלי היום 14:00\\nניוד 0541234567 מחר בבוקר\\nאם פלאפון צריכים לחזור למספר אחר (של הבן למשל), מוסיפים אותו:\\nניוד ישראל ישראלי 0501234567 היום 14:00';\nconst ok = errors.length === 0;\n\nlet action, reply;\nconst qty = hit ? hit.qty : 0;\nconst otherPhone = hit && hit.phone && phone && phone.slice(1) !== hit.phone;\nconst who = '👤 ' + (name || 'לקוח') + ' (לקוח ' + custNum + ')\\n📞 ' + phone + (otherPhone ? ' (פלאפון יחזרו למספר הזה, לא לראשי 0' + hit.phone + ')' : '') + (idNum ? '\\n🪪 ת\"ז ' + idNum : '') + (qty > 1 ? '\\n📱 ' + qty + ' קווים' : '');\nif (!ok) { action = 'error'; reply = help; }\nelse { action = 'schedule'; reply = '✅ קיבלתי! מייל לניודים יישלח ' + sched.text + '\\n' + who + (hit ? '' : '\\n\\n⚠️ לא מצאתי את הלקוח בדוח מכר פלאפון - שולח לפי הפרטים ששלחת.') + '\\n\\nתקבל/י הודעה כשהמייל יישלח.'; }\n\nconst st = 'direction:rtl;font-family:Aptos,Aptos_EmbeddedFont,Aptos_MSFontService,Calibri,Helvetica,sans-serif;font-size:12pt;color:rgb(0,0,0)';\nconst lines = ['רוצה לנייד עכשיו בבקשה' + (qty > 1 ? ' ' + qty + ' קווים' : ''), 'לחייג ל-' + phone];\nif (idNum) lines.push('ת\"ז ' + idNum);\nconst html = lines.map(l => '<div style=\"' + st + '\">' + l + '</div>').join('') +\n  '<div style=\"' + st + '\"><br /></div><div id=\"Signature\"><p style=\"direction:rtl;margin-top:1em;margin-bottom:1em\"><b>ירדן בן שלוש</b></p>' +\n  '<p style=\"direction:rtl;margin-top:1em;margin-bottom:1em\">מנכ”ל - יהל תקשורת</p>' +\n  '<p style=\"direction:rtl;margin-top:1em;margin-bottom:1em\">פתרונות תקשורת מתקדמים | משווק מורשה yes</p></div>';\n\nlet repWa = digits(input.repWa); if (repWa.startsWith('0')) repWa = '972' + repWa.slice(1);\nreturn {\n  action, reply, ok, who, force,\n  key: phone ? '972' + phone.slice(1) : '', phone, custNum, subject: custNum, idNum, name, qty, html,\n  sendAt: sched && !sched.past ? sched.iso : '', sendAtText: sched && !sched.past ? sched.text : '',\n  choice: 'נציג: ' + norm(raw).slice(0, 200), repName: norm(input.repName), repWa,\n  tab: hit ? hit.tab : '', row: hit ? hit.row : 0\n};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "filter": [
+      [
+       {
+        "a": "phone",
+        "b": "{{ifempty(6.result.phone; \"none\")}}",
+        "o": "text:equal"
+       }
+      ]
+     ]
+    },
+    "module": "datastore:SearchRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2100,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "limit": 1,
+     "datastore": 193282,
+     "continueWhenNoRes": true
+    }
+   },
+   {
+    "id": 10,
+    "mapper": {
+     "filter": [
+      [
+       {
+        "a": "phone",
+        "b": "{{ifempty(6.result.phone; \"none\")}}",
+        "o": "text:equal"
+       }
+      ]
+     ]
+    },
+    "module": "datastore:SearchRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2250,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "limit": 1,
+     "datastore": 194385,
+     "continueWhenNoRes": true
+    }
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "input": [
+      {
+       "name": "action",
+       "value": "{{6.result.action}}"
+      },
+      {
+       "name": "reply",
+       "value": "{{6.result.reply}}"
+      },
+      {
+       "name": "who",
+       "value": "{{6.result.who}}"
+      },
+      {
+       "name": "sendAtText",
+       "value": "{{6.result.sendAtText}}"
+      },
+      {
+       "name": "force",
+       "value": "{{6.result.force}}"
+      },
+      {
+       "name": "prevStatus",
+       "value": "{{7.status}}{{7.data.status}}"
+      },
+      {
+       "name": "prevSentAt",
+       "value": "{{7.sentAt}}{{7.data.sentAt}}"
+      },
+      {
+       "name": "prevText",
+       "value": "{{7.sendAtText}}{{7.data.sendAtText}}"
+      },
+      {
+       "name": "naLast",
+       "value": "{{10.lastMsgAt}}{{10.data.lastMsgAt}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// RULE (Steve, 20/10/2026): one porting email per customer per day (Israel time). Next day it can be sent again normally.\n// Same-day extra email only if Pelephone answered 'ללא מענה' after the last email, or the rep explicitly writes 'ניוד שוב ...'.\nconst fmt = new Intl.DateTimeFormat('en-US', {timeZone: 'Asia/Jerusalem', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'});\nconst parts = t => { const o = {}; for (const p of fmt.formatToParts(new Date(t))) o[p.type] = p.value; return o; };\nconst dayKey = t => { const p = parts(t); return p.year + '-' + p.month + '-' + p.day; };\nconst st = String(input.prevStatus || ''), action0 = String(input.action || '');\nconst who = String(input.who || '');\nconst force = String(input.force) === 'true';\nlet action = action0, reply = String(input.reply || '');\nif (action0 === 'schedule') {\n  const prevMs = input.prevSentAt ? Date.parse(input.prevSentAt) : NaN;\n  const naMs = input.naLast ? Date.parse(input.naLast) : NaN;\n  const noAnswerSince = st === 'sent' && !isNaN(naMs) && (isNaN(prevMs) || naMs > prevMs);\n  const sentToday = st === 'sent' && !isNaN(prevMs) && dayKey(prevMs) === dayKey(Date.now());\n  if (st === 'sending') { action = 'block'; reply = '⛔ לא שלחתי - המייל לניודים על הלקוח הזה נשלח ממש עכשיו.\\n' + who; }\n  else if (sentToday && !noAnswerSince && !force) {\n    const p = parts(prevMs);\n    action = 'block';\n    reply = '⛔ לא שלחתי - כבר נשלח היום מייל לניודים על הלקוח הזה (ב-' + p.hour + ':' + p.minute + ').\\n' + who + '\\n\\nעל כל לקוח אפשר לשלוח מייל ניוד פעם ביום - מחר אפשר לשלוח שוב כרגיל.\\n• אם פלאפון יחזירו \"ללא מענה\" - אפשר לשלוח שוב כבר היום.\\n• אם הלקוח ביקש לתאם זמן אחר, כתוב/י \"שוב\" אחרי המילה ניוד, למשל:\\nניוד שוב 0541234567 מחר 11:00';\n  }\n  else if (st === 'sent' && sentToday) { reply = (noAnswerSince ? '🔁 פלאפון החזירו \"ללא מענה\" - שולח מייל ניוד נוסף.\\n' : '🔁 לבקשתך (\"שוב\") - שולח מייל ניוד נוסף.\\n') + reply.replace(/^✅ קיבלתי! /, ''); }\n  else if (st === 'pending') { reply = '🔄 עדכנתי! כבר היה מתוזמן מייל לניודים על הלקוח הזה (' + (input.prevText || '') + ') - עכשיו הוא יישלח ' + input.sendAtText + '\\n' + who + '\\n\\nתקבל/י הודעה כשהמייל יישלח.'; }\n}\nreturn {action, reply};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2400,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 9,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 20,
+        "filter": {
+         "name": "לתזמן מייל",
+         "conditions": [
+          [
+           {
+            "a": "{{8.result.action}}",
+            "b": "schedule",
+            "o": "text:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "key": "{{6.result.key}}",
+         "data": {
+          "row": "{{6.result.row}}",
+          "tab": "{{6.result.tab}}",
+          "html": "{{6.result.html}}",
+          "phone": "{{6.result.phone}}",
+          "repWa": "{{6.result.repWa}}",
+          "choice": "{{6.result.choice}}",
+          "sendAt": "{{6.result.sendAt}}",
+          "status": "pending",
+          "custNum": "{{6.result.custNum}}",
+          "repName": "{{6.result.repName}}",
+          "subject": "{{6.result.subject}}",
+          "custName": "{{6.result.name}}",
+          "createdAt": "{{now}}",
+          "sendAtText": "{{6.result.sendAtText}}"
+         },
+         "overwrite": true
+        },
+        "module": "datastore:AddRecord",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "datastore": 193282
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 30,
+        "filter": {
+         "name": "נציג (לא לקוח) - ManyChat",
+         "conditions": [
+          [
+           {
+            "a": "{{8.result.action}}",
+            "b": "ignore",
+            "o": "text:notequal"
+           },
+           {
+            "a": "{{1.src}}",
+            "b": "green",
+            "o": "text:notequal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "cFieldId": 14739095,
+         "cFieldValue": "{{8.result.reply}}",
+         "subscriberId": "{{1.id}}"
+        },
+        "module": "manychat:SetSubscriberCustomField",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": 100
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 31,
+        "mapper": {
+         "flowName": "content20260930150123_063231",
+         "subscriberId": "{{1.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 3000,
+          "y": 100
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 14390747
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 40,
+        "filter": {
+         "name": "נציג מבוט Green API",
+         "conditions": [
+          [
+           {
+            "a": "{{8.result.action}}",
+            "b": "ignore",
+            "o": "text:notequal"
+           },
+           {
+            "a": "{{1.src}}",
+            "b": "green",
+            "o": "text:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{6.result.repWa}}@c.us",
+          "message": "{{8.result.reply}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": 400
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2400,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "ניודים 1 - בקשה מנציג ← מייל לניודים בשעה שביקש",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

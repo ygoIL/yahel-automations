@@ -1,0 +1,137 @@
+{
+ "id": 10125496,
+ "name": "Claude - קליטת דפים מגיניאס yes למאגר הידע",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4498035,
+ "hookUdid": "mytdbym8ocap5ymyvg70t5lmwikw2qb3",
+ "exportedAt": "2026-11-16T16:47:37.285Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4498035,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "id",
+       "value": "{{1.id}}"
+      },
+      {
+       "name": "title",
+       "value": "{{1.title}}"
+      },
+      {
+       "name": "cat",
+       "value": "{{1.cat}}"
+      },
+      {
+       "name": "text",
+       "value": "{{1.text}}"
+      },
+      {
+       "name": "upd",
+       "value": "{{1.upd}}"
+      },
+      {
+       "name": "part",
+       "value": "{{1.part}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const g=s=>String(s==null?'':s);\nlet vals=[];\nif(g(input.id)==='BATCH'){ try{ vals=JSON.parse(g(input.text)).map(r=>[g(r[0]),g(r[1]),g(r[2]),g(r[3]).slice(0,49000),g(r[4]),g(r[5])]); }catch(e){ vals=[]; } }\nelse if(g(input.id)) vals=[[g(input.id),g(input.title),g(input.cat),g(input.text).slice(0,49000),g(input.upd),g(input.part)]];\nreturn {n: vals.length, body: JSON.stringify({values:vals})};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "filter": {
+     "name": "יש שורות",
+     "conditions": [
+      [
+       {
+        "a": "{{2.result.n}}",
+        "b": "0",
+        "o": "number:greater"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "qs": [
+      {
+       "key": "valueInputOption",
+       "value": "RAW"
+      },
+      {
+       "key": "insertDataOption",
+       "value": "INSERT_ROWS"
+      }
+     ],
+     "url": "spreadsheets/1DOJ8rJU7rj7z7ciRnktwZjGbgpWVtUyYSNb-1WllK1s/values/Sheet1!A1:append",
+     "body": "{{2.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   }
+  ],
+  "name": "Claude - קליטת דפים מגיניאס yes למאגר הידע",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 10,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

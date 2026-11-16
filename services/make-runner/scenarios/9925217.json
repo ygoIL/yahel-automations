@@ -1,0 +1,379 @@
+{
+ "id": 9925217,
+ "name": "Claude - פלאפון: שליחת מייל לניודים (רק באישור נציג)",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 300,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "time": [
+     "09:00",
+     "20:00"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:31.319Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "limit": 50,
+     "filter": [
+      [
+       {
+        "a": "status",
+        "b": "pending",
+        "o": "text:equal"
+       }
+      ]
+     ]
+    },
+    "module": "datastore:SearchRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 193282
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "key": "{{1.key}}",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 193282
+    }
+   },
+   {
+    "id": 3,
+    "filter": {
+     "name": "עדיין ממתין, הגיע הזמן ואושר ע\"י נציג",
+     "conditions": [
+      [
+       {
+        "a": "{{2.status}}",
+        "b": "pending",
+        "o": "text:equal"
+       },
+       {
+        "a": "{{parseDate(2.sendAt)}}",
+        "b": "{{now}}",
+        "o": "date:lessorequal"
+       },
+       {
+        "a": "{{2.choice}}",
+        "b": "נציג:",
+        "o": "text:contain"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "key": "{{1.key}}",
+     "data": {
+      "status": "sending"
+     },
+     "upsert": false,
+     "overwriteArrays": false
+    },
+    "module": "datastore:UpdateRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 193282
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "content": "<div style=\"direction:rtl;font-family:Aptos,Aptos_EmbeddedFont,Aptos_MSFontService,Calibri,Helvetica,sans-serif;font-size:12pt;color:rgb(0,0,0)\">רוצה לנייד עכשיו בבקשה</div><div style=\"direction:rtl;font-family:Aptos,Aptos_EmbeddedFont,Aptos_MSFontService,Calibri,Helvetica,sans-serif;font-size:12pt;color:rgb(0,0,0)\">{{2.phone}}</div><div style=\"direction:rtl;font-family:Aptos,Aptos_EmbeddedFont,Aptos_MSFontService,Calibri,Helvetica,sans-serif;font-size:12pt;color:rgb(0,0,0)\"><br /></div><div id=\"Signature\"><p style=\"direction:rtl;margin-top:1em;margin-bottom:1em\"><b>ירדן בן שלוש</b></p><p style=\"direction:rtl;margin-top:1em;margin-bottom:1em\">מנכ”ל - יהל תקשורת</p><p style=\"direction:rtl;margin-top:1em;margin-bottom:1em\">פתרונות תקשורת מתקדמים | משווק מורשה yes</p></div>",
+     "subject": "{{2.subject}}",
+     "contentType": "html",
+     "toRecipients": [
+      {
+       "address": "niyudim@pelephone.co.il"
+      }
+     ]
+    },
+    "module": "microsoft-email:createAndSendAMessage",
+    "onerror": [
+     {
+      "id": 9,
+      "mapper": {
+       "key": "{{1.key}}",
+       "data": {
+        "status": "error"
+       },
+       "upsert": false,
+       "overwriteArrays": false
+      },
+      "module": "datastore:UpdateRecord",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 900,
+        "y": 250
+       }
+      },
+      "parameters": {
+       "datastore": 193282
+      }
+     },
+     {
+      "id": 19,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1200,
+        "y": 250
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 14638980
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "key": "{{1.key}}",
+     "data": {
+      "sentAt": "{{now}}",
+      "status": "sent"
+     },
+     "upsert": false,
+     "overwriteArrays": false
+    },
+    "module": "datastore:UpdateRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 193282
+    }
+   },
+   {
+    "id": 6,
+    "filter": {
+     "name": "יש שורה בדוח",
+     "conditions": [
+      [
+       {
+        "a": "{{2.row}}",
+        "b": "1",
+        "o": "number:greater"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg/values:batchUpdate",
+     "body": "{\"valueInputOption\":\"RAW\",\"data\":[{\"range\":\"'{{2.tab}}'!AB1\",\"values\":[[\"מייל לניודים\"]]},{\"range\":\"'{{2.tab}}'!AB{{2.row}}\",\"values\":[[\"נשלח {{formatDate(now; \"DD/MM HH:mm\"; \"Asia/Jerusalem\")}}\"]]}]}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 29,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1500,
+        "y": 250
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "limit": "1",
+     "cFieldId": 14028645,
+     "cFieldValue": "{{2.repWa}}"
+    },
+    "module": "manychat:FindSubscriberByCustomField",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 10,
+    "filter": {
+     "name": "נציג נמצא",
+     "conditions": [
+      [
+       {
+        "a": "{{7.id}}",
+        "o": "exist"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "cFieldId": 14739095,
+     "cFieldValue": "✅ נשלח מייל לניודים של פלאפון\n👤 {{2.custName}} (לקוח {{2.subject}})\n📞 {{2.phone}}\n🕐 בזמן שביקשת: {{2.sendAtText}}",
+     "subscriberId": "{{7.id}}"
+    },
+    "module": "manychat:SetSubscriberCustomField",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2100,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 11,
+    "mapper": {
+     "text": "✅ נשלח מייל לניודים של פלאפון\n👤 {{2.custName}} (לקוח {{2.subject}})\n📞 {{2.phone}}\n🕐 בזמן שביקשת: {{2.sendAtText}}",
+     "subscriberId": "{{7.id}}"
+    },
+    "module": "manychat:SendText",
+    "onerror": [
+     {
+      "id": 12,
+      "mapper": {
+       "flowName": "content20261005084024_300716",
+       "subscriberId": "{{7.id}}"
+      },
+      "module": "manychat:SendFlow",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 2700,
+        "y": 100
+       }
+      },
+      "parameters": {
+       "__IMTCONN__": 14390747
+      }
+     },
+     {
+      "id": 13,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 3000,
+        "y": 100
+       }
+      }
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2400,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   }
+  ],
+  "name": "Claude - פלאפון: שליחת מייל לניודים (רק באישור נציג)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

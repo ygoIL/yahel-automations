@@ -1,0 +1,139 @@
+{
+ "id": 10089395,
+ "name": "Claude - לקוח מוטרד ממייל יורן ← רשימת חסומים טוצ'אט (סוף יום)",
+ "scheduling": {
+  "time": "19:00",
+  "type": "daily"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:50.927Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "limit": 50,
+     "search": "from:YTwito@yes.co.il AND subject:מוטרד"
+    },
+    "module": "microsoft-email:listMessages",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 14638980
+    }
+   },
+   {
+    "id": 2,
+    "filter": {
+     "name": "מיורן, נושא מוטרד, מ-48 השעות האחרונות",
+     "conditions": [
+      [
+       {
+        "a": "{{1.from.emailAddress.address}}",
+        "b": "YTwito@yes.co.il",
+        "o": "text:equal:ci"
+       },
+       {
+        "a": "{{1.subject}}",
+        "b": "מוטרד",
+        "o": "text:contain"
+       },
+       {
+        "a": "{{1.receivedDateTime}}",
+        "b": "{{addHours(now; -48)}}",
+        "o": "date:greater"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "text": "{{1.subject}} {{stripHTML(1.body.content)}}"
+    },
+    "module": "regexp:Parser",
+    "version": 1,
+    "parameters": {
+     "global": true,
+     "pattern": "(?<phone>0\\d{1,2}[-\\s]?\\d{3}[-\\s]?\\d{4})",
+     "multiline": false,
+     "sensitive": true,
+     "singleline": false,
+     "continueWhenNoRes": false,
+     "ignoreInfiniteLoopsWhenGlobal": false
+    }
+   },
+   {
+    "id": 3,
+    "filter": {
+     "name": "לא המספרים של יורן",
+     "conditions": [
+      [
+       {
+        "a": "{{replace(2.phone; \"/[^0-9]/g\"; emptystring)}}",
+        "b": "0508680888",
+        "o": "text:notequal"
+       },
+       {
+        "a": "{{replace(2.phone; \"/[^0-9]/g\"; emptystring)}}",
+        "b": "097615532",
+        "o": "text:notequal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "items": [
+      {
+       "name": "",
+       "note": "לקוח מוטרד - מייל מיורן טויטו {{formatDate(1.receivedDateTime; \"DD/MM/YYYY\"; \"Asia/Jerusalem\")}}",
+       "phone": "{{replace(2.phone; \"/[^0-9]/g\"; emptystring)}}"
+      }
+     ],
+     "dataSource": {
+      "name": "make"
+     }
+    },
+    "module": "app#tochat-cannon-7utvne:AddDenyListItem",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "key": "{{replace(2.phone; \"/[^0-9]/g\"; emptystring)}}",
+     "data": {
+      "phone": "{{replace(2.phone; \"/[^0-9]/g\"; emptystring)}}",
+      "failed": "{{join(map(3.failed; \"reason\"); \", \")}}",
+      "run_at": "{{formatDate(now; \"DD/MM/YYYY HH:mm\"; \"Asia/Jerusalem\")}}",
+      "created": "{{join(map(3.created; \"id\"); \", \")}}",
+      "subject": "{{1.subject}}",
+      "email_date": "{{formatDate(1.receivedDateTime; \"DD/MM/YYYY HH:mm\"; \"Asia/Jerusalem\")}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 200068
+    }
+   }
+  ],
+  "name": "Claude - לקוח מוטרד ממייל יורן ← רשימת חסומים טוצ'אט (סוף יום)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

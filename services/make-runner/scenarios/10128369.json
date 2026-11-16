@@ -1,0 +1,92 @@
+{
+ "id": 10128369,
+ "name": "Claude - טוצ'ט: העלאת לידים מרשימה דחוסה (ממירים)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:07.998Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "input": [
+      {
+       "name": "data",
+       "value": "{{var.input.data}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const all=[];const seen=new Set();for(const grp of String(input.data||'').split(';')){const [tv,list]=grp.split(':');if(!list)continue;const aud='ממירים – '+tv+' טלוויזיות/ממירים';for(const x of list.split(',')){const p='0'+x.trim();if(!/^05\\d{8}$/.test(p)||seen.has(p))continue;seen.add(p);all.push({phone:p,firstName:'',lastName:'',audience:aud,notes:aud+' (מתמלול שיחה קודמת)',customLeadFields:{}});}}const batches=[];for(let i=0;i<all.length;i+=200)batches.push({customers:all.slice(i,i+200),idx:batches.length+1,n:Math.min(200,all.length-i)});return {batches,total:all.length};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "array": "{{1.result.batches}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "customers": "{{2.customers}}",
+     "campaignId": "{{var.input.campaignId}}",
+     "dataSource": {
+      "name": "{{var.input.sourceName}}",
+      "priority": 20,
+      "newCustomersOnly": false,
+      "shouldCheckWithDontCallMe": false,
+      "shouldOverrideCustomerData": false
+     }
+    },
+    "module": "app#tochat-cannon-7utvne:AddLeadsToCampaign2",
+    "onerror": [
+     {
+      "id": 31,
+      "module": "builtin:Ignore",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "key": "mamirim_{{var.input.part}}_b{{2.idx}}",
+     "data": {
+      "data": "sent {{2.n}} failed {{length(3.failed)}} {{join(map(3.failed; \"reason\"); \",\")}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: העלאת לידים מרשימה דחוסה (ממירים)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

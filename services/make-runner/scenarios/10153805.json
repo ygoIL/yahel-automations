@@ -1,0 +1,462 @@
+{
+ "id": 10153805,
+ "name": "Claude - הקדמות 9: חלונות מהלקוח ← מייל לחברה / נציג",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4510674,
+ "hookUdid": "cfeqcvmgh4j3q65fsje6xct57exvhrw1",
+ "exportedAt": "2026-11-16T16:45:53.623Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4510674,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{\"dataFilters\":[{\"a1Range\":\"'הקדמה מיידית'!A1:Q3000\"},{\"a1Range\":\"'יעדים'!A2:B80\"}],\"valueRenderOption\":\"FORMATTED_VALUE\"}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 90,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{\"dataFilters\":[{\"a1Range\":\"'{{switch(formatDate(now; \"M\"; \"Asia/Jerusalem\"); \"1\"; \"ינואר\"; \"2\"; \"פברואר\"; \"3\"; \"מרץ\"; \"4\"; \"אפריל\"; \"5\"; \"מאי\"; \"6\"; \"יוני\"; \"7\"; \"יולי\"; \"8\"; \"אוגוסט\"; \"9\"; \"ספטמבר\"; \"10\"; \"אוקטובר\"; \"11\"; \"נובמבר\"; \"12\"; \"דצמבר\")}} {{formatDate(now; \"YYYY\"; \"Asia/Jerusalem\")}}'!A1:I2000\"},{\"a1Range\":\"'{{switch(formatDate(addMonths(parseDate(formatDate(now; \"YYYY-MM-01\"; \"Asia/Jerusalem\"); \"YYYY-MM-DD\"; \"UTC\"); -1); \"M\"; \"UTC\"); \"1\"; \"ינואר\"; \"2\"; \"פברואר\"; \"3\"; \"מרץ\"; \"4\"; \"אפריל\"; \"5\"; \"מאי\"; \"6\"; \"יוני\"; \"7\"; \"יולי\"; \"8\"; \"אוגוסט\"; \"9\"; \"ספטמבר\"; \"10\"; \"אוקטובר\"; \"11\"; \"נובמבר\"; \"12\"; \"דצמבר\")}} {{formatDate(addMonths(parseDate(formatDate(now; \"YYYY-MM-01\"; \"Asia/Jerusalem\"); \"YYYY-MM-DD\"; \"UTC\"); -1); \"YYYY\"; \"UTC\")}}'!A1:I2000\"}],\"valueRenderOption\":\"FORMATTED_VALUE\"}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 91,
+      "mapper": {
+       "body": {
+        "valueRanges": []
+       }
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 450,
+        "y": -300
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 450,
+      "y": -150
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "input": [
+      {
+       "name": "ranges",
+       "value": "{{2.body.valueRanges}}"
+      },
+      {
+       "name": "id",
+       "value": "{{1.id}}"
+      },
+      {
+       "name": "rep_ranges",
+       "value": "{{90.body.valueRanges}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const norm=s=>String(s==null?'':s).trim();\nconst vr=(input.ranges||[]).map(v=>v.valueRange||v).find(v=>String(v.range||'').includes('הקדמה מיידית'))||{};\nconst log=vr.values||[]; const id=norm(input.id);\n// RULE (15/11/2026, כפילויות): אם אין מספר לקוח בלוג (עמודה E) - לוקחים אותו מדוח המכר לפי הטלפון (9 ספרות אחרונות) מקריאת הדוח במודול 90 (אם נכשלה - כמו קודם), לשונית החודש הנוכחי קודם; עדיפות לשורה עם אותו שם; אם יש כמה מספרים שונים בלי התאמת שם - לא מנחשים. Do not remove.\nconst cnFromReport=(ph,nmv)=>{const l9=s=>{const d=String(s==null?'':s).replace(/\\D/g,'');return d.length>=9?d.slice(-9):'';};const nn=s=>String(s==null?'':s).replace(/[\\s\\u200e\\u200f]+/g,' ').trim();const p=l9(ph);if(!p)return '';const c=[];for(const v of (Array.isArray(input.rep_ranges)?input.rep_ranges:[])){const x=(v&&v.valueRange)||v||{};const rg=String(x.range||'');if(rg.includes('הקדמה מיידית')||rg.includes('יעדים'))continue;for(const r of (x.values||[]).slice(1)){const g=String((r||[])[6]==null?'':r[6]).replace(/\\D/g,'');if(g&&l9(r[3])===p)c.push({g,n:nn(r[2])});}}const byN=c.filter(x=>x.n&&x.n===nn(nmv));if(byN.length)return byN[0].g;return c.length&&c.every(x=>x.g===c[0].g)?c[0].g:'';};\nfor(let i=log.length-1;i>=1;i--){ if(id&&norm(log[i][10])===id) return {found:true,cn:norm(log[i][4]).replace(/\\D/g,'')||cnFromReport(log[i][3],log[i][2])}; }\nreturn {found:false,cn:''};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "filter": {
+     "name": "נמצא לקוח",
+     "conditions": [
+      [
+       {
+        "a": "{{3.result.found}}",
+        "b": "true",
+        "o": "boolean:equal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "key": "{{ifempty(3.result.cn; \"none\")}}",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 191414
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "ranges",
+       "value": "{{2.body.valueRanges}}"
+      },
+      {
+       "name": "id",
+       "value": "{{1.id}}"
+      },
+      {
+       "name": "reply",
+       "value": "{{ifempty(1.reply; 1.custom_fields.advance_windows)}}"
+      },
+      {
+       "name": "chat",
+       "value": "{{ifempty(1.chat; 1.live_chat_url)}}"
+      },
+      {
+       "name": "now",
+       "value": "{{1.now}}"
+      },
+      {
+       "name": "ds_status",
+       "value": "{{4.status}}"
+      },
+      {
+       "name": "ds_send_day",
+       "value": "{{4.send_day}}"
+      },
+      {
+       "name": "ds_sends_today",
+       "value": "{{4.sends_today}}"
+      },
+      {
+       "name": "rep_ranges",
+       "value": "{{90.body.valueRanges}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// RULE (Steve 12/11/2026): customer's answer to the advance time-window question (after \"כן\" on the immediate advance offer for tomorrow / Sunday).\n// Only numbers 1-5 (one or more) -> email request to the company (same mailbox/format as the rep bot) + rep update. Anything else (exact hour, free text), offer \"היום\", too late, Fri/Sat, after 19:00, open/approved request -> to the selling rep. Do not remove.\nconst BIDI=new RegExp('[\\\\s'+String.fromCharCode(8206,8207)+']+','g'); const norm=s=>String(s==null?'':s).replace(BIDI,' ').trim();\nconst vrs=input.ranges||[];\nconst rangeOf=vr=>String((vr.valueRange||vr||{}).range||'');\nconst valsOf=vr=>((vr.valueRange||vr||{}).values)||[];\nconst log=valsOf(vrs.find(v=>rangeOf(v).includes('הקדמה מיידית'))||{});\nconst targets=valsOf(vrs.find(v=>rangeOf(v).includes('יעדים'))||{}).filter(r=>r&&norm(r[0]));\nconst id=norm(input.id); const reply=norm(input.reply);\nconst HM=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst DAYS=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];\nconst SL={1:8,2:10,3:12,4:14,5:16};\nconst nowIL=input.now?new Date(input.now):new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst today=new Date(nowIL.getFullYear(),nowIL.getMonth(),nowIL.getDate());\nconst dow=nowIL.getDay(), mins=nowIL.getHours()*60+nowIL.getMinutes();\nconst stamp=nowIL.getDate()+'/'+(nowIL.getMonth()+1)+' '+String(nowIL.getHours()).padStart(2,'0')+':'+String(nowIL.getMinutes()).padStart(2,'0');\n// RULE (15/11/2026, כפילויות): אם אין מספר לקוח בלוג (עמודה E) - לוקחים אותו מדוח המכר לפי הטלפון (9 ספרות אחרונות) מקריאת הדוח במודול 90 (אם נכשלה - כמו קודם), לשונית החודש הנוכחי קודם; עדיפות לשורה עם אותו שם; אם יש כמה מספרים שונים בלי התאמת שם - לא מנחשים. Do not remove.\nconst cnFromReport=(ph,nmv)=>{const l9=s=>{const d=String(s==null?'':s).replace(/\\D/g,'');return d.length>=9?d.slice(-9):'';};const nn=s=>String(s==null?'':s).replace(/[\\s\\u200e\\u200f]+/g,' ').trim();const p=l9(ph);if(!p)return '';const c=[];for(const v of (Array.isArray(input.rep_ranges)?input.rep_ranges:[])){const x=(v&&v.valueRange)||v||{};const rg=String(x.range||'');if(rg.includes('הקדמה מיידית')||rg.includes('יעדים'))continue;for(const r of (x.values||[]).slice(1)){const g=String((r||[])[6]==null?'':r[6]).replace(/\\D/g,'');if(g&&l9(r[3])===p)c.push({g,n:nn(r[2])});}}const byN=c.filter(x=>x.n&&x.n===nn(nmv));if(byN.length)return byN[0].g;return c.length&&c.every(x=>x.g===c[0].g)?c[0].g:'';};\nlet row=-1; for(let i=log.length-1;i>=1;i--){ if(norm(log[i][10])===id){row=i;break;} }\nif(row<0||!id) return {found:false,mode:'none'};\nconst r=log[row];\nconst name=norm(r[2]), phone=norm(r[3]), cn=norm(r[4]).replace(/\\D/g,'')||cnFromReport(r[3],r[2]), rep=norm(r[5]), offer=norm(r[8]), tab=norm(r[9]);\nconst toIntl=p=>{let d=String(p||'').replace(/\\D/g,''); if(d.startsWith('972')) return d; if(d.startsWith('0')) d=d.slice(1); return d?'972'+d:'';};\nlet m=targets.filter(x=>norm(x[0])===rep); if(!m.length&&rep){const f=rep.split(' ')[0]; m=targets.filter(x=>{const a=norm(x[0]); return a===f||a.split(' ')[0]===f;});}\nconst repPh=m.length?toIntl(m[0][1]):''; const first=m.length?norm(m[0][0]).split(' ')[0]:rep.split(' ')[0];\n// sent date (col A d/m/yyyy)\nconst sm=norm(r[0]).match(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})/);\nconst sent=sm?new Date(+sm[3],+sm[2]-1,+sm[1]):today;\nlet target=null;\nif(/ראשון/.test(offer)){ target=new Date(sent); do{target.setDate(target.getDate()+1);}while(target.getDay()!==0); }\nelse if(/מחר/.test(offer)){ target=new Date(sent); target.setDate(target.getDate()+1); while(target.getDay()===5||target.getDay()===6) target.setDate(target.getDate()+1); }\n// parse: only digits 1-5 with separators\nconst clean=reply.replace(/[⃣️]/g,' ').replace(/\\s+/g,' ').trim();\nconst onlyNums=/^[1-5](?:\\s*(?:,|\\.|\\/|-|\\s|ו|\\+|&)\\s*[1-5])*$/.test(clean);\nconst picks=onlyNums?[...new Set((clean.match(/[1-5]/g)||[]).map(Number))].sort((a,b)=>a-b):[];\nlet reason='';\nif(!/ראשון|מחר/.test(offer)) reason='ההצעה ללקוח הייתה להיום - הקדמה להיום עוברת דרך משווקים יס';\nelse if(!picks.length) reason='הלקוח לא ענה במספרים מהרשימה';\nelse if(!cn) reason='אין ללקוח מספר לקוח בדוח המכר';\nelse if(!target||target.getTime()<=today.getTime()) reason='הלקוח ענה מאוחר מדי - היום המבוקש כבר הגיע';\nelse if(dow>4||mins>=19*60||mins<8*60) reason='הלקוח ענה מחוץ לשעות (אחרי 19:00 / סוף שבוע) - אי אפשר לשלוח לחברה בזמן';\nconst st=norm(input.ds_status), sday=norm(input.ds_send_day), stoday=+input.ds_sends_today||0;\nconst iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');\nconst todayIso=iso(today);\nif(!reason&&st){\n  if(st==='אושר') reason='כבר אושרה הקדמה ללקוח הזה בעבר';\n  else if(st==='ממתין') reason='כבר יש בקשת הקדמה פתוחה על הלקוח הזה';\n  else if(sday===todayIso&&stoday>=2) reason='כבר נשלחו היום 2 בקשות הקדמה על הלקוח הזה';\n}\nconst fullDate=target?'יום '+DAYS[target.getDay()]+' '+target.getDate()+' '+HM[target.getMonth()]+' '+target.getFullYear():'';\nconst shortDate=target?target.getDate()+'/'+(target.getMonth()+1):'';\nconst starts=picks.map(p=>SL[p]);\nconst pad=n=>String(n).padStart(2,'0');\nconst slotText=starts.length===5?'כל היום':starts.map(s=>pad(s)+':00-'+pad(s+2)+':00').join(' / ');\nconst emailSlot=starts.length===5?'כל היום':'שעות '+starts.map(s=>s+'-'+(s+2)).join(' או ');\nconst chat=norm(input.chat);\nconst head=(first?'היי '+first+', ':'');\nconst custLine='👤 '+name+(cn?' (לקוח '+cn+')':'')+'\\n📱 '+phone;\nlet mode, msg;\nif(!reason){\n  mode='email';\n  msg=head+'🙋 הלקוח שלך ביקש בוואטסאפ להקדים את ההתקנה, ושלחתי בקשת הקדמה לחברה:\\n\\n'+custLine+'\\n📅 '+fullDate+'\\n🕐 '+slotText+'\\n\\nאעדכן אותך ברגע שתגיע תשובה מהחברה.';\n}else{\n  mode='rep';\n  msg=head+'🙋 לקוח שלך ענה על הצעת ההקדמה וצריך טיפול שלך:\\n\\n'+custLine+(target?'\\n📅 ההצעה הייתה ל'+offer.replace(/^ב/,'')+' '+shortDate:'')+'\\n💬 התשובה שלו: \"'+reply+'\"\\n\\n⚠️ '+reason+'.\\nתתקשר אליו ותסגור יום וחלון שעות.\\n• להיום: דרך משווקים יס (050-2552817)\\n• ליום אחר: שולחים לבוט, למשל: הקדמה '+(cn||'<מספר לקוח>')+' 17/11 10-12'+(chat?'\\n\\n💬 השיחה עם הלקוח: '+chat:'');\n}\nconst alert=JSON.stringify({chatId:(repPh||'972544604246')+'@c.us', message:(repPh?'':'⚠️ לא מצאתי טלפון לנציג \"'+rep+'\" בלשונית יעדים:\\n\\n')+msg});\nconst logBody=JSON.stringify({valueInputOption:'RAW',data:[{range:\"'הקדמה מיידית'!O\"+(row+1)+':Q'+(row+1),values:[[reply,mode==='email'?'נשלח לחברה '+shortDate+' '+(starts.length===5?'כל היום':starts.map(s=>s+'-'+(s+2)).join(' / ')):'הועבר לנציג: '+reason,stamp]]}]});\nreturn {found:true,mode,alert,logBody,cn,name,rep,repChat:(repPh||'972544604246')+'@c.us',tab,\n  email_text:'הלקוח מבקש הקדמה לתאריך '+shortDate+' '+emailSlot+'\\nשם הלקוח: '+name,\n  full_date:fullDate,slot:slotText,iso_date:target?iso(target):'',today_iso:todayIso,\n  sends_today:(sday===todayIso?stoday+1:1),reason};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+     "body": "{{5.result.logBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 106,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1650,
+        "y": 150
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 7,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 8,
+        "filter": {
+         "name": "שליחה לחברה",
+         "conditions": [
+          [
+           {
+            "a": "{{5.result.mode}}",
+            "b": "email",
+            "o": "text:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "to": [
+          "hakdamot-digital@commboxmail.com"
+         ],
+         "subject": "{{5.result.cn}}",
+         "bodyType": "collection",
+         "contents": [
+          {
+           "text": "{{5.result.email_text}}"
+          }
+         ]
+        },
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2100,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 14634877
+        }
+       },
+       {
+        "id": 9,
+        "mapper": {
+         "key": "{{5.result.cn}}",
+         "data": {
+          "row": "",
+          "source": "לקוח",
+          "status": "ממתין",
+          "new_date": "{{5.result.full_date}}",
+          "new_slot": "{{5.result.slot}}",
+          "old_date": "",
+          "old_slot": "",
+          "rep_name": "{{5.result.rep}}",
+          "retry_at": "",
+          "send_day": "{{5.result.today_iso}}",
+          "sheet_tab": "{{5.result.tab}}",
+          "thread_id": "{{8.threadId}}",
+          "created_at": "{{now}}",
+          "email_text": "{{5.result.email_text}}",
+          "short_date": "{{5.result.iso_date}}",
+          "sends_today": "{{5.result.sends_today}}",
+          "customer_name": "{{5.result.name}}",
+          "subscriber_id": "{{5.result.repChat}}",
+          "customer_number": "{{5.result.cn}}"
+         },
+         "overwrite": true
+        },
+        "module": "datastore:AddRecord",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2400,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "datastore": 191414
+        }
+       },
+       {
+        "id": 10,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "jsonString",
+         "shareCookies": false,
+         "parseResponse": false,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "jsonStringBodyContent": "{{5.result.alert}}",
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 110,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2850,
+            "y": -50
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 11,
+        "filter": {
+         "name": "לנציג",
+         "conditions": [
+          [
+           {
+            "a": "{{5.result.mode}}",
+            "b": "rep",
+            "o": "text:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "jsonString",
+         "shareCookies": false,
+         "parseResponse": false,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "jsonStringBodyContent": "{{5.result.alert}}",
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 111,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2250,
+            "y": 350
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2100,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - הקדמות 9: חלונות מהלקוח ← מייל לחברה / נציג",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

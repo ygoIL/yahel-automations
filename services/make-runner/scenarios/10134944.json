@@ -1,0 +1,84 @@
+{
+ "id": 10134944,
+ "name": "Claude - פולואפים יס: סימון שורות שהועלו",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:25.685Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1-mXfg-H5pZzGtTLTYOcU_SBgOEu8S2FnTrvz3Brc_7M/values/מאגר לקמפיין!A2:A{{var.input.count + 1}}",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "v",
+       "value": "{{1.body.values}}"
+      },
+      {
+       "name": "d",
+       "value": "{{formatDate(now; \"DD/MM/YYYY\"; \"Asia/Jerusalem\")}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const v=typeof input.v==='string'?JSON.parse(input.v):(input.v||[]);const rows=v.map(r=>[String([].concat(r)[0]||''),input.d]).filter(r=>r[0]);return {body: JSON.stringify({values: rows}), n: rows.length};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [
+      {
+       "key": "valueInputOption",
+       "value": "RAW"
+      },
+      {
+       "key": "insertDataOption",
+       "value": "OVERWRITE"
+      }
+     ],
+     "url": "spreadsheets/1-mXfg-H5pZzGtTLTYOcU_SBgOEu8S2FnTrvz3Brc_7M/values/הועלו לקמפיין!A1:append",
+     "body": "{{2.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 13008399
+    }
+   }
+  ],
+  "name": "Claude - פולואפים יס: סימון שורות שהועלו",
+  "metadata": {
+   "instant": false,
+   "version": 1
+  }
+ }
+}

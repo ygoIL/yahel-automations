@@ -1,0 +1,307 @@
+{
+ "id": 9482133,
+ "name": "הודעה לקבוצה",
+ "scheduling": {
+  "days": [
+   1,
+   2,
+   3,
+   4,
+   0
+  ],
+  "time": "10:30",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:48:19.678Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 5,
+    "mapper": {
+     "ca": "",
+     "qs": [],
+     "url": "https://7107.api.green-api.com/waInstance710701673993/sendMessage/__ENV:GREEN_TOKEN_710701673993__",
+     "data": "{\r\n  \"chatId\": \"120363403845988381@g.us\",\r\n  \"message\": \"בוקר טוב ☀️\\nכדי שנחלק את הפסקות הצהריים בצורה מסודרת, כל אחד שיגיב להודעה הזו עם האימוג׳י של השעה שבה הוא יוצא\\n\\n😮 = 12:00\\n😂 = 12:30\\n❤️ = 13:00\\n👍 = 13:30\\n\\nכל אחד מגיב פעם אחת בלבד\"\r\n}",
+     "gzip": true,
+     "method": "post",
+     "headers": [
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      }
+     ],
+     "timeout": "",
+     "useMtls": false,
+     "authPass": "",
+     "authUser": "",
+     "bodyType": "raw",
+     "contentType": "application/json",
+     "serializeUrl": false,
+     "shareCookies": false,
+     "parseResponse": true,
+     "followRedirect": true,
+     "useQuerystring": false,
+     "followAllRedirects": false,
+     "rejectUnauthorized": true
+    },
+    "module": "http:ActionSendData",
+    "version": 3,
+    "metadata": {
+     "expect": [
+      {
+       "name": "url",
+       "type": "url",
+       "label": "URL",
+       "required": true
+      },
+      {
+       "name": "serializeUrl",
+       "type": "boolean",
+       "label": "Serialize URL",
+       "required": true
+      },
+      {
+       "name": "method",
+       "type": "select",
+       "label": "Method",
+       "required": true,
+       "validate": {
+        "enum": [
+         "get",
+         "head",
+         "post",
+         "put",
+         "patch",
+         "delete",
+         "options"
+        ]
+       }
+      },
+      {
+       "name": "headers",
+       "spec": [
+        {
+         "name": "name",
+         "type": "text",
+         "label": "Name",
+         "required": true
+        },
+        {
+         "name": "value",
+         "type": "text",
+         "label": "Value"
+        }
+       ],
+       "type": "array",
+       "label": "Headers"
+      },
+      {
+       "name": "qs",
+       "spec": [
+        {
+         "name": "name",
+         "type": "text",
+         "label": "Name",
+         "required": true
+        },
+        {
+         "name": "value",
+         "type": "text",
+         "label": "Value"
+        }
+       ],
+       "type": "array",
+       "label": "Query String"
+      },
+      {
+       "name": "bodyType",
+       "type": "select",
+       "label": "Body type",
+       "validate": {
+        "enum": [
+         "raw",
+         "x_www_form_urlencoded",
+         "multipart_form_data"
+        ]
+       }
+      },
+      {
+       "name": "parseResponse",
+       "type": "boolean",
+       "label": "Parse response",
+       "required": true
+      },
+      {
+       "name": "authUser",
+       "type": "text",
+       "label": "User name"
+      },
+      {
+       "name": "authPass",
+       "type": "password",
+       "label": "Password"
+      },
+      {
+       "name": "timeout",
+       "type": "uinteger",
+       "label": "Timeout",
+       "validate": {
+        "max": 300,
+        "min": 1
+       }
+      },
+      {
+       "name": "shareCookies",
+       "type": "boolean",
+       "label": "Share cookies with other HTTP modules",
+       "required": true
+      },
+      {
+       "name": "ca",
+       "type": "cert",
+       "label": "Self-signed certificate"
+      },
+      {
+       "name": "rejectUnauthorized",
+       "type": "boolean",
+       "label": "Reject connections that are using unverified (self-signed) certificates",
+       "required": true
+      },
+      {
+       "name": "followRedirect",
+       "type": "boolean",
+       "label": "Follow redirect",
+       "required": true
+      },
+      {
+       "name": "useQuerystring",
+       "type": "boolean",
+       "label": "Disable serialization of multiple same query string keys as arrays",
+       "required": true
+      },
+      {
+       "name": "gzip",
+       "type": "boolean",
+       "label": "Request compressed content",
+       "required": true
+      },
+      {
+       "name": "useMtls",
+       "type": "boolean",
+       "label": "Use Mutual TLS",
+       "required": true
+      },
+      {
+       "name": "contentType",
+       "type": "select",
+       "label": "Content type",
+       "validate": {
+        "enum": [
+         "text/plain",
+         "application/json",
+         "application/xml",
+         "text/xml",
+         "text/html",
+         "custom"
+        ]
+       }
+      },
+      {
+       "name": "data",
+       "type": "buffer",
+       "label": "Request content"
+      },
+      {
+       "name": "followAllRedirects",
+       "type": "boolean",
+       "label": "Follow all redirect",
+       "required": true
+      }
+     ],
+     "restore": {
+      "expect": {
+       "qs": {
+        "mode": "chose"
+       },
+       "method": {
+        "mode": "chose",
+        "label": "POST"
+       },
+       "headers": {
+        "mode": "chose",
+        "items": [
+         null
+        ]
+       },
+       "bodyType": {
+        "label": "Raw"
+       },
+       "contentType": {
+        "label": "JSON (application/json)"
+       }
+      }
+     },
+     "designer": {
+      "x": -61,
+      "y": 11,
+      "name": "Send WhatsApp Group Message"
+     },
+     "parameters": [
+      {
+       "name": "handleErrors",
+       "type": "boolean",
+       "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+       "required": true
+      },
+      {
+       "name": "useNewZLibDeCompress",
+       "type": "hidden"
+      }
+     ]
+    },
+    "parameters": {
+     "handleErrors": true,
+     "useNewZLibDeCompress": true
+    }
+   }
+  ],
+  "name": "הודעה לקבוצה",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "designer": {
+    "orphans": [],
+    "samples": {
+     "5": {
+      "data": {
+       "idMessage": "3EB04E713384C2AA08602C"
+      },
+      "headers": [
+       {
+        "name": "access-control-max-age",
+        "value": "1728000"
+       }
+      ],
+      "fileSize": 38,
+      "statusCode": 200,
+      "cookieHeaders": []
+     }
+    }
+   },
+   "scenario": {
+    "dlq": false,
+    "slots": null,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

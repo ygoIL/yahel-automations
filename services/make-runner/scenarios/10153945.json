@@ -1,0 +1,583 @@
+{
+ "id": 10153945,
+ "name": "Claude - הקדמות 10: לא בחר חלון (שעה) + אישור הקדמה ללקוח",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 900,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "time": [
+     "08:00",
+     "21:00"
+    ]
+   },
+   {
+    "days": [
+     5
+    ],
+    "time": [
+     "08:00",
+     "14:00"
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:43.812Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [
+      {
+       "key": "fields",
+       "value": "sheets.properties.title"
+      }
+     ],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(let k=-1;k<2;k++){const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+k,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t);}\nreturn {body: JSON.stringify({dataFilters:[{a1Range:\"'הקדמה מיידית'!A1:R3000\"},{a1Range:\"'יעדים'!A2:B80\"}].concat(tabs.map(t=>({a1Range:\"'\"+t+\"'!A1:I2000\"}))), valueRenderOption:'FORMATTED_VALUE'})};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 5,
+        "mapper": {
+         "input": [
+          {
+           "name": "ranges",
+           "value": "{{3.body.valueRanges}}"
+          }
+         ],
+         "language": "javascript",
+         "inputFormat": "editor",
+         "dependencies": [],
+         "codeEditorJavascript": "// RULE (Steve 12/11/2026): customer said \"כן\" to an advance for tomorrow/Sunday but did not pick time windows within 1 hour -> alert the selling rep once (column R). Never Fri/Sat, 08:00-21:00 only. Do not remove.\nconst BIDI=new RegExp('[\\\\s'+String.fromCharCode(8206,8207)+']+','g'); const norm=s=>String(s==null?'':s).replace(BIDI,' ').trim();\nconst vrs=input.ranges||[];\nconst rangeOf=vr=>String((vr.valueRange||vr||{}).range||'');\nconst valsOf=vr=>((vr.valueRange||vr||{}).values)||[];\nconst log=valsOf(vrs.find(v=>rangeOf(v).includes('הקדמה מיידית'))||{});\nconst targets=valsOf(vrs.find(v=>rangeOf(v).includes('יעדים'))||{}).filter(r=>r&&norm(r[0]));\nconst nowIL=input.now?new Date(input.now):new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst dow=nowIL.getDay(), mins=nowIL.getHours()*60+nowIL.getMinutes();\nconst stamp=nowIL.getDate()+'/'+(nowIL.getMonth()+1)+' '+String(nowIL.getHours()).padStart(2,'0')+':'+String(nowIL.getMinutes()).padStart(2,'0');\nconst alerts=[];\nif(dow<=4&&mins>=8*60&&mins<21*60){\n const toIntl=p=>{let d=String(p||'').replace(/\\D/g,''); if(d.startsWith('972')) return d; if(d.startsWith('0')) d=d.slice(1); return d?'972'+d:'';};\n const findRep=rep=>{rep=norm(rep); let m=targets.filter(x=>norm(x[0])===rep); if(!m.length&&rep){const f=rep.split(' ')[0]; m=targets.filter(x=>{const a=norm(x[0]); return a===f||a.split(' ')[0]===f;});} return m[0]||null;};\n log.forEach((r,i)=>{\n  if(i===0) return;\n  if(norm(r[11])!=='כן'||norm(r[13])!=='שאלון חלונות'||norm(r[14])||norm(r[17])) return;\n  const m=norm(r[12]).match(/(\\d{1,2})\\/(\\d{1,2})\\s+(\\d{1,2}):(\\d{2})/); if(!m) return;\n  let at=new Date(nowIL.getFullYear(),+m[2]-1,+m[1],+m[3],+m[4]); if(at>nowIL) at.setFullYear(at.getFullYear()-1);\n  if((nowIL-at)/60000<60) return;\n  if((nowIL-at)/86400000>3) return; // too old, skip\n  const rr=findRep(r[5]); const ph=rr?toIntl(rr[1]):''; const first=rr?norm(rr[0]).split(' ')[0]:'';\n  const cn=norm(r[4]); const sub=norm(r[10]);\n  const msg=(first?'היי '+first+', ':'')+'⏰ לקוח שלך ענה שהוא רוצה להקדים את ההתקנה '+norm(r[8])+', אבל כבר יותר משעה לא בחר חלון שעות.\\n\\n👤 '+norm(r[2])+(cn?' (לקוח '+cn+')':'')+'\\n📱 '+norm(r[3])+'\\n\\nתתקשר אליו ותסגור חלון שעות, ואז שלח לבוט, למשל: הקדמה '+(cn||'<מספר לקוח>')+' 15/11 10-12'+(sub?'\\n\\n💬 השיחה עם הלקוח: https://app.manychat.com/fb3981719/chat/'+sub:'');\n  alerts.push({row:i+1, body:JSON.stringify({chatId:(ph||'972544604246')+'@c.us', message:(ph?'':'⚠️ לא מצאתי טלפון לנציג \"'+norm(r[5])+'\" בלשונית יעדים:\\n\\n')+msg}), mark:JSON.stringify({valueInputOption:'RAW',data:[{range:\"'הקדמה מיידית'!R\"+(i+1),values:[['נשלחה '+stamp]]}]})});\n });\n}\nreturn {count:alerts.length, alerts};\n"
+        },
+        "module": "code:ExecuteCode",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": -200
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 6,
+        "filter": {
+         "name": "יש לקוחות שלא בחרו חלון",
+         "conditions": [
+          [
+           {
+            "a": "{{5.result.count}}",
+            "b": "0",
+            "o": "number:greater"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "array": "{{5.result.alerts}}"
+        },
+        "module": "builtin:BasicFeeder",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": -200
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 7,
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+         "body": "{{6.mark}}",
+         "method": "POST",
+         "headers": [
+          {
+           "key": "Content-Type",
+           "value": "application/json"
+          }
+         ]
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1800,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       },
+       {
+        "id": 8,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "jsonString",
+         "shareCookies": false,
+         "parseResponse": false,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "jsonStringBodyContent": "{{6.body}}",
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 108,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2250,
+            "y": -50
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2100,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 10,
+        "mapper": {
+         "limit": 20,
+         "filter": [
+          [
+           {
+            "a": "status",
+            "b": "אושר",
+            "o": "text:equal"
+           },
+           {
+            "a": "source",
+            "b": "לקוח",
+            "o": "text:equal"
+           },
+           {
+            "a": "cust_notified",
+            "o": "notexist"
+           }
+          ]
+         ]
+        },
+        "module": "datastore:SearchRecord",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "datastore": 191414
+        }
+       },
+       {
+        "id": 11,
+        "mapper": {
+         "input": [
+          {
+           "name": "ranges",
+           "value": "{{3.body.valueRanges}}"
+          },
+          {
+           "name": "cn",
+           "value": "{{ifempty(10.data.customer_number; 10.customer_number)}}"
+          },
+          {
+           "name": "new_date",
+           "value": "{{ifempty(10.data.new_date; 10.new_date)}}"
+          },
+          {
+           "name": "new_slot",
+           "value": "{{ifempty(10.data.new_slot; 10.new_slot)}}"
+          },
+          {
+           "name": "short_date",
+           "value": "{{ifempty(10.data.short_date; 10.short_date)}}"
+          },
+          {
+           "name": "rep_chat",
+           "value": "{{ifempty(10.data.subscriber_id; 10.subscriber_id)}}"
+          },
+          {
+           "name": "name",
+           "value": "{{ifempty(10.data.customer_name; 10.customer_name)}}"
+          }
+         ],
+         "language": "javascript",
+         "inputFormat": "editor",
+         "dependencies": [],
+         "codeEditorJavascript": "// RULE (Steve 12/11/2026): when an advance the CUSTOMER asked for (data store source = לקוח) is approved, send the customer a WhatsApp confirmation (ManyChat flow \"Advance approved - customer msg\", field adv_confirm_msg) with the new date/window from the דוח מכר. Do not remove.\nconst BIDI=new RegExp('[\\\\s'+String.fromCharCode(8206,8207)+']+','g'); const norm=s=>String(s==null?'':s).replace(BIDI,' ').trim();\nconst HM=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst DAYS=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];\nconst vrs=input.ranges||[];\nconst rangeOf=vr=>String((vr.valueRange||vr||{}).range||'');\nconst valsOf=vr=>((vr.valueRange||vr||{}).values)||[];\nconst cn=norm(input.cn).replace(/\\D/g,'');\nlet sub='', first='';\nconst log=valsOf(vrs.find(v=>rangeOf(v).includes('הקדמה מיידית'))||{});\nfor(let i=log.length-1;i>=1;i--){ if(norm(log[i][4]).replace(/\\D/g,'')===cn){ sub=norm(log[i][10]); first=norm(log[i][2]).split(' ')[0]; break; } }\n// RULE (15/11/2026, כפילויות): לקוח יכול להופיע בכמה שורות בדוח המכר (שורה בלי מספר לקוח / תאריך ישן). לוקחים את השורה שהתאריך בה = התאריך שאושר, אחרת האחרונה עם תאריך; שורה ריקה לא דורסת. אם אין שורה בלוג עם מספר הלקוח - מחפשים את המנוי בלוג לפי הטלפון מהדוח. Do not remove.\nconst l9=s=>{const d=String(s||'').replace(/\\D/g,'');return d.length>=9?d.slice(-9):'';};\nconst gOf=r=>norm(r[6]).replace(/\\D/g,'');\nconst rep=[];\nfor(const vr of vrs){ const rg=rangeOf(vr); if(rg.includes('הקדמה מיידית')||rg.includes('יעדים')) continue; for(const r of valsOf(vr).slice(1)) rep.push(r||[]); }\nconst byNum=cn?rep.filter(r=>gOf(r)===cn):[];\nconst logHit=!!cn&&log.some((r,i)=>i>=1&&norm(r[4]).replace(/\\D/g,'')===cn);\nconst phs=new Set(byNum.map(r=>l9(r[3])).filter(Boolean));\nif(cn) for(let i=1;i<log.length;i++){ if(norm(log[i][4]).replace(/\\D/g,'')===cn&&l9(log[i][3])) phs.add(l9(log[i][3])); }\nconst mine=cn?rep.filter(r=>byNum.includes(r)||(phs.has(l9(r[3]))&&(!gOf(r)||gOf(r)===cn))):[];\nconst want=parseD(input.new_date)||parseD(input.short_date);\nlet pick=null;\nif(want) for(const r of mine){ const d=parseD(norm(r[4])); if(d&&d.getTime()===want.getTime()) pick=r; }\nif(!pick) for(const r of mine) if(norm(r[4])) pick=r;\nif(!pick&&byNum.length) pick=byNum[byNum.length-1];\nlet E=pick?norm(pick[4]):'',F=pick?norm(pick[5]):'';\nif(cn&&!logHit){ const rp=new Set(mine.map(r=>l9(r[3])).filter(Boolean)); for(let i=log.length-1;i>=1;i--){ const g=norm(log[i][4]).replace(/\\D/g,''); if((!g||g===cn)&&rp.has(l9(log[i][3]))){ sub=norm(log[i][10]); first=norm(log[i][2]).split(' ')[0]; break; } } }\nfunction parseD(s){ s=String(s||''); let m=s.match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/); if(m){const mi=HM.indexOf(m[2]); if(mi>=0) return new Date(+m[3],mi,+m[1]);} m=s.match(/(\\d{4})-(\\d{1,2})-(\\d{1,2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3]); m=s.match(/(\\d{1,2})[\\/.](\\d{1,2})[\\/.](\\d{2,4})/); if(m){let y=+m[3]; if(y<100)y+=2000; return new Date(y,+m[2]-1,+m[1]);} return null; }\nconst d=parseD(E)||parseD(input.new_date)||parseD(input.short_date);\nconst dateText=d?'יום '+DAYS[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1):norm(input.new_date);\nconst slotRaw=F||norm(input.new_slot);\nconst wins=[...slotRaw.matchAll(/(\\d{1,2}):?(\\d{2})?\\s*-\\s*(\\d{1,2}):?(\\d{2})?/g)].map(m=>[+m[1],+m[3]]).sort((a,b)=>a[0]-b[0]);\nconst pad=n=>String(n).padStart(2,'0')+':00';\nlet slotText='';\nif(/כל היום/.test(slotRaw)||!wins.length) slotText='במהלך היום';\nelse{ let contiguous=true; for(let i=1;i<wins.length;i++) if(wins[i][0]!==wins[i-1][1]) contiguous=false;\n slotText=contiguous?'בין השעות '+pad(wins[0][0])+' ל-'+pad(wins[wins.length-1][1]):'באחד מהחלונות: '+wins.map(w=>pad(w[0])+'-'+pad(w[1])).join(' / '); }\n// RULE (Steve 12/11/2026): never mention יהל תקשורת to customers - we are yes. Message = approved template advance_approved_customer: היי {tpl_cust_name} ... הוקדמה ל{adv_confirm_msg}.\nconst msg=dateText+', '+slotText;\nconst repFail=JSON.stringify({chatId:norm(input.rep_chat)||'972544604246@c.us', message:'⚠️ ההקדמה של '+norm(input.name)+' (לקוח '+cn+') אושרה, אבל לא הצלחתי לשלוח לו הודעת אישור בוואטסאפ. תעדכן אותו בבקשה: הוקדם ל'+dateText+', '+slotText+'.'});\nreturn {sub, ok:/^\\d+$/.test(sub), msg, first:first||'', repFail};\n"
+        },
+        "module": "code:ExecuteCode",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": 200
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 12,
+        "mapper": {
+         "key": "{{10.key}}",
+         "data": {
+          "cust_notified": "{{formatDate(now; \"DD/MM HH:mm\"; \"Asia/Jerusalem\")}}"
+         },
+         "upsert": false,
+         "overwriteArrays": false
+        },
+        "module": "datastore:UpdateRecord",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1800,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "datastore": 191414
+        }
+       },
+       {
+        "id": 13,
+        "mapper": null,
+        "module": "builtin:BasicRouter",
+        "routes": [
+         {
+          "flow": [
+           {
+            "id": 14,
+            "filter": {
+             "name": "יש מנוי ManyChat",
+             "conditions": [
+              [
+               {
+                "a": "{{11.result.ok}}",
+                "b": "true",
+                "o": "boolean:equal"
+               }
+              ]
+             ]
+            },
+            "mapper": {
+             "actions": [
+              {
+               "value": "{{11.result.first}}",
+               "action": "set_field_value",
+               "field_name": "tpl_cust_name"
+              },
+              {
+               "value": "{{11.result.msg}}",
+               "action": "set_field_value",
+               "field_name": "adv_confirm_msg"
+              }
+             ],
+             "subscriberId": "{{11.result.sub}}"
+            },
+            "module": "manychat:PerformAction",
+            "onerror": [
+             {
+              "id": 30,
+              "mapper": {
+               "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+               "method": "post",
+               "contentType": "json",
+               "inputMethod": "jsonString",
+               "shareCookies": false,
+               "parseResponse": false,
+               "allowRedirects": true,
+               "stopOnHttpError": true,
+               "jsonStringBodyContent": "{{11.result.repFail}}",
+               "requestCompressedContent": true
+              },
+              "module": "http:MakeRequest",
+              "version": 4,
+              "metadata": {
+               "designer": {
+                "x": 2400,
+                "y": 300
+               }
+              },
+              "parameters": {
+               "authenticationType": "noAuth"
+              }
+             },
+             {
+              "id": 31,
+              "module": "builtin:Ignore",
+              "version": 1,
+              "metadata": {
+               "designer": {
+                "x": 2700,
+                "y": 300
+               }
+              }
+             }
+            ],
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 2400,
+              "y": 100
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           },
+           {
+            "id": 15,
+            "mapper": {
+             "flowName": "content20261112171822_107961",
+             "subscriberId": "{{11.result.sub}}"
+            },
+            "module": "manychat:SendFlow",
+            "onerror": [
+             {
+              "id": 32,
+              "mapper": {
+               "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+               "method": "post",
+               "contentType": "json",
+               "inputMethod": "jsonString",
+               "shareCookies": false,
+               "parseResponse": false,
+               "allowRedirects": true,
+               "stopOnHttpError": true,
+               "jsonStringBodyContent": "{{11.result.repFail}}",
+               "requestCompressedContent": true
+              },
+              "module": "http:MakeRequest",
+              "version": 4,
+              "metadata": {
+               "designer": {
+                "x": 2700,
+                "y": 300
+               }
+              },
+              "parameters": {
+               "authenticationType": "noAuth"
+              }
+             },
+             {
+              "id": 33,
+              "module": "builtin:Ignore",
+              "version": 1,
+              "metadata": {
+               "designer": {
+                "x": 3000,
+                "y": 300
+               }
+              }
+             }
+            ],
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 2700,
+              "y": 100
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           }
+          ]
+         },
+         {
+          "flow": [
+           {
+            "id": 16,
+            "filter": {
+             "name": "אין מנוי",
+             "conditions": [
+              [
+               {
+                "a": "{{11.result.ok}}",
+                "b": "true",
+                "o": "boolean:notequal"
+               }
+              ]
+             ]
+            },
+            "mapper": {
+             "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+             "method": "post",
+             "contentType": "json",
+             "inputMethod": "jsonString",
+             "shareCookies": false,
+             "parseResponse": false,
+             "allowRedirects": true,
+             "stopOnHttpError": true,
+             "jsonStringBodyContent": "{{11.result.repFail}}",
+             "requestCompressedContent": true
+            },
+            "module": "http:MakeRequest",
+            "onerror": [
+             {
+              "id": 116,
+              "module": "builtin:Ignore",
+              "version": 1,
+              "metadata": {
+               "designer": {
+                "x": 2550,
+                "y": 550
+               }
+              }
+             }
+            ],
+            "version": 4,
+            "metadata": {
+             "designer": {
+              "x": 2400,
+              "y": 400
+             }
+            },
+            "parameters": {
+             "authenticationType": "noAuth"
+            }
+           }
+          ]
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2100,
+          "y": 200
+         }
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - הקדמות 10: לא בחר חלון (שעה) + אישור הקדמה ללקוח",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

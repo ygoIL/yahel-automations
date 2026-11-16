@@ -1,0 +1,74 @@
+{
+ "id": 10151108,
+ "name": "Claude - טוצ'ט: בדיקת לידים פתוחים בקמפיין (webhook, קריאה בלבד)",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4509568,
+ "hookUdid": "x84dpp5291dbp7uq5u5ngdn9v13n5awt",
+ "exportedAt": "2026-11-16T16:46:01.515Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "parameters": {
+     "hook": 4509568,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/campaigns/{{1.campaignId}}/openLeads",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "input": [
+      {
+       "name": "leads",
+       "value": "{{2.body}}"
+      },
+      {
+       "name": "phones",
+       "value": "{{1.phones}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const p=(v)=>typeof v==='string'?JSON.parse(v):v;const l=[].concat(p(input.leads)||[]);const norm=s=>{s=String(s||'').replace(/\\D/g,'');if(s.startsWith('972'))s='0'+s.slice(3);return s;};const have=new Set(l.map(x=>norm(x.displayPhone||x.phone)));const want=String(input.phones||'').split(',').map(norm).filter(Boolean);const aud={};l.forEach(x=>{aud[x.audience||'']=(aud[x.audience||'']||0)+1});return JSON.stringify({count:l.length,found:want.filter(w=>have.has(w)).length,checked:want.length,aud});"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "body": "{{3.result}}",
+     "status": "200",
+     "headers": []
+    },
+    "module": "gateway:WebhookRespond",
+    "version": 1,
+    "parameters": {}
+   }
+  ],
+  "name": "Claude - טוצ'ט: בדיקת לידים פתוחים בקמפיין (webhook, קריאה בלבד)",
+  "metadata": {
+   "instant": true,
+   "version": 1
+  }
+ }
+}

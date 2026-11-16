@@ -1,0 +1,275 @@
+{
+ "id": 9918864,
+ "name": "Claude - פלאפון: תשובת לקוח ← הודעה לנציג",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4415319,
+ "hookUdid": "j98joflkdo9xge5mshngejsypxg4vin5",
+ "exportedAt": "2026-11-16T16:47:34.272Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4415319,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "subscriberId": "{{1.id}}"
+    },
+    "module": "manychat:GetSubscriberInfo",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 40,
+    "mapper": {
+     "qs": [
+      {
+       "key": "fields",
+       "value": "sheets.properties.title"
+      }
+     ],
+     "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 450,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 41,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{40.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(let k=-1;k<=0;k++){const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+k,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t);}\nreturn {count:tabs.length, body: JSON.stringify({dataFilters: tabs.map(t=>({a1Range:\"'\"+t+\"'!A1:AC3000\"})), valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 44,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg/values:batchGetByDataFilter",
+     "body": "{{41.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 750,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "input": [
+      {
+       "name": "cf",
+       "value": "{{2.custom_fields}}"
+      },
+      {
+       "name": "wa",
+       "value": "{{2.whatsapp_phone}}"
+      },
+      {
+       "name": "name",
+       "value": "{{2.name}}"
+      },
+      {
+       "name": "choice",
+       "value": "{{1.choice}}"
+      },
+      {
+       "name": "ranges",
+       "value": "{{44.body.valueRanges}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// inputs: cf (ManyChat custom fields array), wa, name, choice, ranges (Pelephone month tabs valueRanges)\nconst TZ = 'Asia/Jerusalem';\nconst fmt = new Intl.DateTimeFormat('en-US', {timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short'});\nfunction ilParts(t) { const o = {}; for (const p of fmt.formatToParts(new Date(t))) o[p.type] = p.value; return {y: +o.year, m: +o.month - 1, d: +o.day, h: +o.hour % 24, mi: +o.minute, wd: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(o.weekday)}; }\nfunction ilToUtc(y, m, d, h, mi) { const want = Date.UTC(y, m, d, h, mi); let t = want; for (let i = 0; i < 3; i++) { const p = ilParts(t); t += want - Date.UTC(p.y, p.m, p.d, p.h, p.mi); } return t; }\nconst pad = n => String(n).padStart(2, '0');\nconst norm = s => String(s || '').replace(/\\s+/g, ' ').trim();\nconst DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];\n\nconst cf = {}; for (const f of (input.cf || [])) { if (f && f.name) cf[f.name] = f.value; }\nlet wa = String(input.wa || '').replace(/\\D/g, ''); if (wa.startsWith('0')) wa = '972' + wa.slice(1);\nconst local9 = wa.startsWith('972') ? wa.slice(3) : wa.replace(/^0/, '');\nconst phone = '0' + local9;\nconst full = norm(cf['לקוח פלאפון'] || cf['שם לקוח'] || input.name);\nconst rep = norm(cf['נציג פלאפון']);\nlet repWa = String(cf['טלפון נציג פלאפון'] || '').replace(/\\D/g, '');\nlet choice = norm(input.choice); if (!choice || choice.includes(String.fromCharCode(123,123))) choice = norm(cf['זמן חזרה פלאפון']);\n\n// ---------- understand the requested time ----------\nconst now = Date.now();\nconst np = ilParts(now);\nfunction plan(text) {\n  let c = ' ' + text.replace(/\\d{5,}/g, ' ').replace(/[״\"׳']/g, '') + ' ';\n  let dayOffset = null, explicitDay = false, h = null, mi = 0;\n  // explicit date d.m or d/m\n  const dm = c.match(/(\\d{1,2})\\s*[./]\\s*(\\d{1,2})(?:\\s*[./]\\s*\\d{2,4})?/);\n  let target = null;\n  if (dm) {\n    const d = +dm[1], m = +dm[2] - 1;\n    if (d >= 1 && d <= 31 && m >= 0 && m <= 11) {\n      let y = np.y; if (Date.UTC(y, m, d) < Date.UTC(np.y, np.m, np.d) - 60 * 864e5) y++;\n      target = {y, m, d}; explicitDay = true;\n    }\n    c = c.replace(dm[0], ' ');\n  }\n  if (!target) {\n    if (/מחרתיים/.test(c)) { dayOffset = 2; explicitDay = true; }\n    else if (/מחר/.test(c)) { dayOffset = 1; explicitDay = true; }\n    else if (/היום|הערב(?!\\S)/.test(c)) { dayOffset = 0; explicitDay = true; }\n    else {\n      for (let i = 0; i < 7; i++) {\n        if (new RegExp('יום\\\\s*' + DAYS[i] + '(?!\\\\S)').test(c) || new RegExp('\\\\s' + DAYS[i] + '\\\\s').test(c)) {\n          dayOffset = (i - np.wd + 7) % 7; explicitDay = true; break;\n        }\n      }\n    }\n  }\n  // time\n  const hm = c.match(/(\\d{1,2})\\s*:\\s*(\\d{2})/);\n  const evening = /ערב/.test(c), morningWord = /בוקר/.test(c), noonWord = /אחה|אחר הצהריים|צהריים|צהרים/.test(c);\n  if (hm) { h = +hm[1]; mi = +hm[2]; }\n  else {\n    const bare = c.match(/(?:^|[^\\d])(\\d{1,2})(?![\\d:./])/);\n    if (bare) { h = +bare[1]; mi = 0; }\n  }\n  if (h !== null) {\n    if (evening && h < 12) h += 12;\n    else if (!morningWord && h >= 1 && h <= 7) h += 12;\n    if (h > 23 || mi > 59) return null;\n  } else if (/עכשיו|מיידי|מייד|כעת/.test(c)) {\n    h = 'now';\n  } else if (morningWord) { h = 10; mi = 0; }\n  else if (noonWord) { h = 17; mi = 30; }\n  else return null;\n\n  let base;\n  if (target) base = target;\n  else { const off = dayOffset || 0; const t = new Date(Date.UTC(np.y, np.m, np.d + off)); base = {y: t.getUTCFullYear(), m: t.getUTCMonth(), d: t.getUTCDate()}; }\n  let when;\n  if (h === 'now') when = now;\n  else when = ilToUtc(base.y, base.m, base.d, h, mi);\n  if (when < now - 5 * 60e3) {\n    if (explicitDay) return null;          // asked for a day/time that already passed\n    when = ilToUtc(base.y, base.m, base.d + 1, h, mi);   // today's slot passed -> tomorrow\n  }\n  // never on Shabbat -> Sunday same time (or 10:00 for \"now\")\n  let wp = ilParts(when);\n  if (wp.wd === 6) {\n    const hh = h === 'now' ? 10 : h, mm = h === 'now' ? 0 : mi;\n    when = ilToUtc(wp.y, wp.m, wp.d + 1, hh, mm); wp = ilParts(when);\n  }\n  if (when < now) when = now;\n  wp = ilParts(when);\n  const todayKey = Date.UTC(np.y, np.m, np.d), wKey = Date.UTC(wp.y, wp.m, wp.d);\n  const diff = Math.round((wKey - todayKey) / 864e5);\n  const dayTxt = diff === 0 ? 'היום' : diff === 1 ? 'מחר' : 'ביום ' + DAYS[wp.wd] + ' ' + pad(wp.d) + '/' + pad(wp.m + 1);\n  return {iso: new Date(when).toISOString(), text: dayTxt + ' ב-' + pad(wp.h) + ':' + pad(wp.mi)};\n}\nconst sched = choice ? plan(choice) : null;\n\n// ---------- find the customer in the Pelephone sales sheet ----------\n// RULE (15/11/2026, כפילויות): אותו טלפון בכמה שורות - שורה בלי מספר לקוח לא דורסת שורה שכבר נמצאה עם מספר לקוח. Do not remove.\nlet tab = '', row = 0, custNum = '', qty = 0;\nfor (const vr of (input.ranges || [])) {\n  const t = String((vr.valueRange || {}).range || '').split('!')[0].replace(/^'|'$/g, '');\n  const vals = (vr.valueRange && vr.valueRange.values) || [];\n  for (let i = 1; i < vals.length; i++) {\n    let p = String(vals[i][3] || '').replace(/\\D/g, ''); if (p.startsWith('972')) p = p.slice(3); p = p.replace(/^0/, '');\n    if (p && p === local9 && !(/\\d/.test(custNum) && !/\\d/.test(String(vals[i][9] || '')))) { tab = t; row = i + 1; custNum = norm(vals[i][9]); qty = parseInt(vals[i][14], 10) || 0; }\n  }\n}\ncustNum = custNum.replace(/[^\\d]/g, '');\n\nconst st = 'direction:rtl;font-family:Aptos,Aptos_EmbeddedFont,Aptos_MSFontService,Calibri,Helvetica,sans-serif;font-size:12pt;color:rgb(0,0,0)';\nconst lines = ['רוצה לנייד עכשיו בבקשה' + (qty > 1 ? ' ' + qty + ' קווים' : ''), 'לחייג ל-' + phone];\nconst html = lines.map(l => '<div style=\"' + st + '\">' + l + '</div>').join('') +\n  '<div style=\"' + st + '\"><br /></div><div id=\"Signature\"><p style=\"direction:rtl;margin-top:1em;margin-bottom:1em\"><b>ירדן בן שלוש</b></p>' +\n  '<p style=\"direction:rtl;margin-top:1em;margin-bottom:1em\">מנכ”ל - יהל תקשורת</p>' +\n  '<p style=\"direction:rtl;margin-top:1em;margin-bottom:1em\">פתרונות תקשורת מתקדמים | משווק מורשה yes</p></div>';\n\nlet base = 'לקוח פלאפון קיבל את הסימים ומחכה לניוד\\nשם: ' + full + '\\nטלפון: ' + phone + '\\nמתי לחזור אליו: *' + (choice || 'לא צוין') + '*';\nif (!/^9725\\d{8}$/.test(repWa)) { base = 'לא מצאתי בלשונית יעדים טלפון של הנציג \"' + (rep || 'לא ידוע') + '\"\\n\\n' + base; repWa = '972544604246'; }\nelse base = 'היי ' + rep.split(' ')[0] + ',\\n' + base;\n\nreturn {\n  key: wa, phone, full, rep, repWa, choice, base,\n  canSchedule: !!(sched && custNum), reason: !sched ? 'time' : (!custNum ? 'custnum' : ''),\n  sendAt: sched ? sched.iso : '', sendAtText: sched ? sched.text : '',\n  custNum, subject: custNum, html, tab, row\n};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 42,
+    "mapper": {
+     "filter": [
+      [
+       {
+        "a": "phone",
+        "b": "{{3.result.phone}}",
+        "o": "text:equal"
+       }
+      ]
+     ]
+    },
+    "module": "datastore:SearchRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1050,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "limit": 1,
+     "datastore": 193282,
+     "continueWhenNoRes": true
+    }
+   },
+   {
+    "id": 43,
+    "mapper": {
+     "input": [
+      {
+       "name": "prevStatus",
+       "value": "{{42.status}}{{42.data.status}}"
+      },
+      {
+       "name": "prevText",
+       "value": "{{42.sendAtText}}{{42.data.sendAtText}}"
+      },
+      {
+       "name": "reason",
+       "value": "{{3.result.reason}}"
+      },
+      {
+       "name": "phone",
+       "value": "{{3.result.phone}}"
+      },
+      {
+       "name": "base",
+       "value": "{{3.result.base}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// RULE (Steve, 14/10/2026): a customer's reply NEVER sends/schedules a porting email by itself.\n// The email to niyudim@pelephone.co.il goes out only after the rep approves via the bot: \"ניוד <phone> <time>\".\nconst prev = String(input.prevStatus || '').trim();\nconst prevText = String(input.prevText || '').trim();\nconst already = prev === 'sent' || prev === 'sending';\nconst phone = String(input.phone || '').trim();\nlet line;\nif (already) line = '\\nכבר שלחנו מייל לניודים על הלקוח הזה (' + prevText + ').';\nelse {\n  line = '\\nהמייל לניודים *לא* יוצא לבד, רק אחרי שתאשר.\\nתדבר עם הלקוח, תתאם שעה ותשלח לבוט:\\nניוד ' + phone + ' <שעה>';\n  if (input.reason === 'custnum') line += '\\nשים לב, לא מצאתי מספר לקוח בדוח מכר פלאפון.';\n}\nreturn {schedule: false, msg: String(input.base || '') + line};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "dataStructure",
+     "shareCookies": false,
+     "parseResponse": true,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "bodyDataStructure": 656096,
+     "dataStructureBodyContent": {
+      "chatId": "{{3.result.repWa}}@c.us",
+      "message": "{{43.result.msg}}"
+     },
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   }
+  ],
+  "name": "Claude - פלאפון: תשובת לקוח ← הודעה לנציג",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

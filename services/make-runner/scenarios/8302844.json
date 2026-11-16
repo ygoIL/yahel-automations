@@ -1,0 +1,510 @@
+{
+ "id": 8302844,
+ "name": "Integration Webhooks, Manychat",
+ "scheduling": {
+  "type": "immediately",
+  "maximum_runs_per_minute": null
+ },
+ "hookId": 3698190,
+ "hookUdid": "0hrcvcbgdf78ugbvcasg4baxray2jjc8",
+ "exportedAt": "2026-11-16T16:48:16.708Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "restore": {
+      "parameters": {
+       "hook": {
+        "data": {
+         "editable": "true"
+        },
+        "label": "רידיירקט מחייגן ללייב צ'אט"
+       }
+      }
+     },
+     "designer": {
+      "x": 0,
+      "y": 150
+     },
+     "parameters": [
+      {
+       "name": "hook",
+       "type": "hook:gateway-webhook",
+       "label": "Webhook",
+       "required": true
+      },
+      {
+       "name": "maxResults",
+       "type": "number",
+       "label": "Maximum number of results"
+      }
+     ]
+    },
+    "parameters": {
+     "hook": 3698190,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "limit": "100",
+     "cFieldId": 14028645,
+     "cFieldValue": "{{1.phone}}"
+    },
+    "module": "manychat:FindSubscriberByCustomField",
+    "version": 1,
+    "metadata": {
+     "expect": [
+      {
+       "name": "cFieldId",
+       "type": "select",
+       "label": "Field ID",
+       "required": true
+      },
+      {
+       "name": "cFieldValue",
+       "type": "text",
+       "label": "Field value",
+       "required": true
+      },
+      {
+       "name": "limit",
+       "type": "uinteger",
+       "label": "Limit",
+       "required": true
+      }
+     ],
+     "restore": {
+      "expect": {
+       "cFieldId": {
+        "mode": "chose",
+        "label": "WA ID"
+       }
+      },
+      "parameters": {
+       "__IMTCONN__": {
+        "data": {
+         "scoped": "true",
+         "connection": "manychat"
+        },
+        "label": "My ManyChat connection"
+       }
+      }
+     },
+     "designer": {
+      "x": 300,
+      "y": 150
+     },
+     "parameters": [
+      {
+       "name": "__IMTCONN__",
+       "type": "account:manychat",
+       "label": "Connection",
+       "required": true
+      }
+     ]
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 3,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 4,
+        "filter": {
+         "name": "מצא",
+         "conditions": [
+          [
+           {
+            "a": "{{2.id}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "body": "",
+         "status": "302",
+         "headers": [
+          {
+           "key": "location",
+           "value": "{{2.live_chat_url}}"
+          }
+         ]
+        },
+        "module": "gateway:WebhookRespond",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "name": "status",
+           "type": "uinteger",
+           "label": "Status",
+           "required": true,
+           "validate": {
+            "min": 100
+           }
+          },
+          {
+           "name": "body",
+           "type": "any",
+           "label": "Body"
+          },
+          {
+           "name": "headers",
+           "spec": [
+            {
+             "name": "key",
+             "type": "text",
+             "label": "Key",
+             "required": true,
+             "validate": {
+              "max": 256
+             }
+            },
+            {
+             "name": "value",
+             "type": "text",
+             "label": "Value",
+             "required": true,
+             "validate": {
+              "max": 4096
+             }
+            }
+           ],
+           "type": "array",
+           "label": "Custom headers",
+           "validate": {
+            "maxItems": 16
+           }
+          }
+         ],
+         "restore": {
+          "expect": {
+           "headers": {
+            "mode": "chose",
+            "items": [
+             null
+            ]
+           }
+          }
+         },
+         "advanced": true,
+         "designer": {
+          "x": 900,
+          "y": 0
+         }
+        },
+        "parameters": {}
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 5,
+        "filter": {
+         "name": "",
+         "conditions": [
+          [
+           {
+            "a": "{{2.id}}",
+            "o": "notexist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "email": "",
+         "phone": "{{1.phone}}",
+         "gender": "",
+         "lastName": "",
+         "firstName": "",
+         "hasOptInSms": true,
+         "consentPhrase": "true",
+         "hasOptInEmail": true,
+         "whatsAppPhone": "{{1.phone}}"
+        },
+        "module": "manychat:CreateSubscriber",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "name": "firstName",
+           "type": "text",
+           "label": "First name"
+          },
+          {
+           "name": "lastName",
+           "type": "text",
+           "label": "Last name"
+          },
+          {
+           "name": "phone",
+           "type": "text",
+           "label": "Phone number"
+          },
+          {
+           "name": "whatsAppPhone",
+           "type": "text",
+           "label": "WhatsApp phone number"
+          },
+          {
+           "name": "email",
+           "type": "email",
+           "label": "Email address"
+          },
+          {
+           "name": "gender",
+           "type": "text",
+           "label": "Gender"
+          },
+          {
+           "name": "hasOptInSms",
+           "type": "boolean",
+           "label": "Has SMS opt-in"
+          },
+          {
+           "name": "hasOptInEmail",
+           "type": "boolean",
+           "label": "Has email opt-in"
+          },
+          {
+           "name": "consentPhrase",
+           "type": "text",
+           "label": "Consent phrase"
+          }
+         ],
+         "restore": {
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 900,
+          "y": 300
+         },
+         "parameters": [
+          {
+           "name": "__IMTCONN__",
+           "type": "account:manychat",
+           "label": "Connection",
+           "required": true
+          }
+         ]
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 7,
+        "mapper": {
+         "body": "",
+         "status": "302",
+         "headers": [
+          {
+           "key": "location",
+           "value": "{{5.data.live_chat_url}}"
+          }
+         ]
+        },
+        "module": "gateway:WebhookRespond",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "name": "status",
+           "type": "uinteger",
+           "label": "Status",
+           "required": true,
+           "validate": {
+            "min": 100
+           }
+          },
+          {
+           "name": "body",
+           "type": "any",
+           "label": "Body"
+          },
+          {
+           "name": "headers",
+           "spec": [
+            {
+             "name": "key",
+             "type": "text",
+             "label": "Key",
+             "required": true,
+             "validate": {
+              "max": 256
+             }
+            },
+            {
+             "name": "value",
+             "type": "text",
+             "label": "Value",
+             "required": true,
+             "validate": {
+              "max": 4096
+             }
+            }
+           ],
+           "type": "array",
+           "label": "Custom headers",
+           "validate": {
+            "maxItems": 16
+           }
+          }
+         ],
+         "restore": {
+          "expect": {
+           "headers": {
+            "mode": "chose",
+            "items": [
+             null
+            ]
+           }
+          }
+         },
+         "advanced": true,
+         "designer": {
+          "x": 1200,
+          "y": 300
+         }
+        },
+        "parameters": {}
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 150
+     }
+    }
+   }
+  ],
+  "name": "Integration Webhooks, Manychat",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "designer": {
+    "orphans": [],
+    "samples": {
+     "1": {
+      "phone": "972553053394"
+     },
+     "2": {
+      "id": "1602990735",
+      "name": null,
+      "tags": [],
+      "email": null,
+      "ig_id": null,
+      "phone": null,
+      "gender": null,
+      "locale": null,
+      "status": "active",
+      "page_id": "",
+      "language": null,
+      "timezone": "UTC±00",
+      "last_name": "",
+      "last_seen": null,
+      "user_refs": [],
+      "first_name": "",
+      "subscribed": "2025-12-14T17:25:17+02:00",
+      "ig_username": null,
+      "optin_email": false,
+      "optin_phone": false,
+      "profile_pic": null,
+      "__IMTINDEX__": 1,
+      "ig_last_seen": null,
+      "__IMTLENGTH__": 1,
+      "custom_fields": [
+       {
+        "id": 14028645,
+        "name": "WA ID",
+        "type": "text",
+        "value": "972553053394",
+        "description": ""
+       }
+      ],
+      "live_chat_url": "https://app.manychat.com/fb3981719/chat/1602990735",
+      "optin_whatsapp": true,
+      "whatsapp_phone": "+972553053394",
+      "last_input_text": null,
+      "last_interaction": null,
+      "ig_last_interaction": null,
+      "is_followup_enabled": true
+     },
+     "5": {
+      "data": {
+       "id": "292506759",
+       "name": null,
+       "tags": [],
+       "email": null,
+       "ig_id": null,
+       "phone": null,
+       "gender": null,
+       "locale": null,
+       "status": "active",
+       "page_id": "",
+       "warning": "Permission denied to import phone. Please contact support to enable this feature",
+       "language": null,
+       "timezone": "UTC±00",
+       "last_name": "",
+       "last_seen": null,
+       "user_refs": [],
+       "first_name": "",
+       "subscribed": "2025-12-14T17:24:54+02:00",
+       "ig_username": null,
+       "optin_email": false,
+       "optin_phone": false,
+       "profile_pic": null,
+       "ig_last_seen": null,
+       "custom_fields": [],
+       "live_chat_url": "https://app.manychat.com/fb3981719/chat/292506759",
+       "optin_whatsapp": true,
+       "whatsapp_phone": "+972542450980",
+       "last_input_text": null,
+       "last_interaction": null,
+       "ig_last_interaction": null,
+       "is_followup_enabled": true
+      },
+      "status": "success"
+     }
+    }
+   },
+   "scenario": {
+    "dlq": false,
+    "slots": null,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

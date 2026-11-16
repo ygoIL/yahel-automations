@@ -1,0 +1,96 @@
+{
+ "id": 10144078,
+ "name": "Claude - טוצ'ט: ספירת הסר ממאגרים לפי נציג (קריאה בלבד)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:12.704Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "url": "/campaigns",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "array": "{{slice(1.body; 24)}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "end": "2026-11-11",
+     "limit": 50000,
+     "start": "2026-11-01",
+     "campaignId": "{{2.id}}"
+    },
+    "module": "app#tochat-cannon-7utvne:GetClosedLeadsPage",
+    "onerror": [
+     {
+      "id": 5,
+      "mapper": null,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "parameters": {}
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 4,
+    "filter": {
+     "name": "יש סימוני הסרה",
+     "conditions": [
+      [
+       {
+        "a": "{{length(map(3.leads; \"repName\"; \"subReason.name\"; \"להסיר מהמאגרים \"))}}",
+        "b": "0",
+        "o": "number:greater"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "key": "rmx_{{2.id}}",
+     "data": {
+      "data": "{{2.name}}##{{join(map(3.leads; \"repName\"; \"subReason.name\"; \"להסיר מהמאגרים \"); \"|\")}}##"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 196925
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: ספירת הסר ממאגרים לפי נציג (קריאה בלבד)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

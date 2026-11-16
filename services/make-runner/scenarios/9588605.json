@@ -1,0 +1,352 @@
+{
+ "id": 9588605,
+ "name": "הקדמה האם רוצה",
+ "scheduling": {
+  "type": "immediately",
+  "maximum_runs_per_minute": 100
+ },
+ "hookId": 4285882,
+ "hookUdid": "1neps7u8nxqbwl3wn51m35jpdle66ekz",
+ "exportedAt": "2026-11-16T16:48:28.332Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 2,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4285882,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 5,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 3,
+        "mapper": {
+         "from": "drive",
+         "limit": "1",
+         "filter": [
+          [
+           {
+            "a": "O",
+            "b": "{{2.id}}",
+            "o": "text:equal"
+           }
+          ]
+         ],
+         "sheetId": "בקשות להקדמה",
+         "sortOrder": "asc",
+         "spreadsheetId": "12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+         "tableFirstRow": "A1:CZ1",
+         "includesHeaders": true,
+         "valueRenderOption": "FORMATTED_VALUE",
+         "dateTimeRenderOption": "FORMATTED_STRING"
+        },
+        "module": "google-sheets:filterRows",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 600,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       },
+       {
+        "id": 4,
+        "filter": {
+         "name": "נמצאה שורה",
+         "conditions": [
+          [
+           {
+            "a": "{{3.`__ROW_NUMBER__`}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "from": "share",
+         "mode": "select",
+         "values": {
+          "7": "{{2.custom_fields.`רוצה להקדים?`}}",
+          "8": "{{if(2.custom_fields.`רוצה להקדים?` + \"=כן\"; 2.live_chat_url; emptystring)}}"
+         },
+         "sheetId": "בקשות להקדמה",
+         "rowNumber": "{{3.`__ROW_NUMBER__`}}",
+         "spreadsheetId": "/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+         "includesHeaders": true,
+         "useColumnHeaders": false,
+         "valueInputOption": "USER_ENTERED"
+        },
+        "module": "google-sheets:updateRow",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 900,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       },
+       {
+        "id": 20,
+        "filter": {
+         "name": "הלקוח רוצה להקדים",
+         "conditions": [
+          [
+           {
+            "a": "{{trim(2.custom_fields.`רוצה להקדים?`)}}",
+            "b": "כן",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{3.`__ROW_NUMBER__`}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "qs": [
+          {
+           "key": "ranges",
+           "value": "'יעדים'!A2:B80"
+          }
+         ],
+         "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGet",
+         "method": "GET",
+         "headers": []
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       },
+       {
+        "id": 21,
+        "mapper": {
+         "input": [
+          {
+           "name": "rows",
+           "value": "{{20.body.valueRanges[1].values}}"
+          },
+          {
+           "name": "rep",
+           "value": "{{3.`5`}}"
+          },
+          {
+           "name": "cname",
+           "value": "{{3.`1`}}"
+          },
+          {
+           "name": "cphone",
+           "value": "{{3.`2`}}"
+          },
+          {
+           "name": "date",
+           "value": "{{3.`3`}}"
+          },
+          {
+           "name": "slot",
+           "value": "{{3.`4`}}"
+          },
+          {
+           "name": "cnum",
+           "value": "{{3.`9`}}"
+          },
+          {
+           "name": "chat",
+           "value": "{{2.live_chat_url}}"
+          }
+         ],
+         "language": "javascript",
+         "inputFormat": "editor",
+         "dependencies": [],
+         "codeEditorJavascript": "const norm=s=>String(s||'').replace(/[\\s‎‏]+/g,' ').trim();\nlet rows=input.rows||[];\nif(typeof rows==='string'){try{rows=JSON.parse(rows);}catch(e){rows=[];}}\nif(rows.length&&Array.isArray(rows[0])&&Array.isArray(rows[0][0]))rows=rows[0];\nrows=rows.filter(r=>Array.isArray(r)&&norm(r[0]));\nconst rep=norm(input.rep);\nlet m=rows.filter(r=>norm(r[0])===rep);\nif(!m.length&&rep){\n  const f=rep.split(' ')[0];\n  m=rows.filter(r=>{const a=norm(r[0]);return a===f||a.split(' ')[0]===f;});\n}\nconst toIntl=p=>{let d=String(p||'').replace(/\\D/g,'');if(d.startsWith('972'))return d;if(d.startsWith('0'))d=d.slice(1);return d?'972'+d:'';};\nconst withPhone=m.filter(r=>toIntl(r[1]).length>=11);\nconst found=withPhone.length===1;\nconst first=found?norm(withPhone[0][0]).split(' ')[0]:'';\nconst lines=[\n  (found?'היי '+first+', ':'')+'🙋 לקוח שלך רוצה להקדים את ההתקנה!',\n  '',\n  '👤 '+norm(input.cname)+(input.cnum?' (לקוח '+norm(input.cnum)+')':''),\n  '📱 '+norm(input.cphone),\n  '📅 מתואם כרגע: '+norm(input.date)+' '+norm(input.slot),\n  '',\n  'תתקשר אליו היום, תסגור איתו יום וחלון שעות, ותשלח לבוט:',\n  'הקדמה '+norm(input.cphone)+' ל-<תאריך> <שעות>',\n  '(למשל: הקדמה '+norm(input.cphone)+' ל-21/10 10-12)'\n];\nif(input.chat) lines.push('','💬 השיחה עם הלקוח: '+norm(input.chat));\nlet msg=lines.join('\\n');\nif(!found) msg='⚠️ לא מצאתי טלפון לנציג \"'+(rep||'לא רשום')+'\" בלשונית יעדים, אז ההתראה הגיעה אליך:\\n\\n'+msg;\nreturn {found,phone:found?toIntl(withPhone[0][1]):'972544604246',flow:found?'content20260930150123_063231':'content20261005084024_300716',message:msg,rep_matched:found?norm(withPhone[0][0]):''};\n"
+        },
+        "module": "code:ExecuteCode",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": -150
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 22,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{21.result.phone}}@c.us",
+          "message": "{{21.result.message}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 23,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2400,
+            "y": 0
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1800,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 6,
+        "mapper": {
+         "from": "drive",
+         "limit": "1",
+         "filter": [
+          [
+           {
+            "a": "O",
+            "b": "{{2.id}}",
+            "o": "text:equal"
+           }
+          ]
+         ],
+         "sheetId": "גיליון1",
+         "sortOrder": "asc",
+         "spreadsheetId": "1Bc0BlfVic8MrE3yUC1qty57bxeFprCwLgpLtkYIZhpQ",
+         "tableFirstRow": "A1:CZ1",
+         "includesHeaders": true,
+         "valueRenderOption": "FORMATTED_VALUE",
+         "dateTimeRenderOption": "FORMATTED_STRING"
+        },
+        "module": "google-sheets:filterRows",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 600,
+          "y": 150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       },
+       {
+        "id": 7,
+        "filter": {
+         "name": "נמצאה שורה",
+         "conditions": [
+          [
+           {
+            "a": "{{6.`__ROW_NUMBER__`}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "from": "share",
+         "mode": "select",
+         "values": {
+          "7": "{{2.custom_fields.`רוצה להקדים?`}}",
+          "8": "{{if(2.custom_fields.`רוצה להקדים?` + \"=כן\"; 2.live_chat_url; emptystring)}}"
+         },
+         "sheetId": "גיליון1",
+         "rowNumber": "{{6.`__ROW_NUMBER__`}}",
+         "spreadsheetId": "/1Bc0BlfVic8MrE3yUC1qty57bxeFprCwLgpLtkYIZhpQ",
+         "includesHeaders": true,
+         "useColumnHeaders": false,
+         "valueInputOption": "USER_ENTERED"
+        },
+        "module": "google-sheets:updateRow",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 900,
+          "y": 150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "הקדמה האם רוצה",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "slots": null,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

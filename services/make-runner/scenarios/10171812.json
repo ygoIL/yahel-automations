@@ -1,0 +1,172 @@
+{
+ "id": 10171812,
+ "name": "Claude - טוצ'ט: איתור פולואפים של נציגים אחרים בקמפיין (קריאה בלבד)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:59.802Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "limit": 50000,
+     "campaignId": "{{var.input.c}}"
+    },
+    "module": "app#tochat-cannon-7utvne:GetOpenLeadsPage",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "l",
+       "value": "{{1.leads}}"
+      },
+      {
+       "name": "f",
+       "value": "{{var.input.from}}"
+      },
+      {
+       "name": "t",
+       "value": "{{var.input.to}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const L=typeof input.l==='string'?JSON.parse(input.l):(input.l||[]);\nconst s=L.map(x=>({p:String(x.displayPhone||'').replace(/\\D/g,''),s:x.status,r:x.repName||''})).sort((a,b)=>a.p.localeCompare(b.p));\nreturn {items:s.slice(Number(input.f||0),Number(input.t||100000)),total:s.length};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "array": "{{2.result.items}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/customers/{{3.p}}",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "onerror": [
+     {
+      "id": 41,
+      "mapper": {
+       "body": "{}",
+       "statusCode": 0
+      },
+      "module": "builtin:Resume",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "b",
+       "value": "{{4.body}}"
+      },
+      {
+       "name": "p",
+       "value": "{{3.p}}"
+      },
+      {
+       "name": "s",
+       "value": "{{3.s}}"
+      },
+      {
+       "name": "r",
+       "value": "{{3.r}}"
+      },
+      {
+       "name": "c",
+       "value": "{{var.input.c}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "let b=input.b;try{if(typeof b==='string')b=JSON.parse(b)}catch(e){b={}}\nconst act=(b&&b.activeLeads)||[];\nconst fu=act.filter(l=>l.campaignId!==input.c&&/FOLLOW/i.test(String(l.status||'')));\nreturn fu.length?JSON.stringify({p:input.p,s:input.s,r:input.r,o:fu.map(l=>({c:l.campaignName,ci:l.campaignId,st:l.status,by:l.followByName,d:String(l.followDate||'').slice(0,16)}))}):'';"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "x": "{{5.result}}"
+    },
+    "module": "builtin:BasicAggregator",
+    "version": 1,
+    "parameters": {
+     "feeder": 3
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "input": [
+      {
+       "name": "a",
+       "value": "{{6.array}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const a=typeof input.a==='string'?JSON.parse(input.a):(input.a||[]);\nconst out=[];for(const z of a){if(z&&z.x){try{out.push(JSON.parse(z.x))}catch(e){}}}\nreturn JSON.stringify({checked:a.length,conflicts:out});"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "key": "fuconf_{{var.input.part}}",
+     "data": {
+      "data": "{{7.result}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: איתור פולואפים של נציגים אחרים בקמפיין (קריאה בלבד)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

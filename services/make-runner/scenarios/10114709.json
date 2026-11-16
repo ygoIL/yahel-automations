@@ -1,0 +1,205 @@
+{
+ "id": 10114709,
+ "name": "Claude - תזכורת תחילת חלון התקנה לנציג",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 900
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:55.340Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 20,
+    "mapper": {
+     "input": [],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const n=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst h=n.getHours(), m=n.getMinutes(), d=n.getDay();\nreturn {go: (d!==6 && h>=7 && h<=17 && m<15)};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": -300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 1,
+    "filter": {
+     "name": "תחילת שעה בימי עבודה",
+     "conditions": [
+      [
+       {
+        "a": "{{20.result.go}}",
+        "b": "true",
+        "o": "boolean:equal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?fields=sheets.properties.title",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(const off of [0,-1,1]){ const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+off,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t); }\nconst filters=tabs.map(t=>({a1Range:\"'\"+t+\"'!A1:Z1500\"}));\nfilters.push({a1Range:\"'יעדים'!A2:U200\"});\nreturn {tabs: JSON.stringify(tabs), readBody: JSON.stringify({dataFilters:filters, valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "vr",
+       "value": "{{3.body.valueRanges}}"
+      },
+      {
+       "name": "tabs",
+       "value": "{{2.result.tabs}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS={'ינואר':1,'פברואר':2,'מרץ':3,'אפריל':4,'מאי':5,'יוני':6,'יולי':7,'אוגוסט':8,'ספטמבר':9,'אוקטובר':10,'נובמבר':11,'דצמבר':12};\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst norm=s=>String(s==null?'':s).replace(/\\s+/g,' ').trim();\nconst digits=s=>String(s==null?'':s).replace(/\\D/g,'');\nconst dkey=s=>{const m=norm(s).match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/); if(!m) return 0; const mon=MONTHS[m[2]]; if(!mon) return 0; return (+m[3])*10000+mon*100+(+m[1]);};\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst todayK=nowIL.getFullYear()*10000+(nowIL.getMonth()+1)*100+nowIL.getDate();\nconst curH=nowIL.getHours();\nconst startH=s=>{const m=norm(s).match(/(\\d{1,2})(?::\\d{2})?\\s*[-–]/); return m?+m[1]:-1;};\nconst vr=arr(input.vr).map(v=>(v&&v.valueRange)||v||{}); const tabs=arr(input.tabs).map(norm);\nconst byName=n=>{ const x=vr.find(v=>{ const r=norm(v.range).replace(/^'/,''); return r.startsWith(n+\"'!\")||r.startsWith(n+'!'); }); return (x&&x.values)||[]; };\nconst ALIAS={'אוסי':'אוסי גיאן','אופק פ':'אופק','דוד':'דוד חי','איתמר':'איתמר ששון'};\nconst deals=[];\ntabs.forEach(t=>{\n  const rows=byName(t);\n  const hN=(rows[0]||[]).map(norm).findIndex(x=>x.startsWith('הערות')); const iN=hN>=0?hN:17;\n  rows.forEach((r,i)=>{\n    if(i===0||!r) return;\n    let rep=norm(r[7]); const name=norm(r[2]); if(!rep||!name) return;\n    if(ALIAS[rep]) rep=ALIAS[rep];\n    const note=norm(r[iN]);\n    if(/בוטל|ביטול|ביטל|לא מעוניין/.test(note)) return;\n    const inst=dkey(r[4]); if(inst!==todayK) return;\n    if(startH(r[5])!==curH) return;\n    deals.push({rep, name, phone:norm(r[3]), slot:norm(r[5])});\n  });\n});\nconst targets=byName('יעדים');\nconst items=[];\nfor(const r of targets){\n  if(!r||norm(r[13])!=='כן') continue;\n  let p=digits(r[1]); if(!p) continue;\n  if(p.startsWith('0')) p='972'+p.slice(1); else if(!p.startsWith('972')) p='972'+p;\n  const full=norm(r[0]); if(!full) continue;\n  const first=full.split(' ')[0];\n  const mine=deals.filter(d=>d.rep===full);\n  if(!mine.length) continue;\n  const lines=mine.map(d=>'• '+d.name+' | '+(d.slot||'')+(d.phone?' | '+d.phone:'')).join('\\n');\n  let msg=first+', עכשיו נפתח חלון ההתקנה אצל:\\n'+lines+'\\n\\nשווה להרים טלפון ללקוח עכשיו ולהזכיר שהטכנאי בדרך 📞';\n  if(msg.length>1990) msg=msg.slice(0,1985)+'…';\n  items.push({name:first, phone:p, msg});\n}\nreturn {items, count:items.length, dealsNow:deals.length};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "array": "{{4.result.items}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "dataStructure",
+     "shareCookies": false,
+     "parseResponse": true,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "bodyDataStructure": 656096,
+     "dataStructureBodyContent": {
+      "chatId": "{{5.phone}}@c.us",
+      "message": "{{5.msg}}"
+     },
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   }
+  ],
+  "name": "Claude - תזכורת תחילת חלון התקנה לנציג",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

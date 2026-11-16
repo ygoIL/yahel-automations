@@ -1,0 +1,476 @@
+{
+ "id": 10114539,
+ "name": "Claude - תשובת לקוח: התקנה של היום / פנייה דחופה אחרי התקנה ← נציג מוכר (לא עובד → סטיב+ירדן)",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4493911,
+ "hookUdid": "bdy6geqrtp3s3941q3k9tobg2fupi7k5",
+ "exportedAt": "2026-11-16T16:48:10.713Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4493911,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "key": "{{replace(1.phone; \"+\"; \"\")}}",
+     "returnWrapped": true
+    },
+    "module": "datastore:GetRecord",
+    "onerror": [
+     {
+      "id": 90,
+      "mapper": {
+       "data": {}
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 450,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 202662
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?fields=sheets.properties.title",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 91,
+      "mapper": {
+       "body": {
+        "sheets": []
+       }
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 600,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{3.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst titles=arr(input.sheets).map(s=>String(((s||{}).properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\n// RULE (Yardiv 16/11/2026): the selling rep is looked up in the דוח מכר up to 3 months back (current + 2 previous months). Do not remove.\nfor(const off of [0,-1,-2]){ const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+off,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t); }\nconst q=s=>\"'\"+s+\"'\";\nconst filters=tabs.length? tabs.map(t=>({a1Range:q(t)+'!A1:H2000'})) : [{a1Range:q('הגדרות')+'!A1:A1'}];\nreturn {tabs: tabs.join(', '), readBody: JSON.stringify({dataFilters:filters, valueRenderOption:'FORMATTED_VALUE'})};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{4.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 92,
+      "mapper": {
+       "body": {
+        "valueRanges": []
+       }
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1200,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values/יעדים!A2:B80",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 93,
+      "mapper": {
+       "body": {
+        "values": []
+       }
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1500,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE/values/גיליון1!A1:F1500",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "onerror": [
+     {
+      "id": 94,
+      "mapper": {
+       "body": {
+        "values": []
+       }
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1650,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1650,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "input": [
+      {
+       "name": "text",
+       "value": "{{1.text}}"
+      },
+      {
+       "name": "phone",
+       "value": "{{1.phone}}"
+      },
+      {
+       "name": "recPhone",
+       "value": "{{2.data.phone}}"
+      },
+      {
+       "name": "rating",
+       "value": "{{2.data.rating}}"
+      },
+      {
+       "name": "sentAt",
+       "value": "{{2.data.sentAt}}"
+      },
+      {
+       "name": "targets",
+       "value": "{{6.body.values}}"
+      },
+      {
+       "name": "sales",
+       "value": "{{5.body.valueRanges}}"
+      },
+      {
+       "name": "today",
+       "value": "{{8.body.values}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const digits=s=>String(s==null?'':s).replace(/\\D/g,'');\nconst norm=s=>String(s==null?'':s).replace(/\\s+/g,' ').trim();\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst text=norm(input.text).slice(0,500);\nconst phone=digits(input.phone);\nconst local='0'+phone.replace(/^972/,'');\nconst key=phone.slice(-9);\nconst rating=norm(input.rating);\nconst hasRec=norm(input.recPhone)!=='';\nlet recent=false; { const ms=norm(input.sentAt).match(/(\\d{4})-(\\d{2})-(\\d{2})/); if(ms){ const nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'})); recent=(nowIL-new Date(+ms[1],+ms[2]-1,+ms[3]))/86400000<=8; } }\nconst handled = hasRec && ((rating==='1'||rating==='2') || (recent && rating===''));\n// RULE (Yardiv 16/11/2026): service/internet complaints after install (e.g. 'בחדר אין לילד אינטרנט בכלל') count as dissatisfied and go to the selling rep, to prevent disconnects. Do not remove.\nconst kw=/(תחזור|תחזרו|תחזרי|חוזר אלי|חוזרת אלי|חוזרים אלי|תתקשר|תתקשרו|תתקשרי|אפשר לדבר|לדבר איתך|לדבר איתכם|לדבר בטלפון|תלונ|לא מרוצ|מאוכזב|אכזב|תקל|הבטח|לא נכון|שקר|הטעו|הטעית|מטעים|מתנתק|התנתק|לנתק|לעזוב|עוזב|שוקל|לבטל|ביטול|מבטל|כסף|חיוב|חייב|שלא עולה|לא אמרת|אמרת לי|רמית|נוכל|עבדתם עלי|לא התקינו|לא הגיע|לא עובד|בעיה|נמאס|מעצבן|זועבה|גרוע|מתלונן|דחוף|אין אינטרנט|אין לו אינטרנט|אין לה אינטרנט|אין לילד אינטרנט|אינטרנט לא|האינטרנט לא|אינטרנט חלש|אין קליטה|לא קולט|איטי|נופל|קופץ|נתקע|לא מתחבר|אין שידור|אין ערוצים|חלש|ראוטר|נתב|מגדיל טווח|וויפי|ווי פי|wifi)/i;\nconst greet=/^(היי|הי|שלום|אהלן|הלו|תודה|תודה רבה|תודה לך|ok|אוקי|אוקיי|כן|בסדר|👍|🙏|❤️|😊)[\\s!.,?🙏😊👍❤️]*$/i;\nconst match0=text.length>=2 && kw.test(text) && !greet.test(text);\nconst HEB_D=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'], HEB_M=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst nowT=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst todayStr='יום '+HEB_D[nowT.getDay()]+' '+nowT.getDate()+' '+HEB_M[nowT.getMonth()]+' '+nowT.getFullYear();\nconst thanksOnly=/^(תודה|תודה רבה|תודה לך|תודה רבה לך|ok|אוקי|אוקיי|👍|🙏|❤️|😊|💪)[\\s!.,🙏😊👍❤️💪]*$/i;\nlet inst=null;\nif(key.length===9 && text && !thanksOnly.test(text)){\n  for(const r of arr(input.today).slice(1)){ if(r && digits(r[1]).slice(-9)===key && norm(r[2])===todayStr && norm(r[5])==='כן'){ inst={name:norm(r[0]),slot:norm(r[3]),rep:norm(r[4])}; } }\n}\nconst match=match0 || !!inst;\n// בדיקת מספר כפול: אותו נייד רשום בדוח מכר על כמה לקוחות שונים\nconst dupNames=[];\nif(key.length===9){ const seenN={}; for(const vr of arr(input.sales)){ const vals=((vr&&vr.valueRange)||vr||{}).values||[]; for(const r of vals.slice(1)){ if(r && digits(r[3]).slice(-9)===key){ const n=norm(r[2]); if(n && !seenN[n]){ seenN[n]=1; dupNames.push(n+' – '+(norm(r[7])||'בלי נציג')); } } } } }\n// RULE (15/11/2026, כפילויות): מספר כפול רק אם יש שני מספרי לקוח שונים, או (כשאין מספרי לקוח בכלל) שמות בלי אף מילה משותפת. אותו לקוח עם שם קצת שונה = לא כפול. Do not remove.\nlet dup=dupNames.length>1;\nif(dup){ const nums=new Set(), nms=[]; for(const vr of arr(input.sales)){ const vals=((vr&&vr.valueRange)||vr||{}).values||[]; for(const r of vals.slice(1)){ if(r && digits(r[3]).slice(-9)===key){ const c=digits(r[6]); if(c) nums.add(c); const n=norm(r[2]); if(n) nms.push(n); } } }\n  const tk=n=>n.replace(/[^֐-׿A-Za-z0-9\\s]/g,' ').split(/\\s+/).filter(w=>w.length>=2);\n  const disjoint=nms.some((a,i)=>nms.some((b,j)=>j>i&&!tk(a).some(w=>tk(b).includes(w))));\n  dup = nums.size>=2 || disjoint; }\nlet cust=null;\nif(match && key.length===9){\n  for(const vr of arr(input.sales)){\n    if(cust) break;\n    const vals=((vr&&vr.valueRange)||vr||{}).values||[];\n    for(const r of vals.slice(1)){ if(r && digits(r[3]).slice(-9)===key){ cust={name:norm(r[2]),inst:norm(r[4]),num:digits(r[6]),rep:norm(r[7]),phone:digits(r[3])}; } }\n  }\n  // RULE (15/11/2026, כפילויות): אותו לקוח בכמה שורות - לוקחים את השורה הכי מלאה (מספר לקוח 4, לשונית החודש 2, התקנה 1, נציג 1) ולא את האחרונה. במספר כפול אמיתי / שני מספרי לקוח שונים - כמו קודם. Do not remove.\n  if(cust && !dup){ const curTab=HEB_M[nowT.getMonth()]+' '+nowT.getFullYear(); const sc=c=>(c.num?4:0)+(c.tab===curTab?2:0)+(c.inst?1:0)+(c.rep?1:0); let best=null, bs=-1, orig=null; const ns=new Set();\n    for(const vr of arr(input.sales)){ const v=(vr&&vr.valueRange)||vr||{}; const tb=String(v.range||'').split('!')[0].replace(/^'|'$/g,''); let last=null;\n      for(const r of (v.values||[]).slice(1)){ if(r && digits(r[3]).slice(-9)===key){ const c={name:norm(r[2]),inst:norm(r[4]),num:digits(r[6]),rep:norm(r[7]),phone:digits(r[3]),tab:tb}; last=c; if(c.num) ns.add(c.num); if(sc(c)>bs){ bs=sc(c); best=c; } } }\n      if(!orig&&last) orig=last; }\n    if(orig && best && ns.size<2 && sc(best)>sc(orig)) cust={name:best.name,inst:best.inst,num:best.num,rep:best.rep,phone:best.phone}; }\n}\nlet repPhone='';\nconst rep=(inst&&inst.rep)?inst.rep:(cust?cust.rep:''); const repFirst=rep.split(' ')[0];\nif(rep){\n  const cand=arr(input.targets).filter(r=>r&&r[0]&&r[1]);\n  let hit=cand.find(r=>norm(r[0])===rep);\n  if(!hit){ const bf=cand.filter(r=>norm(r[0]).split(' ')[0]===repFirst); if(bf.length===1) hit=bf[0]; }\n  if(!hit){ const sw=cand.filter(r=>norm(r[0]).startsWith(rep)||rep.startsWith(norm(r[0]))); if(sw.length===1) hit=sw[0]; }\n  if(hit){ let p=digits(hit[1]); if(p.startsWith('0')) p='972'+p.slice(1); if(/^9725\\d{8}$/.test(p)) repPhone=p; }\n}\nconst custPhone=cust&&cust.phone.length>=9?('0'+cust.phone.slice(-9)):local;\nconst body=cust?('\\nלקוח: '+(cust.name||'לא ידוע')+'\\nמספר לקוח: '+(cust.num||'לא נמצא')+'\\nנייד: '+custPhone+'\\nהתקנה: '+(cust.inst||'')+'\\nמה הלקוח כתב: \"'+text+'\"'):'';\n// RULE (Yardiv 16/11/2026): the rep message for a dissatisfied customer always includes the instruction: call the customer, hear the complaint, ask when he is available for a call from yes customer service, and book that call for him through Speedy (Speedy = a callback service that waits in line instead of the customer; it is NOT an upgrade). Do not remove.\nconst tip='\\n\\n💡 מה לעשות: להתקשר ללקוח ולשמוע ממנו מה הבעיה, לשאול מתי נוח לו לקבל שיחה משירות הלקוחות של yes, ולתאם לו את השיחה דרך ספידי.';\nconst ok=!!inst || (match0 && cust && !handled);\nconst sendRep=!!(ok && repPhone && !dup);\nconst sendMgr=!!(ok && (dup || !repPhone));\nconst repMsg=inst ? ('🚨 דחוף – לקוח עם התקנה היום ענה להודעת הבוקר\\nשם הלקוח: '+(inst.name||(cust&&cust.name)||'לא ידוע')+(cust&&cust.num?'\\nמספר לקוח: '+cust.num:'')+'\\nנייד הלקוח: '+custPhone+(inst.slot?'\\nחלון התקנה: '+inst.slot:'')+'\\nמה הלקוח כתב: \"'+text+'\"\\nנא לחזור אליו עכשיו, לפני ההתקנה 📞\\n\\n⚠️ אי אפשר לענות כאן – תשובה להודעה הזאת לא מגיעה ללקוח. צריך להתקשר אליו מהנייד הפרטי או מהמוקד.') : 'לקוח שמכרת לו פנה אלינו אחרי ההתקנה ולא מרוצה. צריך לחזור אליו היום 📞'+body+(cust?('\\nחשוב לדבר איתו עוד היום, שלא יגיע לניתוק.'+tip+'\\n\\n⚠️ אי אפשר לענות כאן – תשובה להודעה הזאת לא מגיעה ללקוח. צריך להתקשר אליו מהנייד הפרטי או מהמוקד.'):'');\nconst mgrMsg=dup ? ('⚠️ מספר כפול בדוח מכר – לא העברתי לנציג, כי לא ברור של מי הלקוח\\nהנייד '+local+' רשום על:\\n'+dupNames.join('\\n')+(inst?'\\n\\nענו מהמספר הזה להודעת \"התקנה של היום\".':'')+'\\nמה כתבו: \"'+text+'\"\\n\\nצריך לבדוק מי הלקוח, להעביר לנציג שלו ולתקן את הנייד בדוח.') : ('⚠️ הנציג '+(rep||'(לא ידוע)')+' כבר לא עובד / לא נמצא לו טלפון – ההודעה מגיעה אליכם במקומו\\n\\n'+repMsg);\nreturn {match, inst:!!inst, todayStr, found:!!cust, dup, dupNames:dupNames.join(' | '), handled, sendRep, repPhone, repMsg, sendMgr, mgrMsg, mgr1:'972544604246', mgr2:'972504445169'};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 20,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 10,
+        "filter": {
+         "name": "לשלוח לנציג שמכר",
+         "conditions": [
+          [
+           {
+            "a": "{{7.result.sendRep}}",
+            "b": "true",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{7.result.repPhone}}@c.us",
+          "message": "{{7.result.repMsg}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2400,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 11,
+        "filter": {
+         "name": "נציג לא עובד / מספר כפול ← סטיב+ירדן",
+         "conditions": [
+          [
+           {
+            "a": "{{7.result.sendMgr}}",
+            "b": "true",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{7.result.mgr1}}@c.us",
+          "message": "{{7.result.mgrMsg}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 13,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2550,
+            "y": 300
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2400,
+          "y": 150
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       },
+       {
+        "id": 12,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{7.result.mgr2}}@c.us",
+          "message": "{{7.result.mgrMsg}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 14,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2850,
+            "y": 300
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": 150
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2100,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - תשובת לקוח: התקנה של היום / פנייה דחופה אחרי התקנה ← נציג מוכר (לא עובד → סטיב+ירדן)",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

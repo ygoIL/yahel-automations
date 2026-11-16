@@ -1,0 +1,183 @@
+{
+ "id": 9981142,
+ "name": "Claude - תעדוף קמפיין: ניקוי כפילויות ולקוחות פעילים",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:48:01.504Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 20,
+    "mapper": {
+     "key": "dedupe_last_run",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "onerror": [
+     {
+      "id": 21,
+      "mapper": {
+       "data": ""
+      },
+      "module": "builtin:Resume",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "datastore": 197016
+    }
+   },
+   {
+    "id": 22,
+    "mapper": {
+     "input": [
+      {
+       "name": "last",
+       "value": "{{20.data}}"
+      },
+      {
+       "name": "offset",
+       "value": "{{ifempty(var.input.offset; 0)}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// RULE (Steve 16/11/2026): the 14-day limit on this cleanup is cancelled completely. Every run is allowed.\n// Open rep follow-ups are sacred: a customer in an open follow-up anywhere never stays in the priority campaign.\nconst now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));\nconst pad = (n) => String(n).padStart(2, '0');\nconst today = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());\nreturn { allowed: true, store: today, note: '', days: null, next: '' };\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 23,
+    "mapper": {
+     "key": "dedupe_last_run",
+     "data": {
+      "data": "{{22.result.store}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "onerror": [
+     {
+      "id": 24,
+      "module": "builtin:Ignore",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "datastore": 197016
+    }
+   },
+   {
+    "id": 27,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 50,
+        "filter": {
+         "name": "מותר",
+         "conditions": [
+          [
+           {
+            "a": "{{22.result.allowed}}",
+            "b": "true",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://tochat-bridge-production.up.railway.app/jobs/cleanup-async",
+         "method": "post",
+         "headers": [
+          {
+           "name": "x-cleanup-key",
+           "value": "__ENV:HDR_X_CLEANUP_KEY__"
+          }
+         ],
+         "timeout": "60",
+         "contentType": "json",
+         "inputMethod": "jsonString",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "jsonStringBodyContent": "{\"kind\":\"dedupe\",\"campaignId\":\"{{var.input.campaignId}}\",\"offset\":{{ifempty(var.input.offset; 0)}},\"count\":{{ifempty(var.input.count; 1500)}},\"apply\":true,\"callbackKey\":\"summary_{{var.input.campaignId}}_{{ifempty(var.input.offset; 0)}}\"}",
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       },
+       {
+        "id": 51,
+        "mapper": {
+         "key": "summary_{{var.input.campaignId}}_{{ifempty(var.input.offset; 0)}}",
+         "data": {
+          "data": "{\"status\":\"running\",\"via\":\"railway\",\"startedAt\":\"{{now}}\",\"message\":\"הניקוי רץ ב-Railway. הסיכום יופיע כאן בסיום (בדרך כלל עד 5 דקות)\"}"
+         },
+         "overwrite": true
+        },
+        "module": "datastore:AddRecord",
+        "onerror": [
+         {
+          "id": 52,
+          "mapper": {},
+          "module": "builtin:Ignore",
+          "version": 1,
+          "parameters": {}
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "datastore": 197016
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1
+   }
+  ],
+  "name": "Claude - תעדוף קמפיין: ניקוי כפילויות ולקוחות פעילים",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

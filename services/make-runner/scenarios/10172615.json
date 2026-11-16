@@ -1,0 +1,155 @@
+{
+ "id": 10172615,
+ "name": "Claude - טוצ'ט: כל הפולואפים הפתוחים בכל הקמפיינים (קריאה בלבד)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:09.544Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "url": "/campaigns",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "b",
+       "value": "{{1.body}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "let b=input.b;if(typeof b==='string')b=JSON.parse(b);return {items:(b||[]).map(x=>({id:x.id,name:x.name}))};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "array": "{{2.result.items}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "limit": 50000,
+     "campaignId": "{{3.id}}"
+    },
+    "module": "app#tochat-cannon-7utvne:GetOpenLeadsPage",
+    "onerror": [
+     {
+      "id": 41,
+      "mapper": {
+       "leads": "[]"
+      },
+      "module": "builtin:Resume",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "l",
+       "value": "{{4.leads}}"
+      },
+      {
+       "name": "c",
+       "value": "{{3.id}}"
+      },
+      {
+       "name": "n",
+       "value": "{{3.name}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "let L=input.l;try{if(typeof L==='string')L=JSON.parse(L)}catch(e){L=[]}\nL=L||[];\nconst f=L.filter(x=>/FOLLOW/i.test(String(x.status||''))).map(x=>[String(x.displayPhone||'').replace(/\\D/g,''),x.repName||'',String(x.followDate||'').slice(0,16)]);\nreturn JSON.stringify({c:input.c,n:input.n,open:L.length,f});"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "x": "{{5.result}}"
+    },
+    "module": "builtin:BasicAggregator",
+    "version": 1,
+    "parameters": {
+     "feeder": 3
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "input": [
+      {
+       "name": "a",
+       "value": "{{6.array}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const a=typeof input.a==='string'?JSON.parse(input.a):(input.a||[]);\nreturn '['+a.map(z=>z.x).filter(Boolean).join(',')+']';"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "key": "allfu_{{var.input.part}}",
+     "data": {
+      "data": "{{7.result}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: כל הפולואפים הפתוחים בכל הקמפיינים (קריאה בלבד)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

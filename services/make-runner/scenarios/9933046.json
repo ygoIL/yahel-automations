@@ -1,0 +1,196 @@
+{
+ "id": 9933046,
+ "name": "הקדמות 4 - תזכורת לחברה אחרי שעתיים בלי תשובה",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 900,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "time": [
+     "07:00",
+     "19:00"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:48:36.944Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "limit": 20,
+     "filter": [
+      [
+       {
+        "a": "status",
+        "b": "ממתין",
+        "o": "text:equal"
+       },
+       {
+        "a": "created_at",
+        "b": "{{addHours(now; -2)}}",
+        "o": "date:lessorequal"
+       }
+      ]
+     ]
+    },
+    "module": "datastore:SearchRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 191414
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "key": "{{1.key}}",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 191414
+    }
+   },
+   {
+    "id": 3,
+    "filter": {
+     "name": "ממתין שעתיים, עוד לא נשלחה תזכורת על השרשור, לפני 19:00",
+     "conditions": [
+      [
+       {
+        "a": "{{2.status}}",
+        "b": "ממתין",
+        "o": "text:equal"
+       },
+       {
+        "a": "{{2.thread_id}}",
+        "o": "exist"
+       },
+       {
+        "a": "{{ifempty(2.nudge_thread; \"\")}}",
+        "b": "{{2.thread_id}}",
+        "o": "text:notequal"
+       },
+       {
+        "a": "{{2.created_at}}",
+        "b": "{{addHours(now; -2)}}",
+        "o": "date:lessorequal"
+       },
+       {
+        "a": "{{formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")}}",
+        "b": "1900",
+        "o": "number:less"
+       },
+       {
+        "a": "{{replace(2.short_date; \"-\"; \"\")}}",
+        "b": "{{formatDate(now; \"YYYYMMDD\"; \"Asia/Jerusalem\")}}",
+        "o": "number:greaterorequal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "key": "{{1.key}}",
+     "data": {
+      "nudged_at": "{{now}}",
+      "nudge_thread": "{{2.thread_id}}"
+     },
+     "upsert": false,
+     "overwriteArrays": false
+    },
+    "module": "datastore:UpdateRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 191414
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "to": [
+      "hakdamot-digital@commboxmail.com"
+     ],
+     "bodyType": "collection",
+     "contents": [
+      {
+       "text": "תזכורת 🙏 עדיין לא קיבלנו תשובה - הלקוח מבקש הקדמה לתאריך {{formatDate(parseDate(2.short_date; \"YYYY-MM-DD\"); \"D/M\")}} שעות {{replace(2.new_slot; \":00\"; \"\")}}"
+      }
+     ],
+     "threadId": "{{2.thread_id}}",
+     "replyMode": "custom"
+    },
+    "module": "google-email:replyToAnEmail",
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 14634877
+    }
+   }
+  ],
+  "name": "הקדמות 4 - תזכורת לחברה אחרי שעתיים בלי תשובה",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

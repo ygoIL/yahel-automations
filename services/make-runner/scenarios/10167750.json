@@ -1,0 +1,86 @@
+{
+ "id": 10167750,
+ "name": "Claude - ניקוי קמפיין: קליטת תוצאה מ-Railway",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4515946,
+ "hookUdid": "oxq5gssswal4cdme7f5kh9uk1v7qcgjy",
+ "exportedAt": "2026-11-16T16:47:14.138Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4515946,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "filter": {
+     "name": "רק מפתחות סיכום של ניקוי",
+     "conditions": [
+      [
+       {
+        "a": "{{1.key}}",
+        "b": "summary_",
+        "o": "text:contain"
+       }
+      ],
+      [
+       {
+        "a": "{{1.key}}",
+        "b": "active_",
+        "o": "text:contain"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "key": "{{1.key}}",
+     "data": {
+      "data": "{{1.data}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 197016
+    }
+   }
+  ],
+  "name": "Claude - ניקוי קמפיין: קליטת תוצאה מ-Railway",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

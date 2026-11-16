@@ -1,0 +1,2761 @@
+{
+ "id": 9141155,
+ "name": "תזכורת יום לפני התקנה",
+ "scheduling": {
+  "days": [
+   1,
+   2,
+   3,
+   4,
+   0
+  ],
+  "time": "16:30",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:48:48.509Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "from": "drive",
+     "filter": [
+      [
+       {
+        "a": "B",
+        "o": "exist"
+       },
+       {
+        "a": "F",
+        "o": "notexist"
+       }
+      ]
+     ],
+     "sheetId": "התקנות של מחר",
+     "sortOrder": "asc",
+     "spreadsheetId": "1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE",
+     "tableFirstRow": "A1:CZ1",
+     "includesHeaders": true,
+     "valueRenderOption": "FORMATTED_VALUE",
+     "dateTimeRenderOption": "FORMATTED_STRING"
+    },
+    "module": "google-sheets:filterRows",
+    "version": 2,
+    "metadata": {
+     "expect": [
+      {
+       "name": "from",
+       "type": "select",
+       "label": "Search Method",
+       "required": true,
+       "validate": {
+        "enum": [
+         "drive",
+         "share"
+        ]
+       }
+      },
+      {
+       "name": "valueRenderOption",
+       "type": "select",
+       "label": "Value render option",
+       "validate": {
+        "enum": [
+         "FORMATTED_VALUE",
+         "UNFORMATTED_VALUE",
+         "FORMULA"
+        ]
+       }
+      },
+      {
+       "name": "dateTimeRenderOption",
+       "type": "select",
+       "label": "Date and time render option",
+       "validate": {
+        "enum": [
+         "SERIAL_NUMBER",
+         "FORMATTED_STRING"
+        ]
+       }
+      },
+      {
+       "name": "limit",
+       "type": "uinteger",
+       "label": "Limit"
+      },
+      {
+       "name": "spreadsheetId",
+       "type": "select",
+       "label": "Spreadsheet Name",
+       "required": true
+      },
+      {
+       "name": "sheetId",
+       "type": "select",
+       "label": "Sheet Name",
+       "required": true
+      },
+      {
+       "name": "includesHeaders",
+       "type": "select",
+       "label": "Table contains headers",
+       "required": true,
+       "validate": {
+        "enum": [
+         true,
+         false
+        ]
+       }
+      },
+      {
+       "name": "tableFirstRow",
+       "type": "select",
+       "label": "Column range",
+       "required": true,
+       "validate": {
+        "enum": [
+         "A1:Z1",
+         "A1:BZ1",
+         "A1:CZ1",
+         "A1:DZ1",
+         "A1:MZ1",
+         "A1:ZZ1",
+         "A1:AZZ1",
+         "A1:BZZ1",
+         "A1:CZZ1",
+         "A1:DZZ1",
+         "A1:MZZ1",
+         "A1:ZZZ1"
+        ]
+       }
+      },
+      {
+       "name": "filter",
+       "type": "filter",
+       "label": "Filter",
+       "options": "rpc://google-sheets/2/rpcGetFilterKeys?includesHeaders=true"
+      },
+      {
+       "name": "orderBy",
+       "type": "select",
+       "label": "Order by"
+      },
+      {
+       "name": "sortOrder",
+       "type": "select",
+       "label": "Sort order",
+       "validate": {
+        "enum": [
+         "asc",
+         "desc"
+        ]
+       }
+      }
+     ],
+     "restore": {
+      "expect": {
+       "from": {
+        "label": "Select from My Drive"
+       },
+       "orderBy": {
+        "mode": "chose"
+       },
+       "sheetId": {
+        "mode": "chose",
+        "label": "התקנות של מחר"
+       },
+       "sortOrder": {
+        "mode": "chose",
+        "label": "Ascending"
+       },
+       "spreadsheetId": {
+        "mode": "chose",
+        "label": "התקנות של היום"
+       },
+       "tableFirstRow": {
+        "label": "A-CZ"
+       },
+       "includesHeaders": {
+        "mode": "chose",
+        "label": "Yes"
+       },
+       "valueRenderOption": {
+        "mode": "chose",
+        "label": "Formatted value"
+       },
+       "dateTimeRenderOption": {
+        "mode": "chose",
+        "label": "Formatted string"
+       }
+      },
+      "parameters": {
+       "__IMTCONN__": {
+        "data": {
+         "scoped": "true",
+         "connection": "google"
+        },
+        "label": "My Google connection (yordon1234@gmail.com)"
+       }
+      }
+     },
+     "designer": {
+      "x": 0,
+      "y": 150
+     },
+     "interface": [
+      {
+       "name": "__IMTLENGTH__",
+       "type": "uinteger",
+       "label": "Total number of bundles"
+      },
+      {
+       "name": "__IMTINDEX__",
+       "type": "uinteger",
+       "label": "Bundle order position"
+      },
+      {
+       "name": "__ROW_NUMBER__",
+       "type": "number",
+       "label": "Row number"
+      },
+      {
+       "name": "__SPREADSHEET_ID__",
+       "type": "text",
+       "label": "Spreadsheet ID"
+      },
+      {
+       "name": "__SHEET__",
+       "type": "text",
+       "label": "Sheet"
+      },
+      {
+       "name": "0",
+       "type": "text",
+       "label": "שם הלקוח (A)"
+      },
+      {
+       "name": "1",
+       "type": "text",
+       "label": "נייד (B)"
+      },
+      {
+       "name": "2",
+       "type": "text",
+       "label": "תאריך התקנה (C)"
+      },
+      {
+       "name": "3",
+       "type": "text",
+       "label": "שעת התקנה  (D)"
+      },
+      {
+       "name": "4",
+       "type": "text",
+       "label": "נציג (E)"
+      },
+      {
+       "name": "5",
+       "type": "text",
+       "label": "נשלח? (F)"
+      },
+      {
+       "name": "6",
+       "type": "text",
+       "label": "(G)"
+      },
+      {
+       "name": "7",
+       "type": "text",
+       "label": "(H)"
+      },
+      {
+       "name": "8",
+       "type": "text",
+       "label": "(I)"
+      },
+      {
+       "name": "9",
+       "type": "text",
+       "label": "(J)"
+      },
+      {
+       "name": "10",
+       "type": "text",
+       "label": "(K)"
+      },
+      {
+       "name": "11",
+       "type": "text",
+       "label": "(L)"
+      },
+      {
+       "name": "12",
+       "type": "text",
+       "label": "(M)"
+      },
+      {
+       "name": "13",
+       "type": "text",
+       "label": "(N)"
+      },
+      {
+       "name": "14",
+       "type": "text",
+       "label": "(O)"
+      },
+      {
+       "name": "15",
+       "type": "text",
+       "label": "(P)"
+      },
+      {
+       "name": "16",
+       "type": "text",
+       "label": "(Q)"
+      },
+      {
+       "name": "17",
+       "type": "text",
+       "label": "(R)"
+      },
+      {
+       "name": "18",
+       "type": "text",
+       "label": "(S)"
+      },
+      {
+       "name": "19",
+       "type": "text",
+       "label": "(T)"
+      },
+      {
+       "name": "20",
+       "type": "text",
+       "label": "(U)"
+      },
+      {
+       "name": "21",
+       "type": "text",
+       "label": "(V)"
+      },
+      {
+       "name": "22",
+       "type": "text",
+       "label": "(W)"
+      },
+      {
+       "name": "23",
+       "type": "text",
+       "label": "(X)"
+      },
+      {
+       "name": "24",
+       "type": "text",
+       "label": "(Y)"
+      },
+      {
+       "name": "25",
+       "type": "text",
+       "label": "(Z)"
+      },
+      {
+       "name": "26",
+       "type": "text",
+       "label": "(AA)"
+      },
+      {
+       "name": "27",
+       "type": "text",
+       "label": "(AB)"
+      },
+      {
+       "name": "28",
+       "type": "text",
+       "label": "(AC)"
+      },
+      {
+       "name": "29",
+       "type": "text",
+       "label": "(AD)"
+      },
+      {
+       "name": "30",
+       "type": "text",
+       "label": "(AE)"
+      },
+      {
+       "name": "31",
+       "type": "text",
+       "label": "(AF)"
+      },
+      {
+       "name": "32",
+       "type": "text",
+       "label": "(AG)"
+      },
+      {
+       "name": "33",
+       "type": "text",
+       "label": "(AH)"
+      },
+      {
+       "name": "34",
+       "type": "text",
+       "label": "(AI)"
+      },
+      {
+       "name": "35",
+       "type": "text",
+       "label": "(AJ)"
+      },
+      {
+       "name": "36",
+       "type": "text",
+       "label": "(AK)"
+      },
+      {
+       "name": "37",
+       "type": "text",
+       "label": "(AL)"
+      },
+      {
+       "name": "38",
+       "type": "text",
+       "label": "(AM)"
+      },
+      {
+       "name": "39",
+       "type": "text",
+       "label": "(AN)"
+      },
+      {
+       "name": "40",
+       "type": "text",
+       "label": "(AO)"
+      },
+      {
+       "name": "41",
+       "type": "text",
+       "label": "(AP)"
+      },
+      {
+       "name": "42",
+       "type": "text",
+       "label": "(AQ)"
+      },
+      {
+       "name": "43",
+       "type": "text",
+       "label": "(AR)"
+      },
+      {
+       "name": "44",
+       "type": "text",
+       "label": "(AS)"
+      },
+      {
+       "name": "45",
+       "type": "text",
+       "label": "(AT)"
+      },
+      {
+       "name": "46",
+       "type": "text",
+       "label": "(AU)"
+      },
+      {
+       "name": "47",
+       "type": "text",
+       "label": "(AV)"
+      },
+      {
+       "name": "48",
+       "type": "text",
+       "label": "(AW)"
+      },
+      {
+       "name": "49",
+       "type": "text",
+       "label": "(AX)"
+      },
+      {
+       "name": "50",
+       "type": "text",
+       "label": "(AY)"
+      },
+      {
+       "name": "51",
+       "type": "text",
+       "label": "(AZ)"
+      },
+      {
+       "name": "52",
+       "type": "text",
+       "label": "(BA)"
+      },
+      {
+       "name": "53",
+       "type": "text",
+       "label": "(BB)"
+      },
+      {
+       "name": "54",
+       "type": "text",
+       "label": "(BC)"
+      },
+      {
+       "name": "55",
+       "type": "text",
+       "label": "(BD)"
+      },
+      {
+       "name": "56",
+       "type": "text",
+       "label": "(BE)"
+      },
+      {
+       "name": "57",
+       "type": "text",
+       "label": "(BF)"
+      },
+      {
+       "name": "58",
+       "type": "text",
+       "label": "(BG)"
+      },
+      {
+       "name": "59",
+       "type": "text",
+       "label": "(BH)"
+      },
+      {
+       "name": "60",
+       "type": "text",
+       "label": "(BI)"
+      },
+      {
+       "name": "61",
+       "type": "text",
+       "label": "(BJ)"
+      },
+      {
+       "name": "62",
+       "type": "text",
+       "label": "(BK)"
+      },
+      {
+       "name": "63",
+       "type": "text",
+       "label": "(BL)"
+      },
+      {
+       "name": "64",
+       "type": "text",
+       "label": "(BM)"
+      },
+      {
+       "name": "65",
+       "type": "text",
+       "label": "(BN)"
+      },
+      {
+       "name": "66",
+       "type": "text",
+       "label": "(BO)"
+      },
+      {
+       "name": "67",
+       "type": "text",
+       "label": "(BP)"
+      },
+      {
+       "name": "68",
+       "type": "text",
+       "label": "(BQ)"
+      },
+      {
+       "name": "69",
+       "type": "text",
+       "label": "(BR)"
+      },
+      {
+       "name": "70",
+       "type": "text",
+       "label": "(BS)"
+      },
+      {
+       "name": "71",
+       "type": "text",
+       "label": "(BT)"
+      },
+      {
+       "name": "72",
+       "type": "text",
+       "label": "(BU)"
+      },
+      {
+       "name": "73",
+       "type": "text",
+       "label": "(BV)"
+      },
+      {
+       "name": "74",
+       "type": "text",
+       "label": "(BW)"
+      },
+      {
+       "name": "75",
+       "type": "text",
+       "label": "(BX)"
+      },
+      {
+       "name": "76",
+       "type": "text",
+       "label": "(BY)"
+      },
+      {
+       "name": "77",
+       "type": "text",
+       "label": "(BZ)"
+      },
+      {
+       "name": "78",
+       "type": "text",
+       "label": "(CA)"
+      },
+      {
+       "name": "79",
+       "type": "text",
+       "label": "(CB)"
+      },
+      {
+       "name": "80",
+       "type": "text",
+       "label": "(CC)"
+      },
+      {
+       "name": "81",
+       "type": "text",
+       "label": "(CD)"
+      },
+      {
+       "name": "82",
+       "type": "text",
+       "label": "(CE)"
+      },
+      {
+       "name": "83",
+       "type": "text",
+       "label": "(CF)"
+      },
+      {
+       "name": "84",
+       "type": "text",
+       "label": "(CG)"
+      },
+      {
+       "name": "85",
+       "type": "text",
+       "label": "(CH)"
+      },
+      {
+       "name": "86",
+       "type": "text",
+       "label": "(CI)"
+      },
+      {
+       "name": "87",
+       "type": "text",
+       "label": "(CJ)"
+      },
+      {
+       "name": "88",
+       "type": "text",
+       "label": "(CK)"
+      },
+      {
+       "name": "89",
+       "type": "text",
+       "label": "(CL)"
+      },
+      {
+       "name": "90",
+       "type": "text",
+       "label": "(CM)"
+      },
+      {
+       "name": "91",
+       "type": "text",
+       "label": "(CN)"
+      },
+      {
+       "name": "92",
+       "type": "text",
+       "label": "(CO)"
+      },
+      {
+       "name": "93",
+       "type": "text",
+       "label": "(CP)"
+      },
+      {
+       "name": "94",
+       "type": "text",
+       "label": "(CQ)"
+      },
+      {
+       "name": "95",
+       "type": "text",
+       "label": "(CR)"
+      },
+      {
+       "name": "96",
+       "type": "text",
+       "label": "(CS)"
+      },
+      {
+       "name": "97",
+       "type": "text",
+       "label": "(CT)"
+      },
+      {
+       "name": "98",
+       "type": "text",
+       "label": "(CU)"
+      },
+      {
+       "name": "99",
+       "type": "text",
+       "label": "(CV)"
+      },
+      {
+       "name": "100",
+       "type": "text",
+       "label": "(CW)"
+      },
+      {
+       "name": "101",
+       "type": "text",
+       "label": "(CX)"
+      },
+      {
+       "name": "102",
+       "type": "text",
+       "label": "(CY)"
+      },
+      {
+       "name": "103",
+       "type": "text",
+       "label": "(CZ)"
+      }
+     ],
+     "parameters": [
+      {
+       "name": "__IMTCONN__",
+       "type": "account:google",
+       "label": "Connection",
+       "required": true
+      }
+     ]
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "filter": {
+     "name": "",
+     "conditions": [
+      [
+       {
+        "a": "{{1.`1`}}",
+        "o": "exist"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "number": "{{1.`1`}}",
+     "defaultCountry": "IL"
+    },
+    "module": "phonenumber:TransformerParseNumber",
+    "version": 1,
+    "metadata": {
+     "expect": [
+      {
+       "name": "number",
+       "type": "text",
+       "label": "Phone number",
+       "required": true
+      },
+      {
+       "name": "defaultCountry",
+       "type": "select",
+       "label": "Default country for parsing",
+       "required": true,
+       "validate": {
+        "enum": [
+         "AC",
+         "AD",
+         "AE",
+         "AF",
+         "AG",
+         "AI",
+         "AL",
+         "AM",
+         "AO",
+         "AQ",
+         "AR",
+         "AS",
+         "AT",
+         "AU",
+         "AW",
+         "AX",
+         "AZ",
+         "BA",
+         "BB",
+         "BD",
+         "BE",
+         "BF",
+         "BG",
+         "BH",
+         "BI",
+         "BJ",
+         "BL",
+         "BM",
+         "BN",
+         "BO",
+         "BQ",
+         "BR",
+         "BS",
+         "BT",
+         "BV",
+         "BW",
+         "BY",
+         "BZ",
+         "CA",
+         "CC",
+         "CD",
+         "CF",
+         "CG",
+         "CH",
+         "CI",
+         "CK",
+         "CL",
+         "CM",
+         "CN",
+         "CO",
+         "CP",
+         "CR",
+         "CU",
+         "CV",
+         "CW",
+         "CX",
+         "CY",
+         "CZ",
+         "DE",
+         "DG",
+         "DJ",
+         "DK",
+         "DM",
+         "DO",
+         "DZ",
+         "EA",
+         "EC",
+         "EE",
+         "EG",
+         "EH",
+         "ER",
+         "ES",
+         "ET",
+         "EU",
+         "FI",
+         "FJ",
+         "FK",
+         "FM",
+         "FO",
+         "FR",
+         "FX",
+         "GA",
+         "GB",
+         "GD",
+         "GE",
+         "GF",
+         "GG",
+         "GH",
+         "GI",
+         "GL",
+         "GM",
+         "GN",
+         "GP",
+         "GQ",
+         "GR",
+         "GS",
+         "GT",
+         "GU",
+         "GW",
+         "GY",
+         "HK",
+         "HM",
+         "HN",
+         "HR",
+         "HT",
+         "HU",
+         "IC",
+         "ID",
+         "IE",
+         "IL",
+         "IM",
+         "IN",
+         "IO",
+         "IQ",
+         "IR",
+         "IS",
+         "IT",
+         "JE",
+         "JM",
+         "JO",
+         "JP",
+         "KE",
+         "KG",
+         "KH",
+         "KI",
+         "KM",
+         "KN",
+         "KP",
+         "KR",
+         "KW",
+         "KY",
+         "KZ",
+         "LA",
+         "LB",
+         "LC",
+         "LI",
+         "LK",
+         "LR",
+         "LS",
+         "LT",
+         "LU",
+         "LV",
+         "LY",
+         "MA",
+         "MC",
+         "MD",
+         "ME",
+         "MF",
+         "MG",
+         "MH",
+         "MK",
+         "ML",
+         "MM",
+         "MN",
+         "MO",
+         "MP",
+         "MQ",
+         "MR",
+         "MS",
+         "MT",
+         "MU",
+         "MV",
+         "MW",
+         "MX",
+         "MY",
+         "MZ",
+         "NA",
+         "NC",
+         "NE",
+         "NF",
+         "NG",
+         "NI",
+         "NL",
+         "NO",
+         "NP",
+         "NR",
+         "NU",
+         "NZ",
+         "OM",
+         "PA",
+         "PE",
+         "PF",
+         "PG",
+         "PH",
+         "PK",
+         "PL",
+         "PM",
+         "PN",
+         "PR",
+         "PS",
+         "PT",
+         "PW",
+         "PY",
+         "QA",
+         "RE",
+         "RO",
+         "RS",
+         "RU",
+         "RW",
+         "SA",
+         "SB",
+         "SC",
+         "SD",
+         "SE",
+         "SG",
+         "SH",
+         "SI",
+         "SJ",
+         "SK",
+         "SL",
+         "SM",
+         "SN",
+         "SO",
+         "SR",
+         "SS",
+         "ST",
+         "SU",
+         "SV",
+         "SX",
+         "SY",
+         "SZ",
+         "TA",
+         "TC",
+         "TD",
+         "TF",
+         "TG",
+         "TH",
+         "TJ",
+         "TK",
+         "TL",
+         "TM",
+         "TN",
+         "TO",
+         "TR",
+         "TT",
+         "TV",
+         "TW",
+         "TZ",
+         "UA",
+         "UG",
+         "UM",
+         "US",
+         "UY",
+         "UZ",
+         "VA",
+         "VC",
+         "VE",
+         "VG",
+         "VI",
+         "VN",
+         "VU",
+         "WF",
+         "WS",
+         "YE",
+         "YT",
+         "ZA",
+         "ZM",
+         "ZW"
+        ]
+       }
+      }
+     ],
+     "restore": {
+      "expect": {
+       "defaultCountry": {
+        "mode": "chose",
+        "label": "Israel (IL)"
+       }
+      }
+     },
+     "designer": {
+      "x": 300,
+      "y": 150
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "filter": {
+     "name": "",
+     "conditions": [
+      [
+       {
+        "a": "{{2.valid}}",
+        "b": "true",
+        "o": "text:equal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "limit": "100",
+     "cFieldId": 14028645,
+     "cFieldValue": "{{2.countryCallingCode}}{{2.phone}}"
+    },
+    "module": "manychat:FindSubscriberByCustomField",
+    "version": 1,
+    "metadata": {
+     "expect": [
+      {
+       "name": "cFieldId",
+       "type": "select",
+       "label": "Field ID",
+       "required": true
+      },
+      {
+       "name": "cFieldValue",
+       "type": "text",
+       "label": "Field value",
+       "required": true
+      },
+      {
+       "name": "limit",
+       "type": "uinteger",
+       "label": "Limit",
+       "required": true
+      }
+     ],
+     "restore": {
+      "expect": {
+       "cFieldId": {
+        "mode": "chose",
+        "label": "WA ID"
+       }
+      },
+      "parameters": {
+       "__IMTCONN__": {
+        "data": {
+         "scoped": "true",
+         "connection": "manychat"
+        },
+        "label": "My ManyChat connection"
+       }
+      }
+     },
+     "designer": {
+      "x": 600,
+      "y": 150
+     },
+     "parameters": [
+      {
+       "name": "__IMTCONN__",
+       "type": "account:manychat",
+       "label": "Connection",
+       "required": true
+      }
+     ]
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 4,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 11,
+        "filter": {
+         "name": "מצא",
+         "conditions": [
+          [
+           {
+            "a": "{{3.id}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "actions": [
+          {
+           "value": "{{first(split(trim(1.`4`); \" \"))}}",
+           "action": "set_field_value",
+           "field_name": "שם נציג"
+          }
+         ],
+         "subscriberId": "{{3.id}}"
+        },
+        "module": "manychat:PerformAction",
+        "onerror": [
+         {
+          "id": 15,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": 150
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "name": "subscriberId",
+           "type": "text",
+           "label": "Subscriber ID",
+           "required": true,
+           "validate": {
+            "pattern": "^[0-9]+$"
+           }
+          },
+          {
+           "name": "actions",
+           "spec": [
+            {
+             "name": "action",
+             "type": "select",
+             "label": "Action",
+             "options": [
+              {
+               "label": "Add a tag",
+               "value": "add_tag",
+               "nested": [
+                {
+                 "help": "Enter the tag.",
+                 "name": "tag_name",
+                 "type": "text",
+                 "label": "Tag name",
+                 "required": true
+                }
+               ]
+              },
+              {
+               "label": "Remove a tag",
+               "value": "remove_tag",
+               "nested": [
+                {
+                 "help": "Enter the tag.",
+                 "name": "tag_name",
+                 "type": "text",
+                 "label": "Tag name",
+                 "required": true
+                }
+               ]
+              },
+              {
+               "label": "Set a custom field",
+               "value": "set_field_value",
+               "nested": [
+                {
+                 "help": "Enter the name.",
+                 "name": "field_name",
+                 "type": "text",
+                 "label": "Field name",
+                 "required": true
+                },
+                {
+                 "help": "Enter the value.",
+                 "name": "value",
+                 "type": "text",
+                 "label": "Field value",
+                 "required": true
+                }
+               ]
+              },
+              {
+               "label": "Unset a custom field",
+               "value": "unset_field_value",
+               "nested": [
+                {
+                 "help": "Enter the name.",
+                 "name": "field_name",
+                 "type": "text",
+                 "label": "Field name",
+                 "required": true
+                }
+               ]
+              }
+             ],
+             "required": true
+            }
+           ],
+           "type": "array",
+           "label": "Actions",
+           "validate": {
+            "minItems": 1
+           }
+          }
+         ],
+         "restore": {
+          "expect": {
+           "actions": {
+            "mode": "chose",
+            "items": [
+             {
+              "action": {
+               "mode": "chose",
+               "label": "Set a custom field"
+              }
+             }
+            ]
+           }
+          },
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1200,
+          "y": 0
+         },
+         "parameters": [
+          {
+           "name": "__IMTCONN__",
+           "type": "account:manychat",
+           "label": "Connection",
+           "required": true
+          }
+         ],
+         "setupValidation": {
+          "result": {
+           "valid": true,
+           "fields": []
+          },
+          "version": 1,
+          "configuration": "d776461a6bbd3c05"
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 12,
+        "mapper": {
+         "flowName": "content20260428095543_991968",
+         "subscriberId": "{{3.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "name": "subscriberId",
+           "type": "text",
+           "label": "Subscriber ID",
+           "required": true,
+           "validate": {
+            "pattern": "^[0-9]+$"
+           }
+          },
+          {
+           "name": "flowName",
+           "type": "text",
+           "label": "Flow ID",
+           "required": true
+          }
+         ],
+         "restore": {
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1500,
+          "y": -150
+         },
+         "parameters": [
+          {
+           "name": "__IMTCONN__",
+           "type": "account:manychat",
+           "label": "Connection",
+           "required": true
+          }
+         ]
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 13,
+        "mapper": {
+         "mode": "fromAll",
+         "values": {
+          "5": "כן"
+         },
+         "sheetId": "התקנות של מחר",
+         "rowNumber": "{{1.`__ROW_NUMBER__`}}",
+         "spreadsheetId": "1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE",
+         "includesHeaders": true,
+         "useColumnHeaders": false,
+         "valueInputOption": "USER_ENTERED"
+        },
+        "module": "google-sheets:updateRow",
+        "version": 2,
+        "metadata": {
+         "expect": [
+          {
+           "name": "mode",
+           "type": "select",
+           "label": "Search Method",
+           "required": true,
+           "validate": {
+            "enum": [
+             "select",
+             "fromAll",
+             "map"
+            ]
+           }
+          },
+          {
+           "name": "valueInputOption",
+           "type": "select",
+           "label": "Value input option",
+           "validate": {
+            "enum": [
+             "USER_ENTERED",
+             "RAW"
+            ]
+           }
+          },
+          {
+           "name": "spreadsheetId",
+           "type": "text",
+           "label": "Spreadsheet ID",
+           "required": true
+          },
+          {
+           "mode": "edit",
+           "name": "sheetId",
+           "type": "select",
+           "label": "Sheet Name",
+           "required": true
+          },
+          {
+           "name": "rowNumber",
+           "type": "uinteger",
+           "label": "Row number",
+           "required": true
+          },
+          {
+           "name": "includesHeaders",
+           "type": "select",
+           "label": "Table contains headers",
+           "required": true,
+           "validate": {
+            "enum": [
+             true,
+             false
+            ]
+           }
+          },
+          {
+           "name": "useColumnHeaders",
+           "type": "select",
+           "label": "Use column headers as IDs of the columns",
+           "required": true,
+           "validate": {
+            "enum": [
+             true,
+             false
+            ]
+           }
+          },
+          {
+           "name": "values",
+           "spec": [
+            {
+             "name": "0",
+             "type": "text",
+             "label": "שם הלקוח (A)"
+            },
+            {
+             "name": "1",
+             "type": "text",
+             "label": "נייד (B)"
+            },
+            {
+             "name": "2",
+             "type": "text",
+             "label": "תאריך התקנה (C)"
+            },
+            {
+             "name": "3",
+             "type": "text",
+             "label": "שעת התקנה  (D)"
+            },
+            {
+             "name": "4",
+             "type": "text",
+             "label": "נציג (E)"
+            },
+            {
+             "name": "5",
+             "type": "text",
+             "label": "נשלח? (F)"
+            },
+            {
+             "name": "6",
+             "type": "text",
+             "label": "(G)"
+            },
+            {
+             "name": "7",
+             "type": "text",
+             "label": "(H)"
+            },
+            {
+             "name": "8",
+             "type": "text",
+             "label": "(I)"
+            },
+            {
+             "name": "9",
+             "type": "text",
+             "label": "(J)"
+            },
+            {
+             "name": "10",
+             "type": "text",
+             "label": "(K)"
+            },
+            {
+             "name": "11",
+             "type": "text",
+             "label": "(L)"
+            },
+            {
+             "name": "12",
+             "type": "text",
+             "label": "(M)"
+            },
+            {
+             "name": "13",
+             "type": "text",
+             "label": "(N)"
+            },
+            {
+             "name": "14",
+             "type": "text",
+             "label": "(O)"
+            },
+            {
+             "name": "15",
+             "type": "text",
+             "label": "(P)"
+            },
+            {
+             "name": "16",
+             "type": "text",
+             "label": "(Q)"
+            },
+            {
+             "name": "17",
+             "type": "text",
+             "label": "(R)"
+            },
+            {
+             "name": "18",
+             "type": "text",
+             "label": "(S)"
+            },
+            {
+             "name": "19",
+             "type": "text",
+             "label": "(T)"
+            },
+            {
+             "name": "20",
+             "type": "text",
+             "label": "(U)"
+            },
+            {
+             "name": "21",
+             "type": "text",
+             "label": "(V)"
+            },
+            {
+             "name": "22",
+             "type": "text",
+             "label": "(W)"
+            },
+            {
+             "name": "23",
+             "type": "text",
+             "label": "(X)"
+            },
+            {
+             "name": "24",
+             "type": "text",
+             "label": "(Y)"
+            },
+            {
+             "name": "25",
+             "type": "text",
+             "label": "(Z)"
+            },
+            {
+             "name": "26",
+             "type": "text",
+             "label": "(AA)"
+            }
+           ],
+           "type": "collection",
+           "label": "Values in columns",
+           "metadata": [
+            [
+             [
+              "שם הלקוח",
+              "נייד",
+              "תאריך התקנה",
+              "שעת התקנה ",
+              "נציג",
+              "נשלח?"
+             ]
+            ]
+           ]
+          }
+         ],
+         "restore": {
+          "expect": {
+           "mode": {
+            "label": "Select from all"
+           },
+           "sheetId": {
+            "mode": "chose",
+            "label": "התקנות של מחר"
+           },
+           "includesHeaders": {
+            "label": "Yes"
+           },
+           "useColumnHeaders": {
+            "label": "No",
+            "nested": [
+             {
+              "name": "values",
+              "spec": [
+               {
+                "name": "0",
+                "type": "text",
+                "label": "שם הלקוח (A)"
+               },
+               {
+                "name": "1",
+                "type": "text",
+                "label": "נייד (B)"
+               },
+               {
+                "name": "2",
+                "type": "text",
+                "label": "תאריך התקנה (C)"
+               },
+               {
+                "name": "3",
+                "type": "text",
+                "label": "שעת התקנה  (D)"
+               },
+               {
+                "name": "4",
+                "type": "text",
+                "label": "נציג (E)"
+               },
+               {
+                "name": "5",
+                "type": "text",
+                "label": "נשלח? (F)"
+               },
+               {
+                "name": "6",
+                "type": "text",
+                "label": "(G)"
+               },
+               {
+                "name": "7",
+                "type": "text",
+                "label": "(H)"
+               },
+               {
+                "name": "8",
+                "type": "text",
+                "label": "(I)"
+               },
+               {
+                "name": "9",
+                "type": "text",
+                "label": "(J)"
+               },
+               {
+                "name": "10",
+                "type": "text",
+                "label": "(K)"
+               },
+               {
+                "name": "11",
+                "type": "text",
+                "label": "(L)"
+               },
+               {
+                "name": "12",
+                "type": "text",
+                "label": "(M)"
+               },
+               {
+                "name": "13",
+                "type": "text",
+                "label": "(N)"
+               },
+               {
+                "name": "14",
+                "type": "text",
+                "label": "(O)"
+               },
+               {
+                "name": "15",
+                "type": "text",
+                "label": "(P)"
+               },
+               {
+                "name": "16",
+                "type": "text",
+                "label": "(Q)"
+               },
+               {
+                "name": "17",
+                "type": "text",
+                "label": "(R)"
+               },
+               {
+                "name": "18",
+                "type": "text",
+                "label": "(S)"
+               },
+               {
+                "name": "19",
+                "type": "text",
+                "label": "(T)"
+               },
+               {
+                "name": "20",
+                "type": "text",
+                "label": "(U)"
+               },
+               {
+                "name": "21",
+                "type": "text",
+                "label": "(V)"
+               },
+               {
+                "name": "22",
+                "type": "text",
+                "label": "(W)"
+               },
+               {
+                "name": "23",
+                "type": "text",
+                "label": "(X)"
+               },
+               {
+                "name": "24",
+                "type": "text",
+                "label": "(Y)"
+               },
+               {
+                "name": "25",
+                "type": "text",
+                "label": "(Z)"
+               },
+               {
+                "name": "26",
+                "type": "text",
+                "label": "(AA)"
+               }
+              ],
+              "type": "collection",
+              "label": "Values in columns",
+              "metadata": [
+               [
+                [
+                 "שם הלקוח",
+                 "נייד",
+                 "תאריך התקנה",
+                 "שעת התקנה ",
+                 "נציג",
+                 "נשלח?"
+                ]
+               ]
+              ]
+             }
+            ]
+           },
+           "valueInputOption": {
+            "mode": "chose",
+            "label": "User entered"
+           }
+          },
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "google"
+            },
+            "label": "My Google connection (yordon1234@gmail.com)"
+           }
+          }
+         },
+         "designer": {
+          "x": 1947,
+          "y": -105
+         },
+         "parameters": [
+          {
+           "name": "__IMTCONN__",
+           "type": "account:google",
+           "label": "Connection",
+           "required": true
+          }
+         ]
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 7,
+        "filter": {
+         "name": "",
+         "conditions": [
+          [
+           {
+            "a": "{{3.id}}",
+            "o": "notexist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "email": "",
+         "phone": "{{2.countryCallingCode}}{{2.phone}}",
+         "gender": "",
+         "lastName": "",
+         "firstName": "{{1.`0`}}",
+         "hasOptInSms": true,
+         "consentPhrase": "true",
+         "hasOptInEmail": true,
+         "whatsAppPhone": "{{2.countryCallingCode}}{{2.phone}}"
+        },
+        "module": "manychat:CreateSubscriber",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "name": "firstName",
+           "type": "text",
+           "label": "First name"
+          },
+          {
+           "name": "lastName",
+           "type": "text",
+           "label": "Last name"
+          },
+          {
+           "name": "phone",
+           "type": "text",
+           "label": "Phone number"
+          },
+          {
+           "name": "whatsAppPhone",
+           "type": "text",
+           "label": "WhatsApp phone number"
+          },
+          {
+           "name": "email",
+           "type": "email",
+           "label": "Email address"
+          },
+          {
+           "name": "gender",
+           "type": "text",
+           "label": "Gender"
+          },
+          {
+           "name": "hasOptInSms",
+           "type": "boolean",
+           "label": "Has SMS opt-in"
+          },
+          {
+           "name": "hasOptInEmail",
+           "type": "boolean",
+           "label": "Has email opt-in"
+          },
+          {
+           "name": "consentPhrase",
+           "type": "text",
+           "label": "Consent phrase"
+          }
+         ],
+         "restore": {
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1200,
+          "y": 300
+         },
+         "parameters": [
+          {
+           "name": "__IMTCONN__",
+           "type": "account:manychat",
+           "label": "Connection",
+           "required": true
+          }
+         ]
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 8,
+        "mapper": {
+         "actions": [
+          {
+           "value": "{{first(split(trim(1.`4`); \" \"))}}",
+           "action": "set_field_value",
+           "field_name": "שם נציג"
+          }
+         ],
+         "subscriberId": "{{7.data.id}}"
+        },
+        "module": "manychat:PerformAction",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "name": "subscriberId",
+           "type": "text",
+           "label": "Subscriber ID",
+           "required": true,
+           "validate": {
+            "pattern": "^[0-9]+$"
+           }
+          },
+          {
+           "name": "actions",
+           "spec": [
+            {
+             "name": "action",
+             "type": "select",
+             "label": "Action",
+             "options": [
+              {
+               "label": "Add a tag",
+               "value": "add_tag",
+               "nested": [
+                {
+                 "help": "Enter the tag.",
+                 "name": "tag_name",
+                 "type": "text",
+                 "label": "Tag name",
+                 "required": true
+                }
+               ]
+              },
+              {
+               "label": "Remove a tag",
+               "value": "remove_tag",
+               "nested": [
+                {
+                 "help": "Enter the tag.",
+                 "name": "tag_name",
+                 "type": "text",
+                 "label": "Tag name",
+                 "required": true
+                }
+               ]
+              },
+              {
+               "label": "Set a custom field",
+               "value": "set_field_value",
+               "nested": [
+                {
+                 "help": "Enter the name.",
+                 "name": "field_name",
+                 "type": "text",
+                 "label": "Field name",
+                 "required": true
+                },
+                {
+                 "help": "Enter the value.",
+                 "name": "value",
+                 "type": "text",
+                 "label": "Field value",
+                 "required": true
+                }
+               ]
+              },
+              {
+               "label": "Unset a custom field",
+               "value": "unset_field_value",
+               "nested": [
+                {
+                 "help": "Enter the name.",
+                 "name": "field_name",
+                 "type": "text",
+                 "label": "Field name",
+                 "required": true
+                }
+               ]
+              }
+             ],
+             "required": true
+            }
+           ],
+           "type": "array",
+           "label": "Actions",
+           "validate": {
+            "minItems": 1
+           }
+          }
+         ],
+         "restore": {
+          "expect": {
+           "actions": {
+            "mode": "chose",
+            "items": [
+             {
+              "action": {
+               "mode": "chose",
+               "label": "Set a custom field"
+              }
+             }
+            ]
+           }
+          },
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1500,
+          "y": 300
+         },
+         "parameters": [
+          {
+           "name": "__IMTCONN__",
+           "type": "account:manychat",
+           "label": "Connection",
+           "required": true
+          }
+         ],
+         "setupValidation": {
+          "result": {
+           "valid": true,
+           "fields": []
+          },
+          "version": 1,
+          "configuration": "cac474092257a023"
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 9,
+        "mapper": {
+         "flowName": "content20260428095543_991968",
+         "subscriberId": "{{7.data.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "version": 1,
+        "metadata": {
+         "expect": [
+          {
+           "name": "subscriberId",
+           "type": "text",
+           "label": "Subscriber ID",
+           "required": true,
+           "validate": {
+            "pattern": "^[0-9]+$"
+           }
+          },
+          {
+           "name": "flowName",
+           "type": "text",
+           "label": "Flow ID",
+           "required": true
+          }
+         ],
+         "restore": {
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "manychat"
+            },
+            "label": "My ManyChat connection"
+           }
+          }
+         },
+         "designer": {
+          "x": 1800,
+          "y": 300
+         },
+         "parameters": [
+          {
+           "name": "__IMTCONN__",
+           "type": "account:manychat",
+           "label": "Connection",
+           "required": true
+          }
+         ]
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 14,
+        "mapper": {
+         "mode": "fromAll",
+         "values": {
+          "5": "כן"
+         },
+         "sheetId": "התקנות של מחר",
+         "rowNumber": "{{1.`__ROW_NUMBER__`}}",
+         "spreadsheetId": "1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE",
+         "includesHeaders": true,
+         "useColumnHeaders": false,
+         "valueInputOption": "USER_ENTERED"
+        },
+        "module": "google-sheets:updateRow",
+        "version": 2,
+        "metadata": {
+         "expect": [
+          {
+           "name": "mode",
+           "type": "select",
+           "label": "Search Method",
+           "required": true,
+           "validate": {
+            "enum": [
+             "select",
+             "fromAll",
+             "map"
+            ]
+           }
+          },
+          {
+           "name": "valueInputOption",
+           "type": "select",
+           "label": "Value input option",
+           "validate": {
+            "enum": [
+             "USER_ENTERED",
+             "RAW"
+            ]
+           }
+          },
+          {
+           "name": "spreadsheetId",
+           "type": "text",
+           "label": "Spreadsheet ID",
+           "required": true
+          },
+          {
+           "mode": "edit",
+           "name": "sheetId",
+           "type": "select",
+           "label": "Sheet Name",
+           "required": true
+          },
+          {
+           "name": "rowNumber",
+           "type": "uinteger",
+           "label": "Row number",
+           "required": true
+          },
+          {
+           "name": "includesHeaders",
+           "type": "select",
+           "label": "Table contains headers",
+           "required": true,
+           "validate": {
+            "enum": [
+             true,
+             false
+            ]
+           }
+          },
+          {
+           "name": "useColumnHeaders",
+           "type": "select",
+           "label": "Use column headers as IDs of the columns",
+           "required": true,
+           "validate": {
+            "enum": [
+             true,
+             false
+            ]
+           }
+          },
+          {
+           "name": "values",
+           "spec": [
+            {
+             "name": "0",
+             "type": "text",
+             "label": "שם הלקוח (A)"
+            },
+            {
+             "name": "1",
+             "type": "text",
+             "label": "נייד (B)"
+            },
+            {
+             "name": "2",
+             "type": "text",
+             "label": "תאריך התקנה (C)"
+            },
+            {
+             "name": "3",
+             "type": "text",
+             "label": "שעת התקנה  (D)"
+            },
+            {
+             "name": "4",
+             "type": "text",
+             "label": "נציג (E)"
+            },
+            {
+             "name": "5",
+             "type": "text",
+             "label": "נשלח? (F)"
+            },
+            {
+             "name": "6",
+             "type": "text",
+             "label": "(G)"
+            },
+            {
+             "name": "7",
+             "type": "text",
+             "label": "(H)"
+            },
+            {
+             "name": "8",
+             "type": "text",
+             "label": "(I)"
+            },
+            {
+             "name": "9",
+             "type": "text",
+             "label": "(J)"
+            },
+            {
+             "name": "10",
+             "type": "text",
+             "label": "(K)"
+            },
+            {
+             "name": "11",
+             "type": "text",
+             "label": "(L)"
+            },
+            {
+             "name": "12",
+             "type": "text",
+             "label": "(M)"
+            },
+            {
+             "name": "13",
+             "type": "text",
+             "label": "(N)"
+            },
+            {
+             "name": "14",
+             "type": "text",
+             "label": "(O)"
+            },
+            {
+             "name": "15",
+             "type": "text",
+             "label": "(P)"
+            },
+            {
+             "name": "16",
+             "type": "text",
+             "label": "(Q)"
+            },
+            {
+             "name": "17",
+             "type": "text",
+             "label": "(R)"
+            },
+            {
+             "name": "18",
+             "type": "text",
+             "label": "(S)"
+            },
+            {
+             "name": "19",
+             "type": "text",
+             "label": "(T)"
+            },
+            {
+             "name": "20",
+             "type": "text",
+             "label": "(U)"
+            },
+            {
+             "name": "21",
+             "type": "text",
+             "label": "(V)"
+            },
+            {
+             "name": "22",
+             "type": "text",
+             "label": "(W)"
+            },
+            {
+             "name": "23",
+             "type": "text",
+             "label": "(X)"
+            },
+            {
+             "name": "24",
+             "type": "text",
+             "label": "(Y)"
+            },
+            {
+             "name": "25",
+             "type": "text",
+             "label": "(Z)"
+            },
+            {
+             "name": "26",
+             "type": "text",
+             "label": "(AA)"
+            }
+           ],
+           "type": "collection",
+           "label": "Values in columns",
+           "metadata": [
+            [
+             [
+              "שם הלקוח",
+              "נייד",
+              "תאריך התקנה",
+              "שעת התקנה ",
+              "נציג",
+              "נשלח?"
+             ]
+            ]
+           ]
+          }
+         ],
+         "restore": {
+          "expect": {
+           "mode": {
+            "label": "Select from all"
+           },
+           "sheetId": {
+            "mode": "chose",
+            "label": "התקנות של מחר"
+           },
+           "includesHeaders": {
+            "label": "Yes"
+           },
+           "useColumnHeaders": {
+            "label": "No",
+            "nested": [
+             {
+              "name": "values",
+              "spec": [
+               {
+                "name": "0",
+                "type": "text",
+                "label": "שם הלקוח (A)"
+               },
+               {
+                "name": "1",
+                "type": "text",
+                "label": "נייד (B)"
+               },
+               {
+                "name": "2",
+                "type": "text",
+                "label": "תאריך התקנה (C)"
+               },
+               {
+                "name": "3",
+                "type": "text",
+                "label": "שעת התקנה  (D)"
+               },
+               {
+                "name": "4",
+                "type": "text",
+                "label": "נציג (E)"
+               },
+               {
+                "name": "5",
+                "type": "text",
+                "label": "נשלח? (F)"
+               },
+               {
+                "name": "6",
+                "type": "text",
+                "label": "(G)"
+               },
+               {
+                "name": "7",
+                "type": "text",
+                "label": "(H)"
+               },
+               {
+                "name": "8",
+                "type": "text",
+                "label": "(I)"
+               },
+               {
+                "name": "9",
+                "type": "text",
+                "label": "(J)"
+               },
+               {
+                "name": "10",
+                "type": "text",
+                "label": "(K)"
+               },
+               {
+                "name": "11",
+                "type": "text",
+                "label": "(L)"
+               },
+               {
+                "name": "12",
+                "type": "text",
+                "label": "(M)"
+               },
+               {
+                "name": "13",
+                "type": "text",
+                "label": "(N)"
+               },
+               {
+                "name": "14",
+                "type": "text",
+                "label": "(O)"
+               },
+               {
+                "name": "15",
+                "type": "text",
+                "label": "(P)"
+               },
+               {
+                "name": "16",
+                "type": "text",
+                "label": "(Q)"
+               },
+               {
+                "name": "17",
+                "type": "text",
+                "label": "(R)"
+               },
+               {
+                "name": "18",
+                "type": "text",
+                "label": "(S)"
+               },
+               {
+                "name": "19",
+                "type": "text",
+                "label": "(T)"
+               },
+               {
+                "name": "20",
+                "type": "text",
+                "label": "(U)"
+               },
+               {
+                "name": "21",
+                "type": "text",
+                "label": "(V)"
+               },
+               {
+                "name": "22",
+                "type": "text",
+                "label": "(W)"
+               },
+               {
+                "name": "23",
+                "type": "text",
+                "label": "(X)"
+               },
+               {
+                "name": "24",
+                "type": "text",
+                "label": "(Y)"
+               },
+               {
+                "name": "25",
+                "type": "text",
+                "label": "(Z)"
+               },
+               {
+                "name": "26",
+                "type": "text",
+                "label": "(AA)"
+               }
+              ],
+              "type": "collection",
+              "label": "Values in columns",
+              "metadata": [
+               [
+                [
+                 "שם הלקוח",
+                 "נייד",
+                 "תאריך התקנה",
+                 "שעת התקנה ",
+                 "נציג",
+                 "נשלח?"
+                ]
+               ]
+              ]
+             }
+            ]
+           },
+           "valueInputOption": {
+            "mode": "chose",
+            "label": "User entered"
+           }
+          },
+          "parameters": {
+           "__IMTCONN__": {
+            "data": {
+             "scoped": "true",
+             "connection": "google"
+            },
+            "label": "My Google connection (yordon1234@gmail.com)"
+           }
+          }
+         },
+         "designer": {
+          "x": 2100,
+          "y": 300
+         },
+         "parameters": [
+          {
+           "name": "__IMTCONN__",
+           "type": "account:google",
+           "label": "Connection",
+           "required": true
+          }
+         ]
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 150
+     }
+    }
+   }
+  ],
+  "name": "תזכורת יום לפני התקנה",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "designer": {
+    "orphans": [],
+    "samples": {
+     "1": {
+      "0": "דור לוגסי",
+      "1": "052-6115113",
+      "2": "יום שלישי 8 ספטמבר 2026",
+      "3": "12:00-14:00",
+      "4": "שירה אלקובי",
+      "__SHEET__": "התקנות של מחר",
+      "__IMTINDEX__": 1,
+      "__IMTLENGTH__": 11,
+      "__ROW_NUMBER__": 2,
+      "__SPREADSHEET_ID__": "1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE"
+     },
+     "2": {
+      "ext": null,
+      "e164": "+972526115113",
+      "type": "MOBILE",
+      "phone": 526115113,
+      "valid": true,
+      "country": "IL",
+      "rfc3966": "tel:+972-52-611-5113",
+      "national": "052-611-5113",
+      "international": "+972 52-611-5113",
+      "countryCallingCode": 972
+     },
+     "3": {
+      "id": "1513741693",
+      "name": "דור",
+      "tags": [
+       {
+        "id": 83595949,
+        "name": "קיבל פולואפ"
+       }
+      ],
+      "email": null,
+      "ig_id": null,
+      "phone": null,
+      "gender": null,
+      "locale": null,
+      "status": "active",
+      "page_id": "",
+      "language": null,
+      "timezone": "UTC±00",
+      "last_name": "",
+      "last_seen": null,
+      "user_refs": [],
+      "first_name": "דור",
+      "subscribed": "2026-08-31T12:08:37+03:00",
+      "ig_username": null,
+      "optin_email": false,
+      "optin_phone": false,
+      "profile_pic": null,
+      "__IMTINDEX__": 1,
+      "ig_last_seen": null,
+      "__IMTLENGTH__": 1,
+      "custom_fields": [
+       {
+        "id": 14028911,
+        "name": "תאריך התקנה",
+        "type": "text",
+        "value": "12:00-14:00",
+        "description": null
+       }
+      ],
+      "live_chat_url": "https://app.manychat.com/fb3981719/chat/1513741693",
+      "optin_whatsapp": true,
+      "whatsapp_bsuid": "IL.2230150317559810",
+      "whatsapp_phone": "+972526115113",
+      "last_input_text": null,
+      "last_interaction": null,
+      "whatsapp_username": null,
+      "ig_last_interaction": null,
+      "is_followup_enabled": true
+     },
+     "7": {
+      "data": {
+       "id": "1330934694",
+       "name": "גורגט פרץ",
+       "tags": [],
+       "email": null,
+       "ig_id": null,
+       "phone": null,
+       "gender": null,
+       "locale": null,
+       "status": "active",
+       "page_id": "",
+       "warning": "Permission denied to import phone. Please contact support to enable this feature",
+       "language": null,
+       "timezone": "UTC±00",
+       "last_name": "",
+       "last_seen": null,
+       "user_refs": [],
+       "first_name": "גורגט פרץ",
+       "subscribed": "2026-09-07T16:41:27+03:00",
+       "ig_username": null,
+       "optin_email": false,
+       "optin_phone": false,
+       "profile_pic": null,
+       "ig_last_seen": null,
+       "custom_fields": [],
+       "live_chat_url": "https://app.manychat.com/fb3981719/chat/1330934694",
+       "optin_whatsapp": true,
+       "whatsapp_bsuid": null,
+       "whatsapp_phone": "+972507454064",
+       "last_input_text": null,
+       "last_interaction": null,
+       "whatsapp_username": null,
+       "ig_last_interaction": null,
+       "is_followup_enabled": true
+      },
+      "status": "success"
+     },
+     "8": {
+      "status": "success"
+     },
+     "9": {
+      "status": "success"
+     },
+     "11": {
+      "status": "success"
+     },
+     "12": {
+      "status": "success"
+     },
+     "13": {
+      "updatedRows": 1,
+      "updatedCells": 1,
+      "updatedRange": "'התקנות של מחר'!A2:F2",
+      "spreadsheetId": "1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE",
+      "updatedColumns": 1
+     },
+     "14": {
+      "updatedRows": 1,
+      "updatedCells": 1,
+      "updatedRange": "'התקנות של מחר'!A13:F13",
+      "spreadsheetId": "1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE",
+      "updatedColumns": 1
+     }
+    }
+   },
+   "scenario": {
+    "dlq": false,
+    "slots": null,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

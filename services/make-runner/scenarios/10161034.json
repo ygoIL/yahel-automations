@@ -1,0 +1,106 @@
+{
+ "id": 10161034,
+ "name": "Claude - הזדמנות שניה: סידור עדיפות חמים→קרים",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:42.264Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "limit": 50000,
+     "campaignId": "{{var.input.c}}"
+    },
+    "module": "app#tochat-cannon-7utvne:GetOpenLeadsPage",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "l",
+       "value": "{{1.leads}}"
+      },
+      {
+       "name": "data",
+       "value": "{{var.input.data}}"
+      },
+      {
+       "name": "age",
+       "value": "{{var.input.age}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const L=typeof input.l==='string'?JSON.parse(input.l):(input.l||[]);\nlet want=[];try{want=JSON.parse(input.data||'[]')}catch(e){}\nconst age=Number(input.age||0);\nconst norm=p=>{p=String(p||'').replace(/\\D/g,'');if(p.startsWith('972'))p='0'+p.slice(3);return p;};\nconst set=new Map();for(const w of want){const p=norm(w.p);if(p)set.set(p,Math.max(10,Math.min(100,Math.round(w.pr))));}\nconst out=[];let aged=0;\nfor(const x of L){const p=norm(x.displayPhone);if(!p)continue;\n if(set.has(p)){if(set.get(p)!==x.priority)out.push({phone:p,pr:set.get(p)});set.delete(p);continue;}\n if(age>0&&x.status==='PENDING'){const np=Math.min(100,(x.priority||50)+age);if(np!==x.priority){out.push({phone:p,pr:np});aged++;}}}\nreturn {items:out,n:out.length,aged,missing:[...set.keys()].length,open:L.length};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "key": "sc_pr_{{var.input.part}}",
+     "data": {
+      "data": "open {{2.result.open}} updates {{2.result.n}} aged {{2.result.aged}} missing {{2.result.missing}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "array": "{{2.result.items}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "phone": "{{3.phone}}",
+     "priority": "{{3.pr}}",
+     "campaignId": "{{var.input.c}}"
+    },
+    "module": "app#tochat-cannon-7utvne:UpdateLead2",
+    "onerror": [
+     {
+      "id": 41,
+      "module": "builtin:Ignore",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   }
+  ],
+  "name": "Claude - הזדמנות שניה: סידור עדיפות חמים→קרים",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

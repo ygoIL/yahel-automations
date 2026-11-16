@@ -1,0 +1,543 @@
+{
+ "id": 9918827,
+ "name": "Claude - פלאפון: הודעה ללקוח אחרי קבלת סימים",
+ "scheduling": {
+  "type": "indefinitely",
+  "between": [
+   "2026-10-06T06:00:00.000Z",
+   "2099-12-31T21:00:00.000Z"
+  ],
+  "interval": 900,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "time": [
+     "08:00",
+     "21:00"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:28.506Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [
+      {
+       "key": "fields",
+       "value": "sheets.properties.title"
+      }
+     ],
+     "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(let k=-1;k<=0;k++){const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+k,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t);}\nreturn {count:tabs.length, body: JSON.stringify({dataFilters: tabs.map(t=>({a1Range:\"'\"+t+\"'!A1:AC3000\"})), valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg/values:batchGetByDataFilter",
+     "body": "{{2.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{\"dataFilters\":[{\"a1Range\":\"'יעדים'!A1:B200\"}],\"valueRenderOption\":\"FORMATTED_VALUE\"}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 750,
+      "y": 200
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "ranges",
+       "value": "{{3.body.valueRanges}}"
+      },
+      {
+       "name": "reps",
+       "value": "{{5.body.valueRanges[1].valueRange.values}}"
+      },
+      {
+       "name": "start",
+       "value": "2026-10-01T00:00"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// input.ranges = valueRanges of the Pelephone sales tabs ; input.reps = rows of 'יעדים' (A:B) ; input.start = \"YYYY-MM-DDTHH:MM\" Israel time\nconst nowIL = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Jerusalem'}));\nconst start = input.start ? new Date(input.start) : new Date(2026, 9, 1);\nconst pad = n => String(n).padStart(2, '0');\nconst stamp = 'נשלח ' + pad(nowIL.getDate()) + '/' + pad(nowIL.getMonth() + 1) + ' ' + pad(nowIL.getHours()) + ':' + pad(nowIL.getMinutes());\nconst MARK_COL = 'AA';\nconst norm = s => String(s || '').replace(/\\s+/g, ' ').trim();\n// ---- reps\nconst ALIAS = {'אוסי': 'אוסי גיאן', 'עמית אראל': 'עמית הראל', 'אופק פ': 'אופק'};\nconst reps = [];\nfor (const r of (input.reps || []).slice(1)) {\n  const name = norm(r[0]); let ph = String(r[1] || '').replace(/\\D/g, '');\n  if (!name || !ph) continue;\n  if (ph.startsWith('972')) ph = ph.slice(3);\n  ph = ph.replace(/^0/, '');\n  if (/^5\\d{8}$/.test(ph)) reps.push({name, wa: '972' + ph});\n}\nfunction findRep(raw) {\n  let n = norm(raw); if (!n) return null;\n  if (ALIAS[n]) n = ALIAS[n];\n  let hit = reps.find(r => r.name === n); if (hit) return hit;\n  const first = n.split(' ')[0];\n  const byFirst = reps.filter(r => r.name.split(' ')[0] === first);\n  if (byFirst.length === 1) return byFirst[0];\n  return null;\n}\n// ---- parse \"5.10 10-12\"\nfunction parseK(s) {\n  s = String(s || '').trim();\n  const m = s.match(/(\\d{1,2})\\s*[.\\/]\\s*(\\d{1,2})(?:\\s*[.\\/]\\s*(\\d{2,4}))?\\s+(\\d{1,2})(?::(\\d{2}))?\\s*-+\\s*(\\d{1,2})(?::(\\d{2}))?/);\n  if (!m) return null;\n  const day = +m[1], mon = +m[2] - 1;\n  let year = m[3] ? +m[3] : nowIL.getFullYear();\n  if (year < 100) year += 2000;\n  if (!m[3] && mon > nowIL.getMonth() + 1) year -= 1;\n  const endH = +m[6], endM = m[7] ? +m[7] : 0;\n  if (mon < 0 || mon > 11 || day < 1 || day > 31 || endH > 23) return null;\n  return new Date(year, mon, day, endH, endM);\n}\nconst phoneOf = v => { let p = String(v || '').replace(/\\D/g, ''); if (p.startsWith('972')) p = p.slice(3); return p.replace(/^0/, ''); };\n// already-messaged phones (any tab)\nconst sentPhones = new Set();\nfor (const vr of (input.ranges || [])) for (const r of ((vr.valueRange || {}).values || []).slice(1)) if (norm(r[26])) sentPhones.add(phoneOf(r[3]));\nconst items = [];\nconst skipped = {notSim: 0, notWaiting: 0, sent: 0, noWindow: 0, notYet: 0, beforeStart: 0, badPhone: 0, noRep: 0};\nfor (const vr of (input.ranges || [])) {\n  const tab = String((vr.valueRange || {}).range || '').split('!')[0].replace(/^'|'$/g, '');\n  const vals = (vr.valueRange && vr.valueRange.values) || [];\n  for (let i = 1; i < vals.length; i++) {\n    const r = vals[i]; const rowNum = i + 1;\n    const method = String(r[12] || '').toUpperCase().replace(/\\s/g, '');\n    if (method !== 'SIM' && method !== 'SIM/ESIM') { skipped.notSim++; continue; }\n    if (norm(r[11]) !== 'ממתין לביצוע') { skipped.notWaiting++; continue; }\n    if (norm(r[26])) { skipped.sent++; continue; }\n    const end = parseK(r[10]);\n    if (!end) { skipped.noWindow++; continue; }\n    if (end > nowIL) { skipped.notYet++; continue; }\n    if (end < start) { skipped.beforeStart++; continue; }\n    const ph = phoneOf(r[3]);\n    if (!/^5\\d{8}$/.test(ph)) { skipped.badPhone++; continue; }\n    if (sentPhones.has(ph)) { skipped.sent++; continue; }\n    sentPhones.add(ph);\n    const rep = findRep(r[0]);\n    if (!rep) skipped.noRep++;\n    const fullName = norm(r[2]);\n    items.push({\n      tab, row: rowNum, name: fullName, first: fullName.split(' ')[0] || fullName,\n      wa: '972' + ph, phone: '0' + ph, k: String(r[10] || ''),\n      repName: rep ? rep.name : norm(r[0]), repWa: rep ? rep.wa : '',\n      markBody: JSON.stringify({valueInputOption: 'RAW', data: [\n        {range: \"'\" + tab + \"'!\" + MARK_COL + '1', values: [['הודעת סימים']]},\n        {range: \"'\" + tab + \"'!\" + MARK_COL + rowNum, values: [[stamp]]}\n      ]})\n    });\n  }\n}\nreturn {count: items.length, items, skipped: JSON.stringify(skipped)};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 7,
+    "filter": {
+     "name": "יש לקוחות לשליחה",
+     "conditions": [
+      [
+       {
+        "a": "{{4.result.count}}",
+        "b": "0",
+        "o": "number:greater"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "array": "{{4.result.items}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    }
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "limit": "1",
+     "cFieldId": 14028645,
+     "cFieldValue": "{{7.wa}}"
+    },
+    "module": "manychat:FindSubscriberByCustomField",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 9,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 10,
+        "filter": {
+         "name": "קיים",
+         "conditions": [
+          [
+           {
+            "a": "{{8.id}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "actions": [
+          {
+           "value": "{{7.first}}",
+           "action": "set_field_value",
+           "field_name": "שם לקוח"
+          },
+          {
+           "value": "{{7.name}}",
+           "action": "set_field_value",
+           "field_name": "לקוח פלאפון"
+          },
+          {
+           "value": "{{first(split(trim(7.repName); \" \"))}}",
+           "action": "set_field_value",
+           "field_name": "נציג פלאפון"
+          },
+          {
+           "value": "{{7.repWa}}",
+           "action": "set_field_value",
+           "field_name": "טלפון נציג פלאפון"
+          }
+         ],
+         "subscriberId": "{{8.id}}"
+        },
+        "module": "manychat:PerformAction",
+        "onerror": [
+         {
+          "id": 20,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2100,
+            "y": -400
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2100,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 11,
+        "mapper": {
+         "flowName": "content20261005113116_816896",
+         "subscriberId": "{{8.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "onerror": [
+         {
+          "id": 18,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2400,
+            "y": -400
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2400,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 12,
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg/values:batchUpdate",
+         "body": "{{7.markBody}}",
+         "method": "POST",
+         "headers": [
+          {
+           "key": "Content-Type",
+           "value": "application/json"
+          }
+         ]
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 13,
+        "filter": {
+         "name": "חדש",
+         "conditions": [
+          [
+           {
+            "a": "{{8.id}}",
+            "o": "notexist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "email": "",
+         "phone": "{{7.wa}}",
+         "gender": "",
+         "lastName": "",
+         "firstName": "{{7.name}}",
+         "hasOptInSms": true,
+         "consentPhrase": "true",
+         "hasOptInEmail": true,
+         "whatsAppPhone": "{{7.wa}}"
+        },
+        "module": "manychat:CreateSubscriber",
+        "onerror": [
+         {
+          "id": 17,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2100,
+            "y": 400
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2100,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 14,
+        "mapper": {
+         "actions": [
+          {
+           "value": "{{7.first}}",
+           "action": "set_field_value",
+           "field_name": "שם לקוח"
+          },
+          {
+           "value": "{{7.name}}",
+           "action": "set_field_value",
+           "field_name": "לקוח פלאפון"
+          },
+          {
+           "value": "{{first(split(trim(7.repName); \" \"))}}",
+           "action": "set_field_value",
+           "field_name": "נציג פלאפון"
+          },
+          {
+           "value": "{{7.repWa}}",
+           "action": "set_field_value",
+           "field_name": "טלפון נציג פלאפון"
+          }
+         ],
+         "subscriberId": "{{13.data.id}}"
+        },
+        "module": "manychat:PerformAction",
+        "onerror": [
+         {
+          "id": 21,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2400,
+            "y": 400
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2400,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 15,
+        "mapper": {
+         "flowName": "content20261005113116_816896",
+         "subscriberId": "{{13.data.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "onerror": [
+         {
+          "id": 19,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2700,
+            "y": 400
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 16,
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg/values:batchUpdate",
+         "body": "{{7.markBody}}",
+         "method": "POST",
+         "headers": [
+          {
+           "key": "Content-Type",
+           "value": "application/json"
+          }
+         ]
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 3000,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - פלאפון: הודעה ללקוח אחרי קבלת סימים",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

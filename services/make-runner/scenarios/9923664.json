@@ -1,0 +1,399 @@
+{
+ "id": 9923664,
+ "name": "Claude - מילוי אוטומטי: התקנות של היום (מדוח מכר)",
+ "scheduling": {
+  "days": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "time": "07:55",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:56.883Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [
+      {
+       "key": "fields",
+       "value": "sheets.properties.title"
+      }
+     ],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst OFFSET=0; const SHEET=\"גיליון1\";\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst d=new Date(nowIL.getFullYear(),nowIL.getMonth(),nowIL.getDate()+OFFSET);\nconst tab=MONTHS[d.getMonth()]+' '+d.getFullYear();\nconst p=new Date(d.getFullYear(),d.getMonth()-1,1);\nconst prevTab=MONTHS[p.getMonth()]+' '+p.getFullYear();\nconst key=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();\nconst hasTab=titles.includes(tab); const hasPrev=titles.includes(prevTab);\nconst q=s=>\"'\"+s+\"'\";\nconst ph=q('הגדרות')+'!A1:A1';\nreturn {key, tab, prevTab, hasTab:(hasTab||hasPrev), sheet:SHEET,\n readBody: JSON.stringify({dataFilters:[{a1Range: hasTab ? q(tab)+'!A1:Z900' : ph},{a1Range: hasPrev ? q(prevTab)+'!A1:Z900' : ph}], valueRenderOption:'FORMATTED_VALUE'}),\n markerBody: JSON.stringify({dataFilters:[{a1Range: q(SHEET)+'!Z1'},{a1Range: q(SHEET)+'!A1:F1000'}], valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE/values:batchGetByDataFilter",
+     "body": "{{2.result.markerBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "values",
+       "value": "{{4.body.valueRanges[1].valueRange.values}}"
+      },
+      {
+       "name": "values2",
+       "value": "{{4.body.valueRanges[2].valueRange.values}}"
+      },
+      {
+       "name": "marker",
+       "value": "{{3.body.valueRanges[1].valueRange.values}}"
+      },
+      {
+       "name": "existing",
+       "value": "{{3.body.valueRanges[2].valueRange.values}}"
+      },
+      {
+       "name": "key",
+       "value": "{{2.result.key}}"
+      },
+      {
+       "name": "sheet",
+       "value": "{{2.result.sheet}}"
+      },
+      {
+       "name": "hasTab",
+       "value": "{{2.result.hasTab}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS={'ינואר':1,'פברואר':2,'מרץ':3,'אפריל':4,'מאי':5,'יוני':6,'יולי':7,'אוגוסט':8,'ספטמבר':9,'אוקטובר':10,'נובמבר':11,'דצמבר':12};\nconst key=input.key, sheet=input.sheet, q=s=>\"'\"+s+\"'\";\nconst mv=input.marker||[]; const marker=String((mv[0]&&mv[0][0])||'').trim();\nconst stamp='עודכן ל-'+key;\nconst same=(marker===stamp);\nconst normPh=s=>String(s||'').replace(/\\D/g,'').replace(/^972/,'').replace(/^0/,'');\nconst norm=s=>String(s||'').replace(/\\s+/g,' ').trim();\n// notes column found by header per tab (layouts differ between months)\nconst withNote=v=>{const vals=v||[]; const h=(vals[0]||[]).map(x=>norm(x)); const iN=h.findIndex(x=>x.startsWith('הערות')); return vals.slice(1).map(r=>({r, note: iN>=0? norm(r[iN]) : ''}));};\n// rows for today from the sales report (the report is the source of truth for date + time)\n// RULE (Steve 12/11/2026): a phone that is listed in the sales report for 2+ different customers is NOT put in today's list (the morning message would reach the wrong person); Steve + Yarden + Coral (15/11/2026, she is responsible for customers and installs) get an alert to fix it. Do not remove.\nconst namesByPh={};\nconst __byPh={};\n// RULE (15/11/2026, כפילויות): כפילות נייד = רק אם 2+ מספרי לקוח שונים על אותו נייד, או שמות בלי אף מילה משותפת שאין מספר לקוח שמקשר ביניהם (שורות שבוטלו לא נספרות). אותו לקוח בכמה שורות/טאבים = לקוח אחד: מדלגים אם אחת השורות בוטלה, והנתונים מהשורה הטובה (טאב החודש, מספר לקוח, תאריך); ביטול/סימון בטאב ישן יותר מהשורה הנבחרת לא חוסם (רכישה חוזרת). Do not remove.\nfor(const {r,note} of [].concat(withNote(input.values),withNote(input.values2))){ if(/בוטל|ביטול|ביטל|לא מעוניין/.test(note)) continue; const k=normPh(r[3]); const n=norm(r[2]); if(k.length>=8&&n){ (namesByPh[k]=namesByPh[k]||{})[n]=norm(r[7]); (__byPh[k]=__byPh[k]||[]).push({n, c:String(r[6]==null?'':r[6]).replace(/\\D/g,'')}); } }\nconst __dupPh=new Set();\nfor(const k in __byPh){ const A=__byPh[k]; if(new Set(A.map(x=>x.c).filter(Boolean)).size>=2){ __dupPh.add(k); continue; }\n  const tk=x=>x.n.split(/[\\s\\-–,.()'\"׳״]+/).filter(w=>w.length>=2); const P=A.map((_,i)=>i), F=i=>P[i]===i?i:(P[i]=F(P[i]));\n  for(let i=0;i<A.length;i++) for(let j=0;j<i;j++){ const ti=tk(A[i]), tj=tk(A[j]);\n    if((A[i].c&&A[i].c===A[j].c)||ti.some(w=>tj.includes(w))) P[F(i)]=F(j); }\n  if(new Set(A.map((_,i)=>F(i))).size>=2) __dupPh.add(k); }\nconst __ddMo=s=>{const m=String(s==null?'':s).replace(/'/g,'').match(/(\\S+)\\s+(\\d{4})/); if(!m) return undefined; const i=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'].indexOf(m[1]); return i<0?undefined:(+m[2])*12+i;};\nconst __ddMerge=(L,LOCAL)=>{const P=L.map((_,i)=>i),F=i=>P[i]===i?i:(P[i]=F(P[i])),K={},S=x=>String(x==null?'':x).trim(),E=x=>S(x)==='';\n L.forEach((e,i)=>{e.ph=S(e.ph).replace(/\\D/g,''); e.cn=S(e.cn).replace(/\\D/g,''); if(e.cn.length<4) e.cn=''; if(e.cand===undefined) e.cand=true;\n  e.v={}; for(const f in e.ix) if(e.ix[f]>=0) e.v[f]=e.r[e.ix[f]];\n  for(const k of [e.ph.length>=9?'p'+e.ph.slice(-9):'', e.cn?'c'+e.cn:'']){ if(!k) continue; if(K[k]===undefined) K[k]=i; else P[F(i)]=F(K[k]); } });\n const G={}; L.forEach((e,i)=>{(G[F(i)]=G[F(i)]||[]).push(e);}); const M=new Map();\n for(const g of Object.values(G)){ if(g.length<2) continue; g.forEach(e=>M.set(e.r,null));\n  const sc=e=>(e.cur?4:0)+(e.cn?2:0)+(e.dt?1:0); const o=g.slice().sort((a,b)=>sc(b)-sc(a)); const b=o.find(e=>e.cand); if(!b) continue;\n  const v=Object.assign({},b.v);\n  if(E(v.date)){ const d=o.find(e=>e.dt); if(d){ v.date=d.v.date; if(!E(d.v.slot)) v.slot=d.v.slot; } }\n  else if(E(v.slot)){ const s=o.find(e=>!E(e.v.slot)&&S(e.v.date)===S(b.v.date)); if(s) v.slot=s.v.slot; }\n  for(const f in v){ if(f!=='date'&&f!=='slot'&&E(v[f])){ const s=o.find(e=>!E(e.v[f])); if(s) v[f]=s.v[f]; } }\n  const r=b.r.slice(); for(const f in b.ix) if(b.ix[f]>=0&&v[f]!==undefined) r[b.ix[f]]=v[f];\n  const x={r,v,b,n:g.length}; g.forEach(e=>{ const old=e.mo!==undefined&&b.mo!==undefined&&e.mo<b.mo; for(const k in (e.fl||{})) if(e.fl[k]&&!(old&&(LOCAL||[]).includes(k))) x[k]=true; e.x=x; }); M.set(b.r,x); }\n return M;};\nconst __L=[];\n[withNote(input.values),withNote(input.values2)].forEach((T,ti)=>T.forEach(({r,note})=>{ if(!r||__dupPh.has(normPh(r[3]))) return;\n  const m=norm(r[4]).match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/);\n  __L.push({r, ix:{name:2,phone:3,date:4,slot:5,cnum:6,rep:7}, ph:String(r[3]==null?'':r[3]).replace(/\\D/g,''), cn:r[6], cur:ti===0, mo:-ti, dt:!!(m&&MONTHS[m[2]]),\n    fl:{block:/בוטל|ביטול|ביטל|לא מעוניין/.test(note)}}); }));\nconst __M=__ddMerge(__L,['block']);\nconst dups=[];\nconst rows=[]; const seen=new Set();\nif(input.hasTab===true || input.hasTab==='true'){\n for(let {r,note} of [].concat(withNote(input.values),withNote(input.values2))){\n  const __d=__M.get(r); if(__d===null) continue; if(__d) r=__d.r;\n  const m=norm(r[4]).match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/); if(!m) continue;\n  const mon=MONTHS[m[2]]; if(!mon) continue;\n  if((+m[1])+'/'+mon+'/'+m[3]!==key) continue;\n  const name=norm(r[2]); const ph=String(r[3]||'').replace(/\\D/g,'');\n  if(!name||ph.length<9) continue;\n  if(/בוטל|ביטול|ביטל|לא מעוניין/.test(note)||(__d&&__d.block)) continue;\n  const k=normPh(ph); if(seen.has(k)) continue; seen.add(k);\n  const nm=Object.keys(namesByPh[k]||{}); if(nm.length>1&&__dupPh.has(k)){ dups.push('• '+name+' – '+norm(r[5])+' – הנייד 0'+k+' רשום גם על: '+nm.filter(x=>x!==name).map(x=>x+' ('+(namesByPh[k][x]||'בלי נציג')+')').join(', ')); continue; }\n  rows.push([name, norm(r[3]), norm(r[4]), norm(r[5]), norm(r[7]), '']);\n }\n}\n// full re-sync: keep rows already sent today (F not empty) exactly as they are, replace everything else with the current report\nlet kept=[]; const sentPh=new Set();\nif(same){\n (input.existing||[]).forEach((r,i)=>{ if(i===0||!r) return; const f=String(r[5]||'').trim(); if(!f) return;\n  const row=[0,1,2,3,4,5].map(j=>String(r[j]==null?'':r[j])); kept.push(row); sentPh.add(normPh(r[1])); });\n}\nconst add=rows.filter(r=>!sentPh.has(normPh(r[1])));\nconst all=kept.concat(add);\nconst data=[{range:q(sheet)+'!Z1', values:[[stamp]]}];\nif(all.length) data.push({range:q(sheet)+'!A2:F'+(all.length+1), values:all});\nconst dupMsg=dups.length?('⚠️ לא שלחתי הבוקר הודעת \"התקנה של היום\" ל-'+dups.length+' לקוחות, כי הנייד שלהם רשום בדוח מכר גם על לקוח אחר:\\n'+dups.join('\\n')+'\\n\\nצריך לתקן את הנייד בדוח ולוודא מול הלקוח את ההתקנה של היום.'):'';\nreturn {dupMsg, mgr1:'972544604246', mgr2:'972504445169', mgr3:'972584896222', write:true, append:false, count:all.length, sent:kept.length, pending:add.length,\n clearBody: JSON.stringify({ranges:[q(sheet)+'!A2:F1000']}),\n writeBody: JSON.stringify({valueInputOption:'RAW', data})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "filter": {
+     "name": "יש מה לכתוב",
+     "conditions": [
+      [
+       {
+        "a": "{{5.result.write}}",
+        "b": "true",
+        "o": "boolean:equal"
+       }
+      ],
+      [
+       {
+        "a": "{{5.result.append}}",
+        "b": "true",
+        "o": "boolean:equal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE/values:batchClear",
+     "body": "{{5.result.clearBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1SMHGSnqAbLhvi9ghFjFJZNFe4HQf3YZYyWdSQULzZyE/values:batchUpdate",
+     "body": "{{5.result.writeBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 8,
+    "filter": {
+     "name": "יש מספרים כפולים ← סטיב+ירדן+קורל",
+     "conditions": [
+      [
+       {
+        "a": "{{5.result.dupMsg}}",
+        "o": "exist"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "dataStructure",
+     "shareCookies": false,
+     "parseResponse": true,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "bodyDataStructure": 656096,
+     "dataStructureBodyContent": {
+      "chatId": "{{5.result.mgr1}}@c.us",
+      "message": "{{5.result.dupMsg}}"
+     },
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "onerror": [
+     {
+      "id": 108,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 2100,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 2100,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   },
+   {
+    "id": 9,
+    "mapper": {
+     "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "dataStructure",
+     "shareCookies": false,
+     "parseResponse": true,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "bodyDataStructure": 656096,
+     "dataStructureBodyContent": {
+      "chatId": "{{5.result.mgr2}}@c.us",
+      "message": "{{5.result.dupMsg}}"
+     },
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "onerror": [
+     {
+      "id": 109,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 2400,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 2400,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   },
+   {
+    "id": 10,
+    "mapper": {
+     "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "dataStructure",
+     "shareCookies": false,
+     "parseResponse": true,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "bodyDataStructure": 656096,
+     "dataStructureBodyContent": {
+      "chatId": "{{5.result.mgr3}}@c.us",
+      "message": "{{5.result.dupMsg}}"
+     },
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "onerror": [
+     {
+      "id": 110,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 2700,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 2700,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   }
+  ],
+  "name": "Claude - מילוי אוטומטי: התקנות של היום (מדוח מכר)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

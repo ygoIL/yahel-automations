@@ -1,0 +1,955 @@
+{
+ "id": 9893530,
+ "name": "הקדמות 2 - תשובה מהחברה ← עדכון שיטס ונציג",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 600,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "time": [
+     "07:00",
+     "21:00"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:48:31.162Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "google-email:triggerWatchNewEmails",
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "q": "in:inbox (from:hakdamot-digital@commboxmail.com OR from:mashlat-digital@yes.co.il) newer_than:3d",
+     "limit": 20,
+     "format": "full",
+     "markSeen": false,
+     "filterType": "gmailSearch",
+     "__IMTCONN__": 14634877
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "subject",
+       "value": "{{1.subject}}"
+      },
+      {
+       "name": "body",
+       "value": "{{1.fullTextBody}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const HM=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst DAYS=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];\nconst SLOTS={8:'08:00-10:00',10:'10:00-12:00',12:'12:00-14:00',14:'14:00-16:00',16:'16:00-18:00',18:'18:00-20:00'};\nfunction nowIL(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));}\nfunction pad(n){return String(n).padStart(2,'0');}\nfunction parseDateSlot(t,now){\n  let d=null,slot=null,m;\n  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());\n  m=t.match(/(\\d{1,2})\\s*[./]\\s*(\\d{1,2})(?:\\s*[./]\\s*(\\d{2,4}))?/);\n  if(m){\n    const day=+m[1],mon=+m[2];let y=m[3]?(+m[3]<100?2000+ +m[3]:+m[3]):today.getFullYear();\n    if(mon>=1&&mon<=12&&day>=1&&day<=31){d=new Date(y,mon-1,day); if(!m[3]&&d<today)d=new Date(y+1,mon-1,day);}\n    t=t.replace(m[0],' ');\n  } else if(/מחרתיים/.test(t)){d=new Date(today);d.setDate(d.getDate()+2);t=t.replace(/מחרתיים/,' ');}\n  else if(/מחר/.test(t)){d=new Date(today);d.setDate(d.getDate()+1);t=t.replace(/מחר/,' ');}\n  else if(/היום/.test(t)){d=new Date(today);t=t.replace(/היום/,' ');}\n  m=t.match(/(\\d{1,2})(?::\\d{2})?\\s*(?:-|–|—|עד|ל-?)\\s*(\\d{1,2})(?::\\d{2})?/);\n  if(m){let s=+m[1]; if(s<8)s+=12; if(SLOTS[s])slot=s; t=t.replace(m[0],' ');}\n  else { m=t.match(/(?:ב?שעה|מ-?)\\s*(\\d{1,2})(?::\\d{2})?/); if(m){let s=+m[1]; if(s<8)s+=12; if(s%2)s-=1; if(SLOTS[s])slot=s; t=t.replace(m[0],' ');} }\n  return {d,slot,rest:t};\n}\nfunction fmt(d,slot){\n  if(!d)return {};\n  const o={full_date:'יום '+DAYS[d.getDay()]+' '+d.getDate()+' '+HM[d.getMonth()]+' '+d.getFullYear(),\n    iso_date:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),\n    short_date:d.getDate()+'/'+(d.getMonth()+1)};\n  if(slot){o.slot=SLOTS[slot];o.short_slot=slot+'-'+(slot+2);}\n  return o;\n}\nconst now=nowIL();\nconst subj=String(input.subject||'');\nconst nums=subj.match(/\\d{5,9}/g)||[];\nconst key=(nums.find(n=>n.length===7)||nums[0]||'');\nlet body=String(input.body||'');\nbody=body.replace(/^\\s*(?:RE|FW|FWD)\\s*:\\s*\\d*\\s*/i,'');\nconst cuts=[/(?:מאת|From)\\s*:\\s*\\[/i,/BumpYard-Sig/i,/\\bOn\\s[^\\n]{0,150}wrote:/i,/\\n[^\\n]*(?:wrote|כתב|נכתב|מאת)[^\\n]*:\\s*\\n/i,/\\n\\s*-{2,}\\s*(?:Original|Forwarded)/i,/\\n\\s*(?:From|מאת)\\s*:/i,/\\n>/];\nfor(const re of cuts){const i=body.search(re);if(i>0)body=body.slice(0,i);}\nbody=body.trim();\nconst neg=/(לא\\s*ניתן|אין\\s*אפשרות|אין\\s*זמינות|לא\\s*זמין|לא\\s*אושר|נדחה|נדחתה|לא\\s*בוצע|אין\\s*מקום|לא\\s*אפשרי|לא\\s*נוכל|לא\\s*יכולים|אין\\s*שיבוץ|אין\\s*טכנאי|מלא|אין\\s*מענה|התאריך\\s*המקורי|לתאריך\\s*המקורי|נשאר(?:ת|ה)?\\s*כמו\\s*שהיה)/;\nconst pos=/(בוצע|אושר|הוקדם|הוקדמה|עודכן|עודכנה|תואם|תואמה|שובץ|שובצה|הועבר|הועברה|סודר|נקבע|נקבעה|✔|✅|👍)/;\nconst offer=/(אפשר|ניתן|יש\\s*מקום|פנוי|פנויה|מציעים|מוצע|הצעה|במקום\\s*זה|רק\\s*ב)/;\nconst bodyPos=body.replace(/מתואמ(?:ת|ים|ות)?|מתואם/g,' ');\nconst isQuestion=/\\?/.test(body);\nconst describesCurrent=/מתואמ/.test(body)&&!pos.test(bodyPos);\nconst ds=parseDateSlot(body,now);\nconst alt=fmt(ds.d,ds.slot);\nlet decision='unclear';\nif(neg.test(body)){const bodyNoNeg=body.replace(new RegExp(neg.source,'g'),' ');decision=(ds.d&&offer.test(bodyNoNeg))?'alternative':'rejected';}\nelse if(isQuestion||describesCurrent)decision='unclear';\nelse if(pos.test(bodyPos)||ds.d)decision='approved';\nreturn {key,decision,snippet:body.slice(0,300),alt_full_date:decision==='approved'?(alt.full_date||''):'',alt_iso_date:decision==='approved'?(alt.iso_date||''):'',alt_slot:decision==='approved'?(alt.slot||''):''};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 250,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "filter": {
+     "name": "יש מספר לקוח בנושא",
+     "conditions": [
+      [
+       {
+        "a": "{{2.result.key}}",
+        "b": "^\\d{5,9}$",
+        "o": "text:pattern"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "key": "{{2.result.key}}",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 191414
+    }
+   },
+   {
+    "id": 30,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{\"dataFilters\":[{\"a1Range\":\"'יעדים'!A2:B80\"}],\"valueRenderOption\":\"FORMATTED_VALUE\"}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 31,
+    "mapper": {
+     "input": [
+      {
+       "name": "values",
+       "value": "{{30.body.valueRanges[1].valueRange.values}}"
+      },
+      {
+       "name": "name",
+       "value": "{{3.rep_name}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const rows=input.values||[];\nconst n=String(input.name||'').trim();\nconst fb='972544604246';\nconst norm=s=>String(s||'').replace(/[^0-9]/g,'');\nlet hits=[];\nfor(const r of rows){const full=String(r[0]||'').trim();const ph=norm(r[1]);if(!full||!ph)continue;if(full===n||full.startsWith(n+' ')||(n.startsWith(full+' ')))hits.push(ph);}\nhits=[...new Set(hits)];\nif(hits.length===1){let p=hits[0];if(p.startsWith('0'))p='972'+p.slice(1);return {phone:p,prefix:''};}\nreturn {phone:fb,prefix:'⚠️ [לא זוהה נציג: '+n+'] \\n'};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 680,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 20,
+        "filter": {
+         "name": "אושר",
+         "conditions": [
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "ממתין",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "approved",
+            "o": "text:equal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "לבדיקה",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "approved",
+            "o": "text:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "qs": [
+          {
+           "key": "fields",
+           "value": "sheets.properties.title"
+          }
+         ],
+         "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+         "method": "GET",
+         "headers": []
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1000,
+          "y": 0
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       },
+       {
+        "id": 21,
+        "mapper": {
+         "input": [
+          {
+           "name": "titles",
+           "value": "{{20.body.sheets}}"
+          },
+          {
+           "name": "stored_tab",
+           "value": "{{3.sheet_tab}}"
+          }
+         ],
+         "language": "javascript",
+         "inputFormat": "editor",
+         "dependencies": [],
+         "codeEditorJavascript": "const HM=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nfunction nowIL(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));}\nconst now=nowIL();\nconst titles=(input.titles||[]).map(x=>String((x.properties||x).title||x));\nconst want=[2,1,0,-1,-2].map(k=>{const d=new Date(now.getFullYear(),now.getMonth()+k,1);return HM[d.getMonth()]+' '+d.getFullYear();});\nconst tabs=[];for(const w of want){const f=titles.find(x=>x.trim()===w);if(f&&!tabs.includes(f))tabs.push(f);}\nconst st=String(input.stored_tab||'');if(st&&titles.includes(st)&&!tabs.includes(st))tabs.push(st);\nconst r=tabs.map(x=>\"'\"+x+\"'!A1:I\");while(r.length<6)r.push(r[0]||'A1:A1');\nreturn {r1:r[0],r2:r[1],r3:r[2],r4:r[3],r5:r[4],r6:r[5],order:tabs};\n"
+        },
+        "module": "code:ExecuteCode",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1100,
+          "y": 0
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 22,
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+         "body": "{\"dataFilters\":[{\"a1Range\":\"{{21.result.r1}}\"},{\"a1Range\":\"{{21.result.r2}}\"},{\"a1Range\":\"{{21.result.r3}}\"},{\"a1Range\":\"{{21.result.r4}}\"},{\"a1Range\":\"{{21.result.r5}}\"},{\"a1Range\":\"{{21.result.r6}}\"}],\"valueRenderOption\":\"FORMATTED_VALUE\"}",
+         "method": "POST",
+         "headers": [
+          {
+           "key": "Content-Type",
+           "value": "application/json"
+          }
+         ]
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": 0
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       },
+       {
+        "id": 23,
+        "mapper": {
+         "input": [
+          {
+           "name": "cn",
+           "value": "{{3.customer_number}}"
+          },
+          {
+           "name": "order",
+           "value": "{{21.result.order}}"
+          },
+          {
+           "name": "valueRanges",
+           "value": "{{22.body.valueRanges}}"
+          },
+          {
+           "name": "val_e",
+           "value": "{{ifempty(2.result.alt_iso_date; 3.short_date)}}"
+          },
+          {
+           "name": "val_f",
+           "value": "{{ifempty(2.result.alt_slot; 3.new_slot)}}"
+          }
+         ],
+         "language": "javascript",
+         "inputFormat": "editor",
+         "dependencies": [],
+         "codeEditorJavascript": "const cn=String(input.cn||'').replace(/\\D/g,'');\nconst vr=(input.valueRanges||[]).map(x=>x.valueRange||x);\nconst tabOf=s=>String(s||'').replace(/!.*$/,'').replace(/^'|'$/g,'');\nconst order=input.order||[];\nvr.sort((a,b)=>order.indexOf(tabOf(a.range))-order.indexOf(tabOf(b.range)));\n// RULE (15/11/2026, כפילויות): מעדכנים את כל השורות של הלקוח בדוח המכר (אותו מספר לקוח, או אותו טלפון בלי מספר אחר). אם אין שורה עם המספר - לא נמצא, כמו קודם. Do not remove.\nconst l9=s=>{const d=String(s||'').replace(/\\D/g,'');return d.length>=9?d.slice(-9):'';};\nconst seen={},all=[];\nfor(const r of vr){const tab=tabOf(r.range);if(seen[tab])continue;seen[tab]=1;const rows=r.values||[];for(let i=1;i<rows.length;i++){const x=rows[i]||[];all.push({tab,row:i+1,g:String(x[6]||'').replace(/\\D/g,''),ph:l9(x[3])});}}\nconst hit=cn?all.filter(x=>x.g===cn):[];\nconst phs=new Set(hit.map(x=>x.ph).filter(Boolean));\nconst upd=all.filter(x=>hit.includes(x)||(phs.has(x.ph)&&(!x.g||x.g===cn)));\nconst A1=x=>\"'\"+x.tab.replace(/'/g,\"''\")+\"'!\";\nconst val=v=>v==null?'':String(v);\nconst body=(col,v)=>JSON.stringify({valueInputOption:'USER_ENTERED',data:upd.map(x=>({range:A1(x)+col+x.row,values:[[val(v)]]}))});\nif(hit.length){const f=hit[0];return {found:true,tab:f.tab,row:f.row,note:'תאריך ההתקנה עודכן בשיטס ✔️'+(upd.length>1?' (עודכנו '+upd.length+' שורות של הלקוח)':''),count:upd.length,ranges:upd.map(x=>A1(x)+'E'+x.row).join(', '),body_e:body('E',input.val_e),body_f:body('F',input.val_f)};}\nreturn {found:false,tab:'',row:0,note:'⚠️ לא מצאתי את הלקוח בשיטס (אולי נמחק או שהמספר השתנה) - צריך לעדכן את התאריך ידנית.',count:0,ranges:'',body_e:'',body_f:''};\n"
+        },
+        "module": "code:ExecuteCode",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1300,
+          "y": 0
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 24,
+        "mapper": null,
+        "module": "builtin:BasicRouter",
+        "routes": [
+         {
+          "flow": [
+           {
+            "id": 5,
+            "filter": {
+             "name": "נמצא בשיטס",
+             "conditions": [
+              [
+               {
+                "a": "{{23.result.found}}",
+                "b": "true",
+                "o": "boolean:equal"
+               }
+              ]
+             ]
+            },
+            "mapper": {
+             "qs": [],
+             "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+             "body": "{{23.result.body_e}}",
+             "method": "POST",
+             "headers": [
+              {
+               "key": "Content-Type",
+               "value": "application/json"
+              }
+             ]
+            },
+            "module": "google-sheets:makeAPICall",
+            "version": 2,
+            "metadata": {
+             "designer": {
+              "x": 1250,
+              "y": 0
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 12661457
+            }
+           },
+           {
+            "id": 6,
+            "mapper": {
+             "qs": [],
+             "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+             "body": "{{23.result.body_f}}",
+             "method": "POST",
+             "headers": [
+              {
+               "key": "Content-Type",
+               "value": "application/json"
+              }
+             ]
+            },
+            "module": "google-sheets:makeAPICall",
+            "version": 2,
+            "metadata": {
+             "designer": {
+              "x": 1500,
+              "y": 0
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 12661457
+            }
+           }
+          ]
+         },
+         {
+          "flow": [
+           {
+            "id": 7,
+            "mapper": {
+             "key": "{{3.customer_number}}",
+             "data": {
+              "status": "אושר"
+             },
+             "upsert": false,
+             "overwriteArrays": false
+            },
+            "module": "datastore:UpdateRecord",
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 1750,
+              "y": 0
+             }
+            },
+            "parameters": {
+             "datastore": 191414
+            }
+           },
+           {
+            "id": 8,
+            "mapper": {
+             "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+             "method": "post",
+             "contentType": "json",
+             "inputMethod": "dataStructure",
+             "shareCookies": false,
+             "parseResponse": true,
+             "allowRedirects": true,
+             "stopOnHttpError": true,
+             "bodyDataStructure": 656096,
+             "dataStructureBodyContent": {
+              "chatId": "{{31.result.phone}}@c.us",
+              "message": "{{31.result.prefix}}היי {{first(split(trim(3.rep_name); \" \"))}}, {{if(3.source = \"לקוח\"; \"🙋 הלקוח שלך ביקש בוואטסאפ להקדים את ההתקנה - \"; \"\")}}✅ ההקדמה אושרה!\n👤 {{3.customer_name}} (לקוח {{3.customer_number}})\n📅 הוקדם ל{{ifempty(2.result.alt_full_date; 3.new_date)}}\n🕐 {{ifempty(2.result.alt_slot; 3.new_slot)}}\n\n{{23.result.note}}"
+             },
+             "requestCompressedContent": true
+            },
+            "module": "http:MakeRequest",
+            "version": 4,
+            "metadata": {
+             "designer": {
+              "x": 2000,
+              "y": 0
+             }
+            },
+            "parameters": {
+             "authenticationType": "noAuth"
+            }
+           }
+          ]
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1400,
+          "y": 0
+         }
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 50,
+        "filter": {
+         "name": "נדחה - שליחה חוזרת (4 שעות, או מחר ב-08:00 אם זה אחרי 19:00)",
+         "conditions": [
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "ממתין",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "rejected",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{replace(3.short_date; \"-\"; \"\")}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYYMMDD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYYMMDD\"; \"Asia/Jerusalem\"))}}",
+            "o": "number:greater"
+           },
+           {
+            "a": "{{3.send_day}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYY-MM-DD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYY-MM-DD\"; \"Asia/Jerusalem\"))}}",
+            "o": "text:notequal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "ממתין",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "rejected",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{replace(3.short_date; \"-\"; \"\")}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYYMMDD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYYMMDD\"; \"Asia/Jerusalem\"))}}",
+            "o": "number:greater"
+           },
+           {
+            "a": "{{ifempty(3.sends_today; 0)}}",
+            "b": "2",
+            "o": "number:less"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "לבדיקה",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "rejected",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{replace(3.short_date; \"-\"; \"\")}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYYMMDD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYYMMDD\"; \"Asia/Jerusalem\"))}}",
+            "o": "number:greater"
+           },
+           {
+            "a": "{{3.send_day}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYY-MM-DD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYY-MM-DD\"; \"Asia/Jerusalem\"))}}",
+            "o": "text:notequal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "לבדיקה",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "rejected",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{replace(3.short_date; \"-\"; \"\")}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYYMMDD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYYMMDD\"; \"Asia/Jerusalem\"))}}",
+            "o": "number:greater"
+           },
+           {
+            "a": "{{ifempty(3.sends_today; 0)}}",
+            "b": "2",
+            "o": "number:less"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "key": "{{3.customer_number}}",
+         "data": {
+          "status": "שליחה חוזרת מתוזמנת",
+          "retry_at": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; parseDate(formatDate(addDays(now; 1); \"YYYY-MM-DD[T08:00:00]\"; \"Asia/Jerusalem\"); \"YYYY-MM-DDTHH:mm:ss\"; \"Asia/Jerusalem\"); addHours(now; 4))}}"
+         },
+         "upsert": false,
+         "overwriteArrays": false
+        },
+        "module": "datastore:UpdateRecord",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2500,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "datastore": 191414
+        }
+       },
+       {
+        "id": 51,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{31.result.phone}}@c.us",
+          "message": "{{31.result.prefix}}❌ החברה לא אישרה את ההקדמה של {{3.customer_name}} (לקוח {{3.customer_number}}) ל-{{3.new_date}} {{3.new_slot}}.\n\nהתשובה שלהם:\n\"{{2.result.snippet}}\"\n\n🔁 אני אשלח את הבקשה שוב אוטומטית ב-{{formatDate(50.retry_at; \"DD/MM HH:mm\"; \"Asia/Jerusalem\")}} ואעדכן אותך.\n\n💡 רוצה לנסות חלון זמן אחר? אפשר לשלוח עכשיו בקשת הקדמה חדשה עם תאריך/שעות אחרים - היא תחליף את השליחה החוזרת, והבקשה הישנה לא תישלח."
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2750,
+          "y": 200
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 10,
+        "filter": {
+         "name": "נדחה - בלי שליחה חוזרת",
+         "conditions": [
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "ממתין",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "rejected",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{replace(3.short_date; \"-\"; \"\")}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYYMMDD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYYMMDD\"; \"Asia/Jerusalem\"))}}",
+            "o": "number:lessorequal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "ממתין",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "rejected",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{3.send_day}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYY-MM-DD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYY-MM-DD\"; \"Asia/Jerusalem\"))}}",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{ifempty(3.sends_today; 0)}}",
+            "b": "2",
+            "o": "number:greaterorequal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "לבדיקה",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "rejected",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{replace(3.short_date; \"-\"; \"\")}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYYMMDD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYYMMDD\"; \"Asia/Jerusalem\"))}}",
+            "o": "number:lessorequal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "לבדיקה",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "rejected",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{3.send_day}}",
+            "b": "{{if(parseNumber(formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")) >= 1500; formatDate(addDays(now; 1); \"YYYY-MM-DD\"; \"Asia/Jerusalem\"); formatDate(addHours(now; 4); \"YYYY-MM-DD\"; \"Asia/Jerusalem\"))}}",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{ifempty(3.sends_today; 0)}}",
+            "b": "2",
+            "o": "number:greaterorequal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "key": "{{3.customer_number}}",
+         "data": {
+          "status": "נדחה"
+         },
+         "upsert": false,
+         "overwriteArrays": false
+        },
+        "module": "datastore:UpdateRecord",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2500,
+          "y": 450
+         }
+        },
+        "parameters": {
+         "datastore": 191414
+        }
+       },
+       {
+        "id": 11,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{31.result.phone}}@c.us",
+          "message": "{{31.result.prefix}}❌ החברה לא אישרה את ההקדמה של {{3.customer_name}} (לקוח {{3.customer_number}}) ל-{{3.new_date}} {{3.new_slot}}.\n\nהתשובה שלהם:\n\"{{2.result.snippet}}\"\n\n⚠️ *חשוב: תעדכן את הלקוח ותתאמו מחדש* - כדי שלא יחשוב שההתקנה ב{{3.new_date}} {{3.new_slot}} כמו שביקש. ההתקנה נשארת בתאריך המקורי.\n\nתאריך ההתקנה בשיטס נשאר כמו שהיה.\nלא אשלח שוב אוטומטית - התאריך המבוקש קרוב מדי (אחרי 19:00 לא שולחים, והקדמה לאותו יום לא אפשרית), או שכבר נשלחו היום 2 בקשות על הלקוח.{{if(3.send_day != formatDate(now; \"YYYY-MM-DD\"; \"Asia/Jerusalem\"); \"\n\n💡 אפשר לשלוח עכשיו בקשת הקדמה לחלון זמן אחר.\"; if(ifempty(3.sends_today; 0) < 2; \"\n\n💡 אפשר לשלוח עכשיו בקשת הקדמה לחלון זמן אחר.\"; \"\"))}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2750,
+          "y": 450
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 13,
+        "filter": {
+         "name": "לא ברור / הצעה אחרת",
+         "conditions": [
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "ממתין",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "unclear",
+            "o": "text:equal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "ממתין",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "alternative",
+            "o": "text:equal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "לבדיקה",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "unclear",
+            "o": "text:equal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "לבדיקה",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.result.decision}}",
+            "b": "alternative",
+            "o": "text:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "key": "{{3.customer_number}}",
+         "data": {
+          "status": "לבדיקה"
+         },
+         "upsert": false,
+         "overwriteArrays": false
+        },
+        "module": "datastore:UpdateRecord",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 3250,
+          "y": 0
+         }
+        },
+        "parameters": {
+         "datastore": 191414
+        }
+       },
+       {
+        "id": 14,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{31.result.phone}}@c.us",
+          "message": "{{31.result.prefix}}📩 הגיעה תשובה מהחברה לגבי {{3.customer_name}} (לקוח {{3.customer_number}}), אבל לא ברור לי אם ההקדמה אושרה, אז לא שיניתי כלום בשיטס:\n\n\"{{2.result.snippet}}\"\n\nתבדוק/י ותעדכן/י ידנית במידת הצורך. אם ההקדמה לא אושרה - אפשר לשלוח בקשה לחלון זמן אחר."
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 3500,
+          "y": 0
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 60,
+        "filter": {
+         "name": "עדכון נוסף אחרי תשובה סופית",
+         "conditions": [
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "אושר",
+            "o": "text:equal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "נדחה",
+            "o": "text:equal"
+           }
+          ],
+          [
+           {
+            "a": "{{3.status}}",
+            "b": "שליחה חוזרת מתוזמנת",
+            "o": "text:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{31.result.phone}}@c.us",
+          "message": "{{31.result.prefix}}📩 עדכון נוסף מהחברה לגבי {{3.customer_name}} (לקוח {{3.customer_number}}):\n\n\"{{2.result.snippet}}\"\n\n⚠️ ההודעה הזו הגיעה אחרי התשובה הקודמת ששלחתי לך - תבדוק/י מה מצב הלקוח בפועל ותעדכן/י בשיטס אם צריך."
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2500,
+          "y": 700
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 750,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "הקדמות 2 - תשובה מהחברה ← עדכון שיטס ונציג",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

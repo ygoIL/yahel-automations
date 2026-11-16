@@ -1,0 +1,240 @@
+{
+ "id": 9900449,
+ "name": "Claude - התראה לנציג",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:56.708Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 2,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 3,
+        "filter": {
+         "name": "הודעה לפי subscriber_id",
+         "conditions": [
+          [
+           {
+            "a": "{{var.input.message}}",
+            "o": "exist"
+           },
+           {
+            "a": "{{var.input.subscriber_id}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "cFieldId": 14739095,
+         "cFieldValue": "{{var.input.message}}",
+         "subscriberId": "{{var.input.subscriber_id}}"
+        },
+        "module": "manychat:SetSubscriberCustomField",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 300,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 9,
+        "mapper": {
+         "flowName": "content20260930150123_063231",
+         "subscriberId": "{{var.input.subscriber_id}}"
+        },
+        "module": "manychat:SendFlow",
+        "onerror": [
+         {
+          "id": 4,
+          "mapper": {
+           "flowName": "{{ifempty(var.input.fallback_flow; \"content20261005084024_300716\")}}",
+           "subscriberId": "{{var.input.subscriber_id}}"
+          },
+          "module": "manychat:SendFlow",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 900,
+            "y": -100
+           }
+          },
+          "parameters": {
+           "__IMTCONN__": 14390747
+          }
+         },
+         {
+          "id": 11,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1200,
+            "y": -100
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 600,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 14390747
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 20,
+        "filter": {
+         "name": "הודעה לפי טלפון ← Green API",
+         "conditions": [
+          [
+           {
+            "a": "{{var.input.message}}",
+            "o": "exist"
+           },
+           {
+            "a": "{{var.input.subscriber_id}}",
+            "o": "notexist"
+           },
+           {
+            "a": "{{var.input.phone}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{var.input.phone}}@c.us",
+          "message": "{{var.input.message}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 300,
+          "y": 0
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 8,
+        "filter": {
+         "name": "בקשת הקדמה",
+         "conditions": [
+          [
+           {
+            "a": "{{var.input.advance_text}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://hook.eu2.make.com/xqwbvjw5ov7h73iu16mt6yf5t7lrbd8p",
+         "method": "post",
+         "contentType": "urlEncoded",
+         "shareCookies": false,
+         "parseResponse": false,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "urlEncodedBodyContent": [
+          {
+           "name": "id",
+           "value": "{{var.input.subscriber_id}}"
+          },
+          {
+           "name": "name",
+           "value": "{{var.input.rep_name}}"
+          },
+          {
+           "name": "last_input_text",
+           "value": "{{var.input.advance_text}}"
+          }
+         ],
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 300,
+          "y": 400
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - התראה לנציג",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "designer": {
+    "orphans": []
+   },
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

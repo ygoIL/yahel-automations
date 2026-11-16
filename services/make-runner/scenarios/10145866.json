@@ -1,0 +1,572 @@
+{
+ "id": 10145866,
+ "name": "Claude - הקדמות 7: הצעת הקדמה מיידית אחרי הקלדה (כל 15 דק')",
+ "scheduling": {
+  "type": "indefinitely",
+  "between": [
+   "2026-11-12T06:30:00.000Z",
+   "2030-12-31T21:00:00.000Z"
+  ],
+  "interval": 900,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "time": [
+     "08:30",
+     "19:00"
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:50.179Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(let k=-1;k<2;k++){const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+k,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t);}\nreturn {body: JSON.stringify({dataFilters: tabs.map(t=>({a1Range:\"'\"+t+\"'!A1:T2000\"})).concat([{a1Range:\"'הקדמה מיידית'!A1:N3000\"},{a1Range:\"'יעדים'!A2:B80\"}]), valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "ranges",
+       "value": "{{3.body.valueRanges}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// RULE (Steve 11/11/2026): immediate advance offer right after a deal is typed into the דוח מכר. Only reps listed in \"יעדים\"; no בזק / תשתיות / בוטל; install date empty or 3+ work days away; one message per customer (log tab \"הקדמה מיידית\"); separate from the regular advance flow. Do not remove.\n// RULE (Steve 15/11/2026): customer picked up before 12:00 -> offer \"היום או מחר\" (Thursday: \"היום או ביום ראשון\"); from 12:00 on -> only \"מחר\" (Thursday -> \"ביום ראשון\"), never today. Runs every 15 min Sun-Thu 08:30-19:00 so the offer goes out as soon as the customer is in the report. ManyChat field early_windows_intro = opening line of the time-window question (before 12: \"want today? write היום\" + windows are for tomorrow/Sunday). Do not remove.\nconst MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst GO_LIVE=new Date(2026,10,11); // sales from 11/11/2026 on\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst today=new Date(nowIL.getFullYear(),nowIL.getMonth(),nowIL.getDate());\nconst dow=nowIL.getDay(), mins=nowIL.getHours()*60+nowIL.getMinutes();\nconst sendOK=dow<=4&&mins>=8*60+30&&mins<19*60;\nconst repOK=(dow<=4&&mins>=8*60&&mins<21*60); // rep alerts: never Fri/Sat\nconst BIDI=new RegExp('[\\\\s'+String.fromCharCode(8206,8207)+']+','g'); const norm=s=>String(s==null?'':s).replace(BIDI,' ').trim();\nconst digits=v=>String(v||'').replace(/\\D/g,'').replace(/^972/,'0');\nfunction parseHeb(s){ s=String(s||''); const m=s.match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/); if(m){const mi=MONTHS.indexOf(m[2]); if(mi>=0) return new Date(+m[3],mi,+m[1]);} const n=s.match(/(\\d{1,2})[\\/.](\\d{1,2})[\\/.](\\d{2,4})/); if(n){let y=+n[3]; if(y<100)y+=2000; return new Date(y,+n[2]-1,+n[1]);} return null; }\nfunction workdaysAhead(d){ let c=0; const x=new Date(today); while(true){x.setDate(x.getDate()+1); if(x>d) break; if(x.getDay()<=4) c++; if(c>60) break;} return c; }\nconst all=input.ranges||[];\nconst rangeOf=vr=>String((vr.valueRange||vr||{}).range||'');\nconst valsOf=vr=>((vr.valueRange||vr||{}).values)||[];\nconst logVr=all.find(v=>rangeOf(v).includes('הקדמה מיידית'));\nconst tgtVr=all.find(v=>rangeOf(v).includes('יעדים'));\nconst log=logVr?valsOf(logVr):[];\nconst targets=(tgtVr?valsOf(tgtVr):[]).filter(r=>r&&norm(r[0]));\nconst findRep=rep=>{ rep=norm(rep); if(!rep) return null; let m=targets.filter(r=>norm(r[0])===rep); if(!m.length){ const f=rep.split(' ')[0]; m=targets.filter(r=>{const a=norm(r[0]); return a===f||a.split(' ')[0]===f;}); } return m.length?m[0]:null; };\nconst toIntl=p=>{let d=String(p||'').replace(/\\D/g,''); if(d.startsWith('972')) return d; if(d.startsWith('0')) d=d.slice(1); return d?'972'+d:'';};\nconst seenPhone=new Set(), seenCust=new Set();\nfor(const r of log.slice(1)){ if(r[3]) seenPhone.add(digits(r[3])); if(r[4]) seenCust.add(norm(r[4])); }\nconst offer=mins<12*60?(dow===4?'היום או ביום ראשון':'היום או מחר'):(dow===4?'ביום ראשון':'מחר');\nconst nextDayTxt=dow===4?'ליום ראשון':'למחר';\nconst intro=mins<12*60?('רוצים כבר היום? כתבו *היום* ונציג יחזור אליכם 🙂\\n'+nextDayTxt+' - באיזה חלון שעות נוח לך שהטכנאי יגיע?'):('כדי שנבדוק הקדמה '+nextDayTxt+', באיזה חלון שעות נוח לך שהטכנאי יגיע?');\nconst minSale=new Date(today); minSale.setDate(minSale.getDate()-4);\nconst items=[], rows=[], skipped={notRep:0,bezeq:0,infra:0,cancel:0,phone:0,close:0,noDate:0,old:0,dup:0};\nconst todayTxt=today.getDate()+'/'+(today.getMonth()+1)+'/'+today.getFullYear();\nconst hhmm=String(nowIL.getHours()).padStart(2,'0')+':'+String(nowIL.getMinutes()).padStart(2,'0');\nlet next=Math.max(log.length,1)+1;\nif(sendOK){\n// RULE (15/11/2026, כפילויות): אותו לקוח בכמה שורות/טאבים (אותו נייד 9 ספרות אחרונות או אותו מספר לקוח) = לקוח אחד: בודקים פעם אחת ללקוח - דילוג אם אחת השורות בוטלה/בזק/תשתיות או כבר בלוג, הנתונים מהשורה הטובה (טאב החודש, מספר לקוח, תאריך); ביטול/סימון בטאב ישן יותר מהשורה הנבחרת לא חוסם (רכישה חוזרת) ובלוג נרשם מספר הלקוח הראשון שאינו ריק. Do not remove.\nconst __ddMo=s=>{const m=String(s==null?'':s).replace(/'/g,'').match(/(\\S+)\\s+(\\d{4})/); if(!m) return undefined; const i=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'].indexOf(m[1]); return i<0?undefined:(+m[2])*12+i;};\nconst __ddMerge=(L,LOCAL)=>{const P=L.map((_,i)=>i),F=i=>P[i]===i?i:(P[i]=F(P[i])),K={},S=x=>String(x==null?'':x).trim(),E=x=>S(x)==='';\n L.forEach((e,i)=>{e.ph=S(e.ph).replace(/\\D/g,''); e.cn=S(e.cn).replace(/\\D/g,''); if(e.cn.length<4) e.cn=''; if(e.cand===undefined) e.cand=true;\n  e.v={}; for(const f in e.ix) if(e.ix[f]>=0) e.v[f]=e.r[e.ix[f]];\n  for(const k of [e.ph.length>=9?'p'+e.ph.slice(-9):'', e.cn?'c'+e.cn:'']){ if(!k) continue; if(K[k]===undefined) K[k]=i; else P[F(i)]=F(K[k]); } });\n const G={}; L.forEach((e,i)=>{(G[F(i)]=G[F(i)]||[]).push(e);}); const M=new Map();\n for(const g of Object.values(G)){ if(g.length<2) continue; g.forEach(e=>M.set(e.r,null));\n  const sc=e=>(e.cur?4:0)+(e.cn?2:0)+(e.dt?1:0); const o=g.slice().sort((a,b)=>sc(b)-sc(a)); const b=o.find(e=>e.cand); if(!b) continue;\n  const v=Object.assign({},b.v);\n  if(E(v.date)){ const d=o.find(e=>e.dt); if(d){ v.date=d.v.date; if(!E(d.v.slot)) v.slot=d.v.slot; } }\n  else if(E(v.slot)){ const s=o.find(e=>!E(e.v.slot)&&S(e.v.date)===S(b.v.date)); if(s) v.slot=s.v.slot; }\n  for(const f in v){ if(f!=='date'&&f!=='slot'&&E(v[f])){ const s=o.find(e=>!E(e.v[f])); if(s) v[f]=s.v[f]; } }\n  const r=b.r.slice(); for(const f in b.ix) if(b.ix[f]>=0&&v[f]!==undefined) r[b.ix[f]]=v[f];\n  const x={r,v,b,n:g.length}; g.forEach(e=>{ const old=e.mo!==undefined&&b.mo!==undefined&&e.mo<b.mo; for(const k in (e.fl||{})) if(e.fl[k]&&!(old&&(LOCAL||[]).includes(k))) x[k]=true; e.x=x; }); M.set(b.r,x); }\n return M;};\nconst __L=[], __cur=MONTHS[today.getMonth()]+' '+today.getFullYear();\nfor(const vr of all){\n  const rg=rangeOf(vr); if(rg.includes('הקדמה מיידית')||rg.includes('יעדים')) continue;\n  const vals=valsOf(vr); if(!vals.length) continue;\n  const h=vals[0].map(norm); const ix=n=>h.findIndex(x=>x.startsWith(n));\n  const iSale=ix('תאריך מכירה'),iName=ix('שם לקוח'),iPhone=ix('נייד'),iInst=ix('תאריך התקנה'),iTime=ix('שעת התקנה'),iCust=ix('מספר לקוח'),iRep=ix('נציג מוכר'),iWhat=ix('מה נמכר'),iInfra=ix('תשתיות'),iBzk=ix('סיב בזק'),iNote=ix('הערות');\n  if(iSale<0||iPhone<0||iRep<0) continue;\n  for(const r of vals.slice(1)){ if(!r) continue;\n    const ph=digits(r[iPhone]), cust=norm(r[iCust]), note=norm(iNote>=0?r[iNote]:''), what=norm(iWhat>=0?r[iWhat]:'');\n    __L.push({r, ix:{sale:iSale,name:iName,phone:iPhone,date:iInst,slot:iTime,cnum:iCust,rep:iRep}, ph, cn:cust, cur:rg.includes(__cur), mo:__ddMo(rg), dt:!!parseHeb(r[iInst]),\n      fl:{logged:seenPhone.has(ph)||(!!cust&&seenCust.has(cust)), bezeq:what.includes('בזק')||(iBzk>=0&&!!norm(r[iBzk])), cancel:note.includes('בוטל'),\n          infra:(iInfra>=0&&norm(r[iInfra])==='כן')||note.includes('תשתיות')}});\n  }\n}\nconst __M=__ddMerge(__L,['bezeq','cancel','infra']);\n for(const vr of all){\n  const rg=rangeOf(vr); if(rg.includes('הקדמה מיידית')||rg.includes('יעדים')) continue;\n  const vals=valsOf(vr); if(!vals.length) continue;\n  const tab=rg.split('!')[0].replace(/'/g,'');\n  const h=vals[0].map(norm); const ix=n=>h.findIndex(x=>x.startsWith(n));\n  const iSale=ix('תאריך מכירה'),iName=ix('שם לקוח'),iPhone=ix('נייד'),iInst=ix('תאריך התקנה'),iTime=ix('שעת התקנה'),iCust=ix('מספר לקוח'),iRep=ix('נציג מוכר'),iWhat=ix('מה נמכר'),iInfra=ix('תשתיות'),iBzk=ix('סיב בזק'),iNote=ix('הערות');\n  if(iSale<0||iPhone<0||iRep<0) continue;\n  for(let r of vals.slice(1)){\n   const __d=__M.get(r); if(__d===null) continue; if(__d) r=__d.r;\n   const sale=parseHeb(r[iSale]); if(!sale||sale<GO_LIVE||sale<minSale){ if(sale) skipped.old++; continue; }\n   const ph=digits(r[iPhone]); const cust=norm(r[iCust]);\n   if(!/^05\\d{8}$/.test(ph)){skipped.phone++; continue;}\n   if(seenPhone.has(ph)||(cust&&seenCust.has(cust))||(__d&&__d.logged)){skipped.dup++; continue;}\n   const repRow=findRep(r[iRep]); if(!repRow){skipped.notRep++; continue;}\n   const what=norm(iWhat>=0?r[iWhat]:''); if(what.includes('בזק')||(iBzk>=0&&norm(r[iBzk]))||(__d&&__d.bezeq)){skipped.bezeq++; continue;}\n   const note=norm(iNote>=0?r[iNote]:'');\n   if(note.includes('בוטל')||(__d&&__d.cancel)){skipped.cancel++; continue;}\n   if((iInfra>=0&&norm(r[iInfra])==='כן')||note.includes('תשתיות')||(__d&&__d.infra)){skipped.infra++; continue;}\n   const inst=parseHeb(r[iInst]);\n   if(inst&&workdaysAhead(inst)<3){skipped.close++; continue;}\n   // RULE (Steve 15/11/2026): customer with no install date gets the offer right away (the earlier 3-day wait for empty dates was removed). תשתיות customers never get it (checked above). Do not remove.\n   seenPhone.add(ph); if(cust) seenCust.add(cust);\n   const name=norm(r[iName]);\n   items.push({row:next, wa:toIntl(ph), first:name.split(' ')[0]||name, offer, intro});\n   rows.push({range:\"'הקדמה מיידית'!A\"+next+\":J\"+next, values:[[todayTxt,hhmm,name,norm(r[iPhone]),cust,norm(r[iRep]),norm(r[iInst]),norm(iTime>=0?r[iTime]:''),offer,tab]]});\n   next++;\n  }\n }\n}\n// rep alerts for \"כן\" answers that were not delivered yet (e.g. answered on Friday/Saturday)\nconst alerts=[];\nif(repOK){\n log.forEach((r,i)=>{ if(i===0) return; if(norm(r[11])==='כן'&&!norm(r[13])){ const repRow=findRep(r[5]); const ph=repRow?toIntl(repRow[1]):''; const first=repRow?norm(repRow[0]).split(' ')[0]:'';\n   const msg=(first?'היי '+first+', ':'')+'🙋 לקוח שלך ענה שהוא רוצה להקדים את ההתקנה!\\n\\n👤 '+norm(r[2])+(norm(r[4])?' (לקוח '+norm(r[4])+')':'')+'\\n📱 '+norm(r[3])+'\\n📅 מתואם כרגע: '+(norm(r[6])?norm(r[6])+' '+norm(r[7]):'עוד אין תאריך')+'\\n\\nתתקשר אליו עכשיו ותסגור יום וחלון שעות.\\n• להיום: דרך משווקים יס (050-2552817)\\n• ליום אחר: שולחים לבוט, למשל: הקדמה '+(norm(r[4])||'<מספר לקוח>')+' 17/11 10-12';\n   alerts.push({row:i+1, body:JSON.stringify({chatId:(ph||'972544604246')+'@c.us', message:(ph?'':'⚠️ לא מצאתי טלפון לנציג \"'+norm(r[5])+'\" בלשונית יעדים:\\n\\n')+msg})}); } });\n}\nreturn {sendOK, count:items.length, items, alerts, alertCount:alerts.length, skipped:JSON.stringify(skipped),\n body:JSON.stringify({valueInputOption:'RAW',data:rows})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 30,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 5,
+        "filter": {
+         "name": "יש לקוחות חדשים",
+         "conditions": [
+          [
+           {
+            "a": "{{4.result.count}}",
+            "b": "0",
+            "o": "number:greater"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+         "body": "{{4.result.body}}",
+         "method": "POST",
+         "headers": [
+          {
+           "key": "Content-Type",
+           "value": "application/json"
+          }
+         ]
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": -200
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       },
+       {
+        "id": 6,
+        "mapper": {
+         "array": "{{4.result.items}}"
+        },
+        "module": "builtin:BasicFeeder",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1800,
+          "y": -200
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 8,
+        "mapper": null,
+        "module": "builtin:BasicRouter",
+        "routes": [
+         {
+          "flow": [
+           {
+            "id": 12,
+            "mapper": {
+             "email": "",
+             "phone": "{{6.wa}}",
+             "gender": "",
+             "lastName": "",
+             "firstName": "{{6.first}}",
+             "hasOptInSms": true,
+             "consentPhrase": "true",
+             "hasOptInEmail": true,
+             "whatsAppPhone": "{{6.wa}}"
+            },
+            "module": "manychat:CreateSubscriber",
+            "onerror": [
+             {
+              "id": 16,
+              "module": "builtin:Ignore",
+              "version": 1,
+              "metadata": {
+               "designer": {
+                "x": 2700,
+                "y": 150
+               }
+              }
+             }
+            ],
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 2700,
+              "y": -50
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           }
+          ]
+         },
+         {
+          "flow": [
+           {
+            "id": 13,
+            "filter": {
+             "name": "נוצר מנוי חדש",
+             "conditions": [
+              [
+               {
+                "a": "{{12.data.id}}",
+                "o": "exist"
+               }
+              ]
+             ]
+            },
+            "mapper": {
+             "actions": [
+              {
+               "value": "{{6.first}}",
+               "action": "set_field_value",
+               "field_name": "tpl_cust_name"
+              },
+              {
+               "value": "{{6.offer}}",
+               "action": "set_field_value",
+               "field_name": "early_offer_day"
+              },
+              {
+               "value": "{{6.intro}}",
+               "action": "set_field_value",
+               "field_name": "early_windows_intro"
+              }
+             ],
+             "subscriberId": "{{12.data.id}}"
+            },
+            "module": "manychat:PerformAction",
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 2700,
+              "y": -50
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           },
+           {
+            "id": 14,
+            "mapper": {
+             "flowName": "content20261111153729_676303",
+             "subscriberId": "{{12.data.id}}"
+            },
+            "module": "manychat:SendFlow",
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 3000,
+              "y": -50
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           },
+           {
+            "id": 15,
+            "mapper": {
+             "qs": [],
+             "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+             "body": "{\"valueInputOption\":\"RAW\",\"data\":[{\"range\":\"'הקדמה מיידית'!K{{6.row}}\",\"values\":[[\"{{12.data.id}}\"]]}]}",
+             "method": "POST",
+             "headers": [
+              {
+               "key": "Content-Type",
+               "value": "application/json"
+              }
+             ]
+            },
+            "module": "google-sheets:makeAPICall",
+            "version": 2,
+            "metadata": {
+             "designer": {
+              "x": 3300,
+              "y": -50
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 12661457
+            }
+           }
+          ]
+         },
+         {
+          "flow": [
+           {
+            "id": 7,
+            "filter": {
+             "name": "מנוי קיים",
+             "conditions": [
+              [
+               {
+                "a": "{{12.data.id}}",
+                "o": "notexist"
+               }
+              ]
+             ]
+            },
+            "mapper": {
+             "limit": "1",
+             "cFieldId": 14028645,
+             "cFieldValue": "{{6.wa}}"
+            },
+            "module": "manychat:FindSubscriberByCustomField",
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 2100,
+              "y": -200
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           },
+           {
+            "id": 9,
+            "mapper": {
+             "actions": [
+              {
+               "value": "{{6.first}}",
+               "action": "set_field_value",
+               "field_name": "tpl_cust_name"
+              },
+              {
+               "value": "{{6.offer}}",
+               "action": "set_field_value",
+               "field_name": "early_offer_day"
+              },
+              {
+               "value": "{{6.intro}}",
+               "action": "set_field_value",
+               "field_name": "early_windows_intro"
+              }
+             ],
+             "subscriberId": "{{7.id}}"
+            },
+            "module": "manychat:PerformAction",
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 2700,
+              "y": -350
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           },
+           {
+            "id": 10,
+            "mapper": {
+             "flowName": "content20261111153729_676303",
+             "subscriberId": "{{7.id}}"
+            },
+            "module": "manychat:SendFlow",
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 3000,
+              "y": -350
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           },
+           {
+            "id": 11,
+            "mapper": {
+             "qs": [],
+             "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+             "body": "{\"valueInputOption\":\"RAW\",\"data\":[{\"range\":\"'הקדמה מיידית'!K{{6.row}}\",\"values\":[[\"{{7.id}}\"]]}]}",
+             "method": "POST",
+             "headers": [
+              {
+               "key": "Content-Type",
+               "value": "application/json"
+              }
+             ]
+            },
+            "module": "google-sheets:makeAPICall",
+            "version": 2,
+            "metadata": {
+             "designer": {
+              "x": 3300,
+              "y": -350
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 12661457
+            }
+           }
+          ]
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2400,
+          "y": -200
+         }
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 20,
+        "filter": {
+         "name": "יש תשובות כן שלא הועברו לנציג",
+         "conditions": [
+          [
+           {
+            "a": "{{4.result.alertCount}}",
+            "b": "0",
+            "o": "number:greater"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "array": "{{4.result.alerts}}"
+        },
+        "module": "builtin:BasicFeeder",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": 250
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 21,
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+         "body": "{\"valueInputOption\":\"RAW\",\"data\":[{\"range\":\"'הקדמה מיידית'!N{{20.row}}\",\"values\":[[\"כן\"]]}]}",
+         "method": "POST",
+         "headers": [
+          {
+           "key": "Content-Type",
+           "value": "application/json"
+          }
+         ]
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1800,
+          "y": 250
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       },
+       {
+        "id": 22,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "jsonString",
+         "shareCookies": false,
+         "parseResponse": false,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "jsonStringBodyContent": "{{20.body}}",
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 23,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2400,
+            "y": 400
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 2100,
+          "y": 250
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - הקדמות 7: הצעת הקדמה מיידית אחרי הקלדה (כל 15 דק')",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

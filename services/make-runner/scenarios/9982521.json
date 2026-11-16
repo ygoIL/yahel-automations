@@ -1,0 +1,137 @@
+{
+ "id": 9982521,
+ "name": "Claude - טוצ'ט: שליפת מספרים שלא מחייגים (קריאה בלבד)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:45.218Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 5,
+    "mapper": {},
+    "module": "app#tochat-cannon-7utvne:GetCampaigns",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": -300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 1,
+    "mapper": {
+     "end": "{{var.input.end}}",
+     "start": "{{var.input.start}}",
+     "campaignId": "{{5.id}}"
+    },
+    "module": "app#tochat-cannon-7utvne:GetClosedLeads",
+    "onerror": [
+     {
+      "id": 6,
+      "mapper": {},
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 0,
+        "y": 200
+       }
+      }
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "filter": {
+     "name": "נמכר / לקוח פעיל / להסיר",
+     "conditions": [
+      [
+       {
+        "a": "{{1.reason}}",
+        "b": "CLOSED",
+        "o": "text:equal"
+       }
+      ],
+      [
+       {
+        "a": "{{1.subReason.name}}",
+        "b": "לקוח פעיל",
+        "o": "text:contain"
+       }
+      ],
+      [
+       {
+        "a": "{{1.subReason.name}}",
+        "b": "להסיר",
+        "o": "text:contain"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "value": "{{1.displayPhone}}|{{1.reason}}|{{1.subReason.name}};"
+    },
+    "module": "util:TextAggregator",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "feeder": 1
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "key": "nc_{{5.id}}",
+     "data": {
+      "data": "{{5.name}}␞{{2.text}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 197016
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: שליפת מספרים שלא מחייגים (קריאה בלבד)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 100,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

@@ -1,0 +1,95 @@
+{
+ "id": 10171855,
+ "name": "Claude - טוצ'ט: סגירת עותק של פולואפ של נציג אחר בקמפיין",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:11.134Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "array": "{{split(var.input.phones; \",\")}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "note": "נסגר כאן – ללקוח יש פולואפ פתוח אצל נציג אחר (הפולואפ נשאר אצלו)",
+     "phone": "{{trim(1.value)}}",
+     "reason": "IRRELEVANT",
+     "campaignId": "{{var.input.c}}"
+    },
+    "module": "app#tochat-cannon-7utvne:MarkLeadAsDone",
+    "onerror": [
+     {
+      "id": 21,
+      "mapper": {
+       "success": false
+      },
+      "module": "builtin:Resume",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "p": "{{trim(1.value)}}",
+     "ok": "{{2.success}}"
+    },
+    "module": "builtin:BasicAggregator",
+    "version": 1,
+    "parameters": {
+     "feeder": 1
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "object": "{{3.array}}"
+    },
+    "module": "json:TransformToJSON",
+    "version": 1,
+    "parameters": {
+     "space": ""
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "key": "fuclose_{{var.input.part}}",
+     "data": {
+      "data": "{{4.json}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: סגירת עותק של פולואפ של נציג אחר בקמפיין",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

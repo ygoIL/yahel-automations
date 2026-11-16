@@ -1,0 +1,196 @@
+{
+ "id": 10145853,
+ "name": "Claude - הקדמות 8: תשובת לקוח להצעת הקדמה מיידית",
+ "scheduling": {
+  "type": "immediately"
+ },
+ "hookId": 4507098,
+ "hookUdid": "1st1p3aiavt6ix2flifysd7paxjntag6",
+ "exportedAt": "2026-11-16T16:45:51.879Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {},
+    "module": "gateway:CustomWebHook",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "hook": 4507098,
+     "maxResults": 1
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{\"dataFilters\":[{\"a1Range\":\"'הקדמה מיידית'!A1:N3000\"},{\"a1Range\":\"'יעדים'!A2:B80\"}],\"valueRenderOption\":\"FORMATTED_VALUE\"}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "input": [
+      {
+       "name": "ranges",
+       "value": "{{2.body.valueRanges}}"
+      },
+      {
+       "name": "id",
+       "value": "{{1.id}}"
+      },
+      {
+       "name": "answer",
+       "value": "{{1.custom_fields.`רוצה להקדים?`}}"
+      },
+      {
+       "name": "chat",
+       "value": "{{1.live_chat_url}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// RULE (Steve 11/11/2026): answer to the immediate advance offer (ManyChat flow \"הקדמה מיידית אחרי הקלדה\"). Writes the answer to tab \"הקדמה מיידית\"; on \"כן\" alerts the selling rep (first name only) via Green API, never Fri/Sat (then the hourly run sends it Sunday). Do not remove.\n// RULE (Steve 12/11/2026): \"כן\" on an offer for tomorrow/Sunday does NOT alert the rep - ManyChat asks the customer for time windows and \"הקדמות 9\" sends the request (or passes it to the rep). Column N is marked \"שאלון חלונות\" so the hourly run won't alert either. Only \"היום\" offers go straight to the rep.\n// RULE (Steve 15/11/2026): offers are now \"היום או מחר\" (before 12:00) or \"מחר\" (after). Only an offer that is exactly \"היום\" goes straight to the rep; \"היום או מחר\" goes to the windows questionnaire like \"מחר\" (a free-text \"היום\" answer is passed to the rep by הקדמות 9; no window within an hour -> הקדמות 10 alerts the rep). Do not remove.\nconst BIDI=new RegExp('[\\\\s'+String.fromCharCode(8206,8207)+']+','g'); const norm=s=>String(s==null?'':s).replace(BIDI,' ').trim();\nconst vrs=input.ranges||[];\nconst rangeOf=vr=>String((vr.valueRange||vr||{}).range||'');\nconst valsOf=vr=>((vr.valueRange||vr||{}).values)||[];\nconst log=valsOf(vrs.find(v=>rangeOf(v).includes('הקדמה מיידית'))||{});\nconst targets=valsOf(vrs.find(v=>rangeOf(v).includes('יעדים'))||{}).filter(r=>r&&norm(r[0]));\nconst id=norm(input.id); const ans=norm(input.answer);\nlet row=-1; for(let i=log.length-1;i>=1;i--){ if(norm(log[i][10])===id){row=i;break;} }\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst dow=nowIL.getDay(), mins=nowIL.getHours()*60+nowIL.getMinutes();\nconst repOK=dow<=4&&mins>=8*60&&mins<21*60;\nconst stamp=nowIL.getDate()+'/'+(nowIL.getMonth()+1)+' '+String(nowIL.getHours()).padStart(2,'0')+':'+String(nowIL.getMinutes()).padStart(2,'0');\nif(row<0||!id) return {found:false, alert:''};\nconst r=log[row]; const already=norm(r[13]);\nconst isToday=norm(r[8])==='היום';\nconst toIntl=p=>{let d=String(p||'').replace(/\\D/g,''); if(d.startsWith('972')) return d; if(d.startsWith('0')) d=d.slice(1); return d?'972'+d:'';};\nconst rep=norm(r[5]); let m=targets.filter(x=>norm(x[0])===rep); if(!m.length&&rep){const f=rep.split(' ')[0]; m=targets.filter(x=>{const a=norm(x[0]); return a===f||a.split(' ')[0]===f;});}\nconst ph=m.length?toIntl(m[0][1]):''; const first=m.length?norm(m[0][0]).split(' ')[0]:'';\nlet alert='';\nconst sendNow=ans==='כן'&&!already&&repOK&&isToday;\nif(sendNow){\n const msg=(first?'היי '+first+', ':'')+'🙋 לקוח שלך ענה שהוא רוצה להקדים את ההתקנה!\\n\\n👤 '+norm(r[2])+(norm(r[4])?' (לקוח '+norm(r[4])+')':'')+'\\n📱 '+norm(r[3])+'\\n📅 מתואם כרגע: '+(norm(r[6])?norm(r[6])+' '+norm(r[7]):'עוד אין תאריך')+'\\n\\nתתקשר אליו עכשיו ותסגור יום וחלון שעות.\\n• להיום: דרך משווקים יס (050-2552817)\\n• ליום אחר: שולחים לבוט, למשל: הקדמה '+(norm(r[4])||'<מספר לקוח>')+' 17/11 10-12'+(input.chat?'\\n\\n💬 השיחה עם הלקוח: '+norm(input.chat):'');\n alert=JSON.stringify({chatId:(ph||'972544604246')+'@c.us', message:(ph?'':'⚠️ לא מצאתי טלפון לנציג \"'+rep+'\" בלשונית יעדים:\\n\\n')+msg});\n}\nconst vals=[ans,stamp]; if(sendNow) vals.push('כן'); else if(ans==='כן'&&!isToday&&!already) vals.push('שאלון חלונות');\nreturn {found:true, alert, body:JSON.stringify({valueInputOption:'RAW',data:[{range:\"'הקדמה מיידית'!L\"+(row+1)+':'+(vals.length===3?'N':'M')+(row+1),values:[vals]}]})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "filter": {
+     "name": "נמצאה שורה",
+     "conditions": [
+      [
+       {
+        "a": "{{3.result.found}}",
+        "b": "true",
+        "o": "boolean:equal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+     "body": "{{3.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 5,
+    "filter": {
+     "name": "התראה לנציג",
+     "conditions": [
+      [
+       {
+        "a": "{{3.result.alert}}",
+        "o": "text:notempty"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "jsonString",
+     "shareCookies": false,
+     "parseResponse": false,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "jsonStringBodyContent": "{{3.result.alert}}",
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "onerror": [
+     {
+      "id": 6,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1500,
+        "y": 150
+       }
+      }
+     }
+    ],
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   }
+  ],
+  "name": "Claude - הקדמות 8: תשובת לקוח להצעת הקדמה מיידית",
+  "metadata": {
+   "instant": true,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

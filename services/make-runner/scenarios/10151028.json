@@ -1,0 +1,127 @@
+{
+ "id": 10151028,
+ "name": "Claude - טוצ'ט: העלאת לידים לקמפיין עם סינון חסומים (כללי)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:04.882Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/deny-list",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "d",
+       "value": "{{1.body}}"
+      },
+      {
+       "name": "data",
+       "value": "{{var.input.data}}"
+      },
+      {
+       "name": "aud",
+       "value": "{{var.input.audience}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const d=typeof input.d==='string'?JSON.parse(input.d):input.d;const deny=new Set((d||[]).map(x=>{let s=String(x.id||x.phone||'').replace(/\\D/g,'');if(s.startsWith('972'))s='0'+s.slice(3);return s;}));const all=[];const seen=new Set();let blocked=0;for(const x of String(input.data||'').split(',')){let p=x.trim().replace(/\\D/g,'');if(p.length===9)p='0'+p;if(!/^05\\d{8}$/.test(p)||seen.has(p))continue;seen.add(p);if(deny.has(p)){blocked++;continue;}all.push({phone:p,firstName:'',lastName:'',audience:input.aud,notes:input.aud,customLeadFields:{}});}const batches=[];for(let i=0;i<all.length;i+=200)batches.push({customers:all.slice(i,i+200),idx:batches.length+1,n:Math.min(200,all.length-i)});return {batches,total:all.length,blocked,denySize:deny.size};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "key": "upl_{{var.input.part}}_summary",
+     "data": {
+      "data": "total {{2.result.total}} blocked {{2.result.blocked}} deny {{2.result.denySize}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "array": "{{2.result.batches}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "customers": "{{3.customers}}",
+     "campaignId": "{{var.input.campaignId}}",
+     "dataSource": {
+      "name": "{{var.input.sourceName}}",
+      "priority": 20,
+      "newCustomersOnly": false,
+      "shouldCheckWithDontCallMe": false,
+      "shouldOverrideCustomerData": false
+     }
+    },
+    "module": "app#tochat-cannon-7utvne:AddLeadsToCampaign2",
+    "onerror": [
+     {
+      "id": 41,
+      "module": "builtin:Ignore",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "key": "upl_{{var.input.part}}_b{{3.idx}}",
+     "data": {
+      "data": "sent {{3.n}} failed {{length(4.failed)}} {{join(map(4.failed; \"reason\"); \",\")}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - טוצ'ט: העלאת לידים לקמפיין עם סינון חסומים (כללי)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

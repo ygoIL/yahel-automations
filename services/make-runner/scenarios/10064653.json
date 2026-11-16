@@ -1,0 +1,362 @@
+{
+ "id": 10064653,
+ "name": "Claude - שביעות רצון אחרי התקנה: שליחה בבוקר למחרת (אחרי פרפורמה)",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 3600,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "time": [
+     "09:00",
+     "12:00"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:45.991Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?fields=sheets.properties.title",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(const off of [0,-1]){ const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+off,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t); }\nconst q=s=>\"'\"+s+\"'\";\nconst filters=tabs.map(t=>({a1Range:q(t)+'!A1:Z1500'}));\nfilters.push({a1Range:\"'בקרה יומית'!A1:A1000\"});\nconst colorQs=tabs.map(t=>'ranges='+encodeURIComponent(q(t)+'!C1:C1500')).join('&')+'&fields='+encodeURIComponent('sheets(properties(title),data(startRow,rowData(values(effectiveFormat(backgroundColor)))))');\nreturn {tabs: JSON.stringify(tabs), readBody: JSON.stringify({dataFilters:filters, valueRenderOption:'FORMATTED_VALUE'}), colorUrl: 'spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?'+colorQs};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "qs": [],
+     "url": "{{2.result.colorUrl}}",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "vr",
+       "value": "{{3.body.valueRanges}}"
+      },
+      {
+       "name": "tabs",
+       "value": "{{2.result.tabs}}"
+      },
+      {
+       "name": "colors",
+       "value": "{{4.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS={'ינואר':1,'פברואר':2,'מרץ':3,'אפריל':4,'מאי':5,'יוני':6,'יולי':7,'אוגוסט':8,'ספטמבר':9,'אוקטובר':10,'נובמבר':11,'דצמבר':12};\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst norm=s=>String(s==null?'':s).replace(/\\s+/g,' ').trim();\nconst digits=s=>String(s==null?'':s).replace(/\\D/g,'');\nconst dkey=s=>{const m=norm(s).match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/); if(!m) return 0; const mon=MONTHS[m[2]]; if(!mon) return 0; return (+m[3])*10000+mon*100+(+m[1]);};\nconst kOf=d=>d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();\nconst iso=d=>d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst today=new Date(nowIL.getFullYear(),nowIL.getMonth(),nowIL.getDate());\nconst add=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);\nconst todayK=kOf(today), todayIso=iso(today); const START=20261028; const fromK=Math.max(kOf(add(today,-4)),START);\nconst vr=arr(input.vr).map(v=>(v&&v.valueRange)||v||{}); const tabs=arr(input.tabs).map(norm);\nconst byName=n=>{ const x=vr.find(v=>{ const r=norm(v.range).replace(/^'/,''); return r.startsWith(n+\"'!\")||r.startsWith(n+'!'); }); return (x&&x.values)||[]; };\nconst colorSheets=arr(input.colors);\nconst isGreen=c=>{ if(!c) return false; const r=c.red||0,g=c.green||0,b=c.blue||0; return g>r+0.08 && g>b+0.15 && g<0.95; };\nconst isRed=c=>{ if(!c) return false; const r=c.red||0,g=c.green||0,b=c.blue||0; return r>0.8 && g<0.6 && b<0.6; };\nconst ALIAS={'אוסי':'אוסי גיאן','אופק פ':'אופק','דוד':'דוד חי','איתמר':'איתמר ששון'};\nconst seen={}; const items=[];\nfor(let t=0;t<tabs.length;t++){\n  const rows=byName(tabs[t]);\n  const hN=(rows[0]||[]).map(norm).findIndex(x=>x.startsWith('הערות')); const iN=hN>=0?hN:17;\n  const cs=colorSheets.find(x=>norm((x.properties||{}).title)===tabs[t] && (x.data||[]).length)||{}; const data=((cs.data||[])[0])||{}; const start=data.startRow||0; const rd=data.rowData||[];\n  rows.forEach((r,i)=>{\n    if(i===0||!r) return;\n    const rep=norm(r[7]); const name=norm(r[2]); if(!rep||!name) return;\n    const note=norm(r[iN]);\n    if(/בוטל|ביטול|ביטל|לא מעוניין/.test(note)) return;\n    const cell=((rd[i-start]||{}).values||[])[0]||{}; const bg=(cell.effectiveFormat||{}).backgroundColor;\n    if(isRed(bg)||!isGreen(bg)) return;\n    const inst=dkey(r[4]);\n    if(!inst||inst>=todayK||inst<fromK) return;\n    let p=digits(r[3]); if(p.startsWith('0')) p='972'+p.slice(1); else if(!p.startsWith('972')) p='972'+p;\n    if(!/^9725\\d{8}$/.test(p)) return;\n    if(seen[p]) return; seen[p]=1;\n    items.push({name:name.split(' ')[0], fullName:name, phone:p, rep:ALIAS[rep]||rep, instText:norm(r[4])});\n  });\n}\nconst fresh=byName('בקרה יומית').some(r=>norm((r||[])[0])===todayIso);\nconst dow=nowIL.getDay(); const okDay=(dow!==5&&dow!==6);\nconst out=(fresh&&okDay)?items.slice(0,120):[];\nreturn {items:out, count:out.length, fresh, okDay};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "array": "{{5.result.items}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "key": "{{6.phone}}",
+     "data": {
+      "phone": "{{6.phone}}",
+      "sentAt": "{{formatDate(now; \"YYYY-MM-DD HH:mm\"; \"Asia/Jerusalem\")}}",
+      "repName": "{{6.rep}}",
+      "installDate": "{{6.instText}}",
+      "customerName": "{{6.fullName}}"
+     }
+    },
+    "module": "datastore:AddRecord",
+    "onerror": [
+     {
+      "id": 70,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1800,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 202662
+    }
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "limit": "1",
+     "cFieldId": 14028645,
+     "cFieldValue": "{{6.phone}}"
+    },
+    "module": "manychat:FindSubscriberByCustomField",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2100,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 9,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 10,
+        "filter": {
+         "name": "נמצא ב-ManyChat",
+         "conditions": [
+          [
+           {
+            "a": "{{8.id}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "flowName": "content20261029094520_562413",
+         "subscriberId": "{{8.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 11,
+        "filter": {
+         "name": "לא נמצא",
+         "conditions": [
+          [
+           {
+            "a": "{{8.id}}",
+            "o": "notexist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "phone": "{{6.phone}}",
+         "firstName": "{{6.name}}",
+         "hasOptInSms": true,
+         "consentPhrase": "true",
+         "hasOptInEmail": true,
+         "whatsAppPhone": "{{6.phone}}"
+        },
+        "module": "manychat:CreateSubscriber",
+        "onerror": [
+         {
+          "id": 12,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 3000,
+            "y": 450
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": 150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 13,
+        "mapper": {
+         "flowName": "content20261029094520_562413",
+         "subscriberId": "{{11.data.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 3000,
+          "y": 150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2400,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - שביעות רצון אחרי התקנה: שליחה בבוקר למחרת (אחרי פרפורמה)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

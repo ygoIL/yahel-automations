@@ -1,0 +1,177 @@
+{
+ "id": 10115691,
+ "name": "Claude - התקנות למחר (ולראשון ביום חמישי) לקבוצת סיירת yes ב-17:00 (במקום קורל)",
+ "scheduling": {
+  "days": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "time": "17:00",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:55.173Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?fields=sheets.properties.title",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const TEST=false;\nconst MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst titles=arr(input.sheets).map(s=>String(((s||{}).properties||{}).title||'').trim());\nlet base=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nif(TEST) base=new Date(2026,10,7);\nconst dow=base.getDay();\nconst offs=(dow===4)?[1,3]:[1];\nconst targets=offs.map(o=>{const d=new Date(base.getFullYear(),base.getMonth(),base.getDate()+o);return {y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate(),w:d.getDay()};});\nconst tabs=[];\nfor(const t of targets){const n=MONTHS[t.m-1]+' '+t.y; if(titles.includes(n)&&!tabs.includes(n)) tabs.push(n);}\nconst q=s=>\"'\"+s+\"'\";\nconst filters=tabs.length? tabs.map(t=>({a1Range:q(t)+'!A1:O2000'})) : [{a1Range:q('הגדרות')+'!A1:A1'}];\nreturn {tabs:tabs.join(', '), targets:JSON.stringify(targets), readBody:JSON.stringify({dataFilters:filters, valueRenderOption:'FORMATTED_VALUE'})};"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 200,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 400,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "ranges",
+       "value": "{{3.body.valueRanges}}"
+      },
+      {
+       "name": "targets",
+       "value": "{{2.result.targets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const TEST=false;\nconst GROUP='120363403845988381@g.us';\nconst STEVE='972544604246@c.us';\nconst MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst DAYS=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst norm=s=>String(s==null?'':s).replace(/\\s+/g,' ').trim();\nconst targets=arr(input.targets);\nconst key=t=>t.y+'-'+t.m+'-'+t.d;\nconst want={}; targets.forEach(t=>{want[key(t)]=[];});\nconst parseDate=s=>{ s=norm(s); let m=s.match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/); if(m){const mi=MONTHS.indexOf(m[2]); if(mi>=0) return {y:+m[3],m:mi+1,d:+m[1]};} m=s.match(/(\\d{1,2})[\\/.](\\d{1,2})[\\/.](\\d{2,4})/); if(m){let y=+m[3]; if(y<100) y+=2000; return {y:y,m:+m[2],d:+m[1]};} return null; };\nconst slotStart=s=>{const m=String(s).match(/(\\d{1,2}):/);return m?+m[1]:99;};\nfor(const vr of arr(input.ranges)){\n  const v=(vr&&vr.valueRange)||vr||{};\n  const vals=arr(v.values);\n  for(let i=1;i<vals.length;i++){\n    const r=vals[i]||[];\n    const dt=parseDate(r[4]); if(!dt) continue;\n    const k=dt.y+'-'+dt.m+'-'+dt.d; if(!want[k]) continue;\n    if(/תשתיות/.test(norm(r[12]))) continue;\n    if(!norm(r[2])&&!norm(r[6])) continue;\n    want[k].push({name:norm(r[2]),phone:norm(r[3]),slot:norm(r[5]),num:norm(r[6]),rep:norm(r[7])});\n  }\n}\n// RULE (Steve 08/11/2026): group the list by rep name, so each rep sees their installs clearly.\nconst line=x=>'• '+[x.slot,x.name,x.phone,x.num].filter(Boolean).join(' | ');\nlet count=0; const parts=[];\nfor(const t of targets){\n  const rows=want[key(t)].sort((a,b)=>slotStart(a.slot)-slotStart(b.slot));\n  count+=rows.length;\n  if(!rows.length) continue;\n  const byRep={}; const order=[];\n  rows.forEach(x=>{const r=x.rep||'ללא נציג'; if(!byRep[r]){byRep[r]=[];order.push(r);} byRep[r].push(x);});\n  const hdr='*התקנות ליום '+DAYS[t.w]+' '+t.d+'/'+t.m+'* ('+rows.length+' לקוחות)';\n  parts.push(hdr+'\\n\\n'+order.map(r=>'*'+r+'* ('+byRep[r].length+')\\n'+byRep[r].map(line).join('\\n')).join('\\n\\n'));\n}\nlet message=parts.join('\\n\\n━━━━━━━━━━\\n\\n');\nif(count) message+='\\n\\nתבדקו שהלקוחות שלכם חתמו ומוכנים להתקנה.';\nif(TEST) message='[בדיקה - נשלח רק אליך]\\n'+message;\nreturn {count, message, chatId: TEST?STEVE:GROUP};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "filter": {
+     "name": "יש התקנות",
+     "conditions": [
+      [
+       {
+        "a": "{{4.result.count}}",
+        "b": "0",
+        "o": "number:greater"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/send?key=__ENV:GATEWAY_KEY__",
+     "method": "post",
+     "contentType": "json",
+     "inputMethod": "dataStructure",
+     "shareCookies": false,
+     "parseResponse": true,
+     "allowRedirects": true,
+     "stopOnHttpError": true,
+     "bodyDataStructure": 656096,
+     "dataStructureBodyContent": {
+      "chatId": "{{4.result.chatId}}",
+      "message": "{{4.result.message}}"
+     },
+     "requestCompressedContent": true
+    },
+    "module": "http:MakeRequest",
+    "version": 4,
+    "metadata": {
+     "designer": {
+      "x": 800,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "authenticationType": "noAuth"
+    }
+   }
+  ],
+  "name": "Claude - התקנות למחר (ולראשון ביום חמישי) לקבוצת סיירת yes ב-17:00 (במקום קורל)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false
+   }
+  }
+ }
+}

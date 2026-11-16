@@ -1,0 +1,839 @@
+{
+ "id": 9944122,
+ "name": "ניודים 3 - ללא מענה מפלאפון ← הודעה ללקוח ולנציג",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 600,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "time": [
+     "08:00",
+     "20:00"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   },
+   {
+    "days": [
+     5
+    ],
+    "time": [
+     "08:00",
+     "14:00"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:48:45.627Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [
+      {
+       "key": "$filter",
+       "value": "receivedDateTime ge {{formatDate(addDays(now; -3); \"YYYY-MM-DDTHH:mm:ss\"; \"UTC\")}}Z"
+      },
+      {
+       "key": "$select",
+       "value": "id,subject,from,bodyPreview,receivedDateTime"
+      },
+      {
+       "key": "$top",
+       "value": "200"
+      },
+      {
+       "key": "$orderby",
+       "value": "receivedDateTime asc"
+      }
+     ],
+     "url": "/v1.0/me/mailFolders/inbox/messages",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "microsoft-email:makeApiCall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 14638980
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "msgs",
+       "value": "{{1.body.value}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// input.msgs = Graph messages (value array)\nconst items = [];\nfor (const m of (input.msgs || [])) {\n  const from = String(((m.from || {}).emailAddress || {}).address || '').toLowerCase();\n  if (!from.endsWith('pelephone.co.il')) continue;\n  const subj = String(m.subject || '');\n  const num = (subj.match(/(?<!\\d)(\\d{5,9})(?!\\d)/) || [])[1];\n  if (!num) continue;\n  let pv = String(m.bodyPreview || '');\n  pv = pv.split(/בברכה|From:|מאת:/)[0];\n  if (!/ללא\\s*מענה|אין\\s*מענה|לא\\s*ענה|לא\\s*עונה|לא\\s*זמין|לא\\s*השגנו|לא\\s*הצלחנו\\s*להשיג/.test(pv)) continue;\n  items.push({custNum: num, at: String(m.receivedDateTime || ''), text: pv.replace(/\\s+/g, ' ').trim().slice(0, 120), msgId: m.id});\n}\nreturn {count: items.length, items};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "filter": {
+     "name": "יש תשובת ללא מענה",
+     "conditions": [
+      [
+       {
+        "a": "{{2.result.count}}",
+        "b": "0",
+        "o": "number:greater"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "qs": [
+      {
+       "key": "fields",
+       "value": "sheets.properties.title"
+      }
+     ],
+     "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{3.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(let k=-1;k<=0;k++){const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+k,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t);}\nreturn {count:tabs.length, body: JSON.stringify({dataFilters: tabs.map(t=>({a1Range:\"'\"+t+\"'!A1:AC3000\"})), valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg/values:batchGetByDataFilter",
+     "body": "{{4.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{\"dataFilters\":[{\"a1Range\":\"'יעדים'!A1:B200\"}],\"valueRenderOption\":\"FORMATTED_VALUE\"}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "array": "{{2.result.items}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    }
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "key": "{{7.custNum}}",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2100,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 194385
+    }
+   },
+   {
+    "id": 9,
+    "mapper": {
+     "filter": [
+      [
+       {
+        "a": "custNum",
+        "b": "{{7.custNum}}",
+        "o": "text:equal"
+       }
+      ]
+     ]
+    },
+    "module": "datastore:SearchRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2400,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "limit": 1,
+     "datastore": 193282,
+     "continueWhenNoRes": true
+    }
+   },
+   {
+    "id": 10,
+    "mapper": {
+     "input": [
+      {
+       "name": "custNum",
+       "value": "{{7.custNum}}"
+      },
+      {
+       "name": "at",
+       "value": "{{7.at}}"
+      },
+      {
+       "name": "text",
+       "value": "{{7.text}}"
+      },
+      {
+       "name": "prevCount",
+       "value": "{{8.count}}"
+      },
+      {
+       "name": "prevLast",
+       "value": "{{8.lastMsgAt}}"
+      },
+      {
+       "name": "prevHistory",
+       "value": "{{8.history}}"
+      },
+      {
+       "name": "rec",
+       "value": "{{9.data}}"
+      },
+      {
+       "name": "ranges",
+       "value": "{{5.body.valueRanges}}"
+      },
+      {
+       "name": "reps",
+       "value": "{{6.body.valueRanges}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// inputs: custNum, at, text, prevCount, prevLast, prevHistory, rec (fields from 193282 search), ranges, reps\nconst norm = s => String(s || '').replace(/\\s+/g, ' ').trim();\nconst digits = s => String(s || '').replace(/\\D/g, '');\nconst pad = n => String(n).padStart(2, '0');\nconst fmt = new Intl.DateTimeFormat('en-GB', {timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'});\nconst stamp = t => { const p = {}; for (const x of fmt.formatToParts(new Date(t))) p[x.type] = x.value; return p.day + '/' + p.month + ' ' + p.hour + ':' + p.minute; };\nconst custNum = digits(input.custNum);\nconst at = String(input.at || '');\nif (input.prevLast && at && new Date(at) <= new Date(input.prevLast)) return {action: 'skip'};\nconst count = (parseInt(input.prevCount, 10) || 0) + 1;\nlet hit = null;\nfor (const vr of (input.ranges || [])) {\n  const tab = String((vr.valueRange || {}).range || '').split('!')[0].replace(/^'|'$/g, '');\n  const vals = (vr.valueRange && vr.valueRange.values) || [];\n  for (let i = 1; i < vals.length; i++) {\n    const r = vals[i];\n    if (digits(r[9]) === custNum) hit = {tab, row: i + 1, name: norm(r[2]), phone: digits(r[3]).replace(/^972/, '').replace(/^0/, ''), rep: norm(r[0]), qty: parseInt(r[14], 10) || 0};\n  }\n}\nconst rec = input.rec || {};\nlet local9 = digits(rec.phone).replace(/^972/, '').replace(/^0/, '') || (hit ? hit.phone : '');\nconst name = norm(rec.custName) || (hit ? hit.name : '') || 'לקוח';\nconst ALIAS = {'אוסי': 'אוסי גיאן', 'עמית אראל': 'עמית הראל', 'אופק פ': 'אופק'};\nlet repRows = input.reps || [];\nif (repRows.length && repRows[0] && repRows[0].valueRange) repRows = repRows[0].valueRange.values || [];\nconst reps = [];\nfor (const r of repRows.slice(1)) { const n = norm(r[0]); let p = digits(r[1]).replace(/^972/, '').replace(/^0/, ''); if (n && /^5\\d{8}$/.test(p)) reps.push({name: n, wa: '972' + p}); }\nfunction findRep(raw) {\n  let n = norm(raw); if (!n) return null; if (ALIAS[n]) n = ALIAS[n];\n  let h = reps.find(r => r.name === n); if (h) return h;\n  const f = reps.filter(r => r.name.split(' ')[0] === n.split(' ')[0]); return f.length === 1 ? f[0] : null;\n}\nlet repWa = digits(rec.repWa), repName = norm(rec.repName);\nif (!/^9725\\d{8}$/.test(repWa) && hit) { const r = findRep(hit.rep); if (r) { repWa = r.wa; repName = r.name; } else repName = hit.rep; }\nlet toYarden = false;\nif (!/^9725\\d{8}$/.test(repWa)) { repWa = '972544604246'; toYarden = true; }\nconst phone = local9 ? '0' + local9 : '';\nconst wa = local9 ? '972' + local9 : '';\nlet action;\nif (!phone) action = 'nophone';\nelse if (count <= 3) action = 'first';\nelse action = 'again';\nconst who = '👤 ' + name + ' (לקוח ' + custNum + ')' + (phone ? '\\n📞 ' + phone : '') + (hit && hit.qty > 1 ? '\\n📱 ' + hit.qty + ' קווים' : '');\nlet msg;\nif (action === 'first') msg = '📵 פלאפון ניסו להשיג את הלקוח לניוד ולא היה מענה' + (count > 1 ? ' (ניסיון ' + count + ' מתוך 3)' : '') + '\\n' + who + '\\n\\n✉️ שלחתי ללקוח הודעה לבחור מתי לחזור אליו - כשיבחר תקבל/י עדכון.\\n📧 מייל חדש לניודים יישלח רק באישור שלך: אחרי שתתאם/י שעה, שלח/י לבוט: ניוד ' + phone + ' <שעה>';\nelse if (action === 'again') msg = '📵 שוב ללא מענה מפלאפון (פעם ' + count + ')\\n' + who + '\\n\\n⚠️ הלקוח כבר קיבל 3 הודעות תיאום ולא ענה לפלאפון - לא שולח לו עוד. צריך לטפל ידנית: להתקשר אליו, לתאם שעה ולשלוח לבוט: ניוד ' + phone + ' <שעה>';\nelse msg = '📵 פלאפון כתבו \"ללא מענה\" על לקוח ' + custNum + ', אבל לא מצאתי אותו בדוח מכר פלאפון. צריך לטפל ידנית.';\nif (toYarden && action !== 'nophone') msg = '⚠️ לא נמצא טלפון לנציג' + (repName ? ' \"' + repName + '\"' : '') + ' - ההודעה עברה אליך:\\n\\n' + msg;\nconst st = stamp(at || Date.now());\nconst sheetBody = hit ? JSON.stringify({valueInputOption: 'RAW', data: [\n  {range: \"'\" + hit.tab + \"'!AC1\", values: [['ללא מענה']]},\n  {range: \"'\" + hit.tab + \"'!AC\" + hit.row, values: [['ללא מענה ' + st + (count > 3 ? ' (פעם ' + count + ') - לטיפול נציג' : ' - נשלחה הודעת תיאום ללקוח (' + count + '/3)')]]}\n]}) : '';\nconst first = name.split(' ')[0];\nreturn {action, count, custNum, wa, phone, name, first, repName, repWa, msg, sheetBody, hasRow: !!hit,\n  history: (String(input.prevHistory || '') + ' | ' + st + ' ללא מענה').replace(/^ \\| /, '')};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2700,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 11,
+    "filter": {
+     "name": "תשובה חדשה",
+     "conditions": [
+      [
+       {
+        "a": "{{10.result.action}}",
+        "b": "skip",
+        "o": "text:notequal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "key": "{{10.result.custNum}}",
+     "data": {
+      "count": "{{10.result.count}}",
+      "phone": "{{10.result.phone}}",
+      "history": "{{10.result.history}}",
+      "repName": "{{10.result.repName}}",
+      "custName": "{{10.result.name}}",
+      "lastMsgAt": "{{7.at}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 3000,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 194385
+    }
+   },
+   {
+    "id": 12,
+    "filter": {
+     "name": "יש טלפון",
+     "conditions": [
+      [
+       {
+        "a": "{{10.result.wa}}",
+        "b": "",
+        "o": "text:notequal"
+       },
+       {
+        "a": "{{10.result.action}}",
+        "b": "skip",
+        "o": "text:notequal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "key": "{{10.result.wa}}",
+     "data": {
+      "status": "noanswer"
+     },
+     "upsert": false,
+     "overwriteArrays": false
+    },
+    "module": "datastore:UpdateRecord",
+    "onerror": [
+     {
+      "id": 13,
+      "module": "builtin:Ignore",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 3300,
+        "y": 250
+       }
+      }
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 3300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 193282
+    }
+   },
+   {
+    "id": 15,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 20,
+        "filter": {
+         "name": "עד 3 פעמים - הודעת תיאום ללקוח",
+         "conditions": [
+          [
+           {
+            "a": "{{10.result.action}}",
+            "b": "first",
+            "o": "text:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "limit": "1",
+         "cFieldId": 14028645,
+         "cFieldValue": "{{10.result.wa}}"
+        },
+        "module": "manychat:FindSubscriberByCustomField",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 3900,
+          "y": -400
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 29,
+        "mapper": null,
+        "module": "builtin:BasicRouter",
+        "routes": [
+         {
+          "flow": [
+           {
+            "id": 21,
+            "filter": {
+             "name": "קיים",
+             "conditions": [
+              [
+               {
+                "a": "{{20.id}}",
+                "o": "exist"
+               }
+              ]
+             ]
+            },
+            "mapper": {
+             "actions": [
+              {
+               "value": "{{10.result.first}}",
+               "action": "set_field_value",
+               "field_name": "שם לקוח"
+              },
+              {
+               "value": "{{10.result.name}}",
+               "action": "set_field_value",
+               "field_name": "לקוח פלאפון"
+              },
+              {
+               "value": "{{10.result.repName}}",
+               "action": "set_field_value",
+               "field_name": "נציג פלאפון"
+              },
+              {
+               "value": "{{10.result.repWa}}",
+               "action": "set_field_value",
+               "field_name": "טלפון נציג פלאפון"
+              }
+             ],
+             "subscriberId": "{{20.id}}"
+            },
+            "module": "manychat:PerformAction",
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 4200,
+              "y": -500
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           },
+           {
+            "id": 22,
+            "mapper": {
+             "flowName": "content20261005113116_816896",
+             "subscriberId": "{{20.id}}"
+            },
+            "module": "manychat:SendFlow",
+            "onerror": [
+             {
+              "id": 23,
+              "module": "builtin:Ignore",
+              "version": 1,
+              "metadata": {
+               "designer": {
+                "x": 4500,
+                "y": -300
+               }
+              }
+             }
+            ],
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 4500,
+              "y": -500
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           }
+          ]
+         },
+         {
+          "flow": [
+           {
+            "id": 24,
+            "filter": {
+             "name": "חדש",
+             "conditions": [
+              [
+               {
+                "a": "{{20.id}}",
+                "o": "notexist"
+               }
+              ]
+             ]
+            },
+            "mapper": {
+             "email": "",
+             "phone": "{{10.result.wa}}",
+             "gender": "",
+             "lastName": "",
+             "firstName": "{{10.result.name}}",
+             "hasOptInSms": true,
+             "consentPhrase": "true",
+             "hasOptInEmail": true,
+             "whatsAppPhone": "{{10.result.wa}}"
+            },
+            "module": "manychat:CreateSubscriber",
+            "onerror": [
+             {
+              "id": 25,
+              "module": "builtin:Ignore",
+              "version": 1,
+              "metadata": {
+               "designer": {
+                "x": 4200,
+                "y": -100
+               }
+              }
+             }
+            ],
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 4200,
+              "y": -300
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           },
+           {
+            "id": 26,
+            "mapper": {
+             "actions": [
+              {
+               "value": "{{10.result.first}}",
+               "action": "set_field_value",
+               "field_name": "שם לקוח"
+              },
+              {
+               "value": "{{10.result.name}}",
+               "action": "set_field_value",
+               "field_name": "לקוח פלאפון"
+              },
+              {
+               "value": "{{10.result.repName}}",
+               "action": "set_field_value",
+               "field_name": "נציג פלאפון"
+              },
+              {
+               "value": "{{10.result.repWa}}",
+               "action": "set_field_value",
+               "field_name": "טלפון נציג פלאפון"
+              }
+             ],
+             "subscriberId": "{{24.data.id}}"
+            },
+            "module": "manychat:PerformAction",
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 4500,
+              "y": -300
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           },
+           {
+            "id": 27,
+            "mapper": {
+             "flowName": "content20261005113116_816896",
+             "subscriberId": "{{24.data.id}}"
+            },
+            "module": "manychat:SendFlow",
+            "onerror": [
+             {
+              "id": 28,
+              "module": "builtin:Ignore",
+              "version": 1,
+              "metadata": {
+               "designer": {
+                "x": 4800,
+                "y": -100
+               }
+              }
+             }
+            ],
+            "version": 1,
+            "metadata": {
+             "designer": {
+              "x": 4800,
+              "y": -300
+             }
+            },
+            "parameters": {
+             "__IMTCONN__": 13316809
+            }
+           }
+          ]
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 4000,
+          "y": -400
+         }
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 30,
+        "filter": {
+         "name": "עדכון לנציג",
+         "conditions": [
+          [
+           {
+            "a": "{{10.result.action}}",
+            "b": "skip",
+            "o": "text:notequal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{10.result.repWa}}@c.us",
+          "message": "{{10.result.msg}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 3900,
+          "y": 0
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 40,
+        "filter": {
+         "name": "יש שורה בדוח",
+         "conditions": [
+          [
+           {
+            "a": "{{10.result.hasRow}}",
+            "b": "true",
+            "o": "boolean:equal"
+           },
+           {
+            "a": "{{10.result.action}}",
+            "b": "skip",
+            "o": "text:notequal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/1Y_qRBGCrUhOBH6iVbUFKaKhQ_WebXWX9ClVB7WLWtUg/values:batchUpdate",
+         "body": "{{10.result.sheetBody}}",
+         "method": "POST",
+         "headers": [
+          {
+           "key": "Content-Type",
+           "value": "application/json"
+          }
+         ]
+        },
+        "module": "google-sheets:makeAPICall",
+        "onerror": [
+         {
+          "id": 41,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 4200,
+            "y": 600
+           }
+          }
+         }
+        ],
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 3900,
+          "y": 400
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 3600,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "ניודים 3 - ללא מענה מפלאפון ← הודעה ללקוח ולנציג",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

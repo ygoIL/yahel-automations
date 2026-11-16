@@ -1,0 +1,221 @@
+{
+ "id": 10103152,
+ "name": "Claude - ניקוי לקוחות פעילים בלבד (בלי כפילויות)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:11.109Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 20,
+    "mapper": {
+     "key": "active_cleanup_last_run",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "onerror": [
+     {
+      "id": 21,
+      "mapper": {
+       "data": ""
+      },
+      "module": "builtin:Resume",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "datastore": 197016
+    }
+   },
+   {
+    "id": 22,
+    "mapper": {
+     "input": [
+      {
+       "name": "last",
+       "value": "{{20.data}}"
+      },
+      {
+       "name": "offset",
+       "value": "{{ifempty(var.input.offset; 0)}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// RULE (Steve 10/11/2026): active-customers cleanup (this scenario) may run at most once every 14 days, even if one of us asks. No daily cleanup.\n// A continuation batch (offset > 0) on the same day as the last allowed run is allowed.\nconst last = String(input.last || '').trim().slice(0, 10);\nconst off = Number(input.offset || 0) || 0;\nconst now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));\nconst pad = (n) => String(n).padStart(2, '0');\nconst today = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());\nlet allowed = false, days = null, next = '';\nif (!/^\\d{4}-\\d{2}-\\d{2}$/.test(last)) { allowed = true; }\nelse {\n  const a = Date.UTC(+last.slice(0, 4), +last.slice(5, 7) - 1, +last.slice(8, 10));\n  const b = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());\n  days = Math.round((b - a) / 86400000);\n  const n = new Date(a + 14 * 86400000);\n  next = n.getUTCFullYear() + '-' + pad(n.getUTCMonth() + 1) + '-' + pad(n.getUTCDate());\n  allowed = days >= 14 || (days === 0 && off > 0);\n}\nconst store = (allowed && off === 0) ? today : (last || today);\nconst note = allowed ? '' : JSON.stringify({ blocked: true, message: 'ניקוי לקוחות פעילים חסום: מותר פעם בשבועיים (הוראת סטיב 10/11/2026). רץ לאחרונה ' + last + ', הריצה הבאה מותרת מ-' + next + '.', lastRun: last, nextAllowed: next, at: new Date().toISOString() });\nreturn { allowed, store, note, days, next };\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 23,
+    "mapper": {
+     "key": "active_cleanup_last_run",
+     "data": {
+      "data": "{{22.result.store}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "onerror": [
+     {
+      "id": 24,
+      "module": "builtin:Ignore",
+      "version": 1
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "datastore": 197016
+    }
+   },
+   {
+    "id": 27,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 50,
+        "filter": {
+         "name": "מותר – עברו 14 יום",
+         "conditions": [
+          [
+           {
+            "a": "{{22.result.allowed}}",
+            "b": "true",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "url": "https://tochat-bridge-production.up.railway.app/jobs/cleanup-async",
+         "method": "post",
+         "headers": [
+          {
+           "name": "x-cleanup-key",
+           "value": "__ENV:HDR_X_CLEANUP_KEY__"
+          }
+         ],
+         "timeout": "60",
+         "contentType": "json",
+         "inputMethod": "jsonString",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "jsonStringBodyContent": "{\"kind\":\"active\",\"campaignId\":\"{{var.input.campaignId}}\",\"offset\":{{ifempty(var.input.offset; 0)}},\"count\":{{ifempty(var.input.count; 7000)}},\"apply\":true,\"callbackKey\":\"active_{{var.input.campaignId}}\"}",
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       },
+       {
+        "id": 51,
+        "mapper": {
+         "key": "active_{{var.input.campaignId}}",
+         "data": {
+          "data": "{\"status\":\"running\",\"via\":\"railway\",\"startedAt\":\"{{now}}\",\"message\":\"הניקוי רץ ב-Railway. הסיכום יופיע כאן בסיום (בדרך כלל עד 5 דקות)\"}"
+         },
+         "overwrite": true
+        },
+        "module": "datastore:AddRecord",
+        "onerror": [
+         {
+          "id": 52,
+          "mapper": {},
+          "module": "builtin:Ignore",
+          "version": 1,
+          "parameters": {}
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "datastore": 197016
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 25,
+        "filter": {
+         "name": "חסום – פחות מ-14 יום",
+         "conditions": [
+          [
+           {
+            "a": "{{22.result.allowed}}",
+            "b": "false",
+            "o": "boolean:equal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "key": "active_{{var.input.campaignId}}",
+         "data": {
+          "data": "{{22.result.note}}"
+         },
+         "overwrite": true
+        },
+        "module": "datastore:AddRecord",
+        "onerror": [
+         {
+          "id": 26,
+          "module": "builtin:Ignore",
+          "version": 1
+         }
+        ],
+        "version": 1,
+        "parameters": {
+         "datastore": 197016
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1
+   }
+  ],
+  "name": "Claude - ניקוי לקוחות פעילים בלבד (בלי כפילויות)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

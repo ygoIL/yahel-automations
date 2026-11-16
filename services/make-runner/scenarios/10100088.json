@@ -1,0 +1,64 @@
+{
+ "id": 10100088,
+ "name": "Claude - ספירת לידים פתוחים בקמפיין (ממירים מבצע)",
+ "scheduling": {
+  "type": "on-demand"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:22.788Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "url": "/tenants/YahelCommunication/campaigns/FCYER1MuYnJo9vFwHD4W/openLeads",
+     "method": "GET"
+    },
+    "module": "app#tochat-cannon-7utvne:makeAnApiCall",
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 12553633
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "leads",
+       "value": "{{1.body}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const p=(v)=>typeof v==='string'?JSON.parse(v):v;const l=[].concat(p(input.leads)||[]);return JSON.stringify({count:l.length});"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "key": "open_count_FCYER",
+     "data": {
+      "data": "{{2.result}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "parameters": {
+     "datastore": 201530
+    }
+   }
+  ],
+  "name": "Claude - ספירת לידים פתוחים בקמפיין (ממירים מבצע)",
+  "metadata": {
+   "instant": false,
+   "version": 1
+  }
+ }
+}

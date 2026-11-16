@@ -1,0 +1,377 @@
+{
+ "id": 9924843,
+ "name": "הקדמות 3 - שליחה חוזרת אחרי דחייה (4 שעות)",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 900,
+  "restrict": [
+   {
+    "days": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "time": [
+     "07:00",
+     "19:00"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   }
+  ]
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:48:34.130Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "limit": 20,
+     "filter": [
+      [
+       {
+        "a": "status",
+        "b": "שליחה חוזרת מתוזמנת",
+        "o": "text:equal"
+       },
+       {
+        "a": "retry_at",
+        "b": "{{now}}",
+        "o": "date:lessorequal"
+       }
+      ]
+     ]
+    },
+    "module": "datastore:SearchRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 191414
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "key": "{{1.key}}",
+     "returnWrapped": false
+    },
+    "module": "datastore:GetRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 191414
+    }
+   },
+   {
+    "id": 3,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 4,
+        "filter": {
+         "name": "מותר לשלוח שוב (עדיין מתוזמן, לפני 19:00)",
+         "conditions": [
+          [
+           {
+            "a": "{{2.status}}",
+            "b": "שליחה חוזרת מתוזמנת",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")}}",
+            "b": "1900",
+            "o": "number:less"
+           },
+           {
+            "a": "{{replace(2.short_date; \"-\"; \"\")}}",
+            "b": "{{formatDate(now; \"YYYYMMDD\"; \"Asia/Jerusalem\")}}",
+            "o": "number:greater"
+           },
+           {
+            "a": "{{2.send_day}}",
+            "b": "{{formatDate(now; \"YYYY-MM-DD\"; \"Asia/Jerusalem\")}}",
+            "o": "text:notequal"
+           }
+          ],
+          [
+           {
+            "a": "{{2.status}}",
+            "b": "שליחה חוזרת מתוזמנת",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{formatDate(now; \"HHmm\"; \"Asia/Jerusalem\")}}",
+            "b": "1900",
+            "o": "number:less"
+           },
+           {
+            "a": "{{replace(2.short_date; \"-\"; \"\")}}",
+            "b": "{{formatDate(now; \"YYYYMMDD\"; \"Asia/Jerusalem\")}}",
+            "o": "number:greater"
+           },
+           {
+            "a": "{{ifempty(2.sends_today; 0)}}",
+            "b": "2",
+            "o": "number:less"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "to": [
+          "hakdamot-digital@commboxmail.com"
+         ],
+         "subject": "{{2.customer_number}}",
+         "bodyType": "collection",
+         "contents": [
+          {
+           "text": "הלקוח מבקש הקדמה לתאריך {{formatDate(parseDate(2.short_date; \"YYYY-MM-DD\"); \"D/M\")}} שעות {{replace(2.new_slot; \":00\"; \"\")}}"
+          }
+         ]
+        },
+        "module": "google-email:sendAnEmail",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 900,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 14634877
+        }
+       },
+       {
+        "id": 5,
+        "mapper": {
+         "key": "{{1.key}}",
+         "data": {
+          "status": "ממתין",
+          "retry_at": "",
+          "send_day": "{{formatDate(now; \"YYYY-MM-DD\"; \"Asia/Jerusalem\")}}",
+          "thread_id": "{{4.threadId}}",
+          "created_at": "{{now}}",
+          "sends_today": "{{if(2.send_day = formatDate(now; \"YYYY-MM-DD\"; \"Asia/Jerusalem\"); ifempty(2.sends_today; 0) + 1; 1)}}"
+         },
+         "upsert": false,
+         "overwriteArrays": false
+        },
+        "module": "datastore:UpdateRecord",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "datastore": 191414
+        }
+       },
+       {
+        "id": 14,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{2.subscriber_id}}",
+          "message": "🔁 שלחתי שוב את בקשת ההקדמה:\n👤 {{2.customer_name}} (לקוח {{2.customer_number}})\n📅 {{2.new_date}}\n🕐 {{2.new_slot}}\n\nאעדכן אותך ברגע שתגיע תשובה מהחברה."
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 15,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1800,
+            "y": -250
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 10,
+        "filter": {
+         "name": "לא לשלוח (תאריך עבר / כבר 2 היום)",
+         "conditions": [
+          [
+           {
+            "a": "{{2.status}}",
+            "b": "שליחה חוזרת מתוזמנת",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{replace(2.short_date; \"-\"; \"\")}}",
+            "b": "{{formatDate(now; \"YYYYMMDD\"; \"Asia/Jerusalem\")}}",
+            "o": "number:lessorequal"
+           }
+          ],
+          [
+           {
+            "a": "{{2.status}}",
+            "b": "שליחה חוזרת מתוזמנת",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{2.send_day}}",
+            "b": "{{formatDate(now; \"YYYY-MM-DD\"; \"Asia/Jerusalem\")}}",
+            "o": "text:equal"
+           },
+           {
+            "a": "{{ifempty(2.sends_today; 0)}}",
+            "b": "2",
+            "o": "number:greaterorequal"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "key": "{{1.key}}",
+         "data": {
+          "status": "נדחה",
+          "retry_at": ""
+         },
+         "upsert": false,
+         "overwriteArrays": false
+        },
+        "module": "datastore:UpdateRecord",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 900,
+          "y": 250
+         }
+        },
+        "parameters": {
+         "datastore": 191414
+        }
+       },
+       {
+        "id": 16,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{2.subscriber_id}}",
+          "message": "⛔ לא שלחתי שוב את ההקדמה של {{2.customer_name}} (לקוח {{2.customer_number}}) ל-{{2.new_date}} {{2.new_slot}} - התאריך המבוקש כבר הגיע, או שכבר נשלחו היום 2 בקשות על הלקוח.\nאפשר לשלוח בקשה חדשה מחר אם עדיין רלוונטי."
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "onerror": [
+         {
+          "id": 17,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 1500,
+            "y": 150
+           }
+          }
+         }
+        ],
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1200,
+          "y": 250
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "הקדמות 3 - שליחה חוזרת אחרי דחייה (4 שעות)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

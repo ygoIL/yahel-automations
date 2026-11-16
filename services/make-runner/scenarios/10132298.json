@@ -1,0 +1,261 @@
+{
+ "id": 10132298,
+ "name": "Claude - שימורים לטלי: העברה אחרי 24 שעות + תזכורות וחריגות",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 3600
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:52.398Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?fields=sheets.properties.title",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst titles=arr(input.sheets).map(s=>String(((s||{}).properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(const off of [0,-1]){ const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+off,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t); }\nconst q=s=>\"'\"+s+\"'\";\nconst f=[{a1Range:\"'שימורים לטלי'!A1:Q3000\"}];\ntabs.forEach(t=>f.push({a1Range:q(t)+'!A1:Z1500'}));\nreturn {tabs:JSON.stringify(tabs), readBody:JSON.stringify({dataFilters:f, valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "vr",
+       "value": "{{3.body.valueRanges}}"
+      },
+      {
+       "name": "tabs",
+       "value": "{{2.result.tabs}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "// Tali retention (שימורים) checker – Steve 09/11/2026:\n// a cancelled / fallen customer the rep did not explain within 24h moves to 'שימורים לטלי';\n// Tali gets the new ones + a daily reminder; if a row has no update from Tali for 24h, Yarden and Steve get an alert.\n// If Tali marks שומר, the deal is fully hers.\nconst norm=s=>String(s==null?'':s).replace(/\\s+/g,' ').trim();\nconst digits=s=>String(s==null?'':s).replace(/\\D/g,'');\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst vr=arr(input.vr).map(v=>(v&&v.valueRange)||v||{});\nconst byName=n=>{ const x=vr.find(v=>{ const r=norm(v.range).replace(/^'/,''); return r.startsWith(n+\"'!\")||r.startsWith(n+'!'); }); return (x&&x.values)||[]; };\nconst tabs=arr(input.tabs).map(norm);\nconst TALI='972525102820', MGR=[['סטיב','972544604246'],['ירדן','972504445169']];\nconst T=\"'שימורים לטלי'\";\nconst pad=n=>('0'+n).slice(-2);\nconst nowIL=input.now?new Date(input.now):new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst stamp=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());\nconst nowS=stamp(nowIL); const todayIso=nowS.slice(0,10); const dm=pad(nowIL.getDate())+'/'+pad(nowIL.getMonth()+1);\nconst parseS=s=>{ const m=norm(s).match(/^(\\d{4})-(\\d{2})-(\\d{2})\\s+(\\d{1,2}):(\\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]):null; };\nconst hrs=(a,b)=>(b-a)/3600000;\nconst dow=nowIL.getDay(), H=nowIL.getHours();\nconst quiet=dow===6||(dow===5&&H>=16)||H<8||H>=20;\nconst colL=n=>{ let s=''; n++; while(n>0){ const k=(n-1)%26; s=String.fromCharCode(65+k)+s; n=Math.floor((n-1)/26); } return s; };\nconst ALIAS={'אוסי':'אוסי גיאן','אופק פ':'אופק','דוד':'דוד חי','איתמר':'איתמר ששון'};\nconst tt=byName('שימורים לטלי');\nconst writes=[]; const msgs=[];\nconst HEAD=['תאריך העברה','מספר לקוח','שם לקוח','נייד','נציג','מה קרה','סטטוס טלי','הערת טלי','עדכון אחרון','שעות בלי עדכון','נשלח לטלי','התראת חריגה לירדן וסטיב','העסקה נזקפת ל','מקור (לא לגעת)','חתימה (לא לגעת)'];\nif(!tt.length){ writes.push({range:T+'!A1:O1', values:[HEAD]}); tt.push(HEAD); }\nconst have=new Set(tt.slice(1).map(r=>norm((r||[])[13])).filter(Boolean));\nlet next=Math.max(tt.length,1)+1;\nconst fresh=[];\n// 1) escalate: rep got the cancellation message (marker ⏳ DD/MM in 'הסבר נציג') and did not answer within 24h\ntabs.forEach(tb=>{ const rows=byName(tb); const hd=(rows[0]||[]).map(norm);\n  const hE=hd.findIndex(x=>x.startsWith('הסבר נציג')); if(hE<0) return;\n  const hN=hd.findIndex(x=>x.startsWith('הערות')); const iN=hN>=0?hN:17;\n  rows.forEach((r,i)=>{ if(i===0||!r) return; const ev=norm(r[hE]);\n    const mk=ev.match(/^⏳\\D*(\\d{1,2})\\/(\\d{1,2})/); if(!mk) return;\n    let y=nowIL.getFullYear(); if(+mk[2]>nowIL.getMonth()+1) y--;\n    const sent=new Date(y,+mk[2]-1,+mk[1],9,0);\n    if(hrs(sent,nowIL)<23) return; // escalate from 08:00 the next day, before the 09:00 rep message could send a reminder\n    const src=\"'\"+tb+\"'!\"+colL(hE)+(i+1);\n    if(!have.has(src)){\n      const rep=norm(r[7]); const why=/בוטל|ביטול|ביטל|לא מעוניין/.test(norm(r[iN]))?'בוטל':'ההתקנה נפלה / סומן באדום';\n      const row=[nowS, digits(r[6]), norm(r[2]), norm(r[3]), ALIAS[rep]||rep, why+' (חודש '+tb+')', '', '', nowS, 0, '', '', '', src, '|'];\n      writes.push({range:T+'!A'+next+':O'+next, values:[row]}); tt.push(row); next++; have.add(src); fresh.push(row);\n    }\n    writes.push({range:src, values:[['➡️ הועבר לטלי '+dm+' – הנציג לא ענה תוך 24 שעות']]});\n  }); });\n// 2) follow-up on Tali's rows\nconst FINAL=/^(שומר|לא שומר|לא רלוונטי)/;\nconst openL=[], newL=[], breachL=[];\ntt.forEach((r,i)=>{ if(i===0||!r) return; const name=norm(r[2]); if(!name&&!norm(r[1])) return;\n  const rn=i+1; const st=norm(r[6]), note=norm(r[7]); const sig=st+'|'+note; let last=parseS(r[8])||parseS(r[0])||nowIL;\n  if(sig!==norm(r[14])){ last=nowIL; writes.push({range:T+'!I'+rn, values:[[nowS]]}); writes.push({range:T+'!O'+rn, values:[[sig]]});\n    const saved=/^שומר/.test(st);\n    writes.push({range:T+'!M'+rn, values:[[saved?'טלי':'']]});\n    const src=norm(r[13]); if(saved&&src) writes.push({range:src, values:[['✅ טלי שימרה '+dm+' – העסקה של טלי']]});\n    if(!/^שומר/.test(st)&&/^שומר/.test(norm(r[14]).split('|')[0])&&src) writes.push({range:src, values:[['➡️ אצל טלי – '+(st||'בטיפול')]]}); }\n  if(FINAL.test(st)){ if(norm(r[9])!=='') writes.push({range:T+'!J'+rn, values:[['']]}); return; }\n  const h=Math.floor(hrs(last,nowIL)); writes.push({range:T+'!J'+rn, values:[[h]]});\n  const it={name, phone:norm(r[3]), rep:norm(r[4]).split(' ')[0], why:norm(r[5]).replace(/\\s*\\(חודש.*\\)$/,''), h, st};\n  openL.push(it);\n  if(!quiet && !norm(r[10])){ newL.push(it); writes.push({range:T+'!K'+rn, values:[[nowS]]}); }\n  const lb=parseS(r[11]);\n  if(!quiet && h>=24 && (!lb||hrs(lb,nowIL)>=24)){ breachL.push(it); writes.push({range:T+'!L'+rn, values:[[nowS]]}); }\n});\nconst line=(x,i)=>(i+1)+'. '+x.name+(x.phone?' '+x.phone:'')+' | '+x.rep+' | '+x.why;\nconst cap=(l,f)=>{ const o=l.slice(0,15).map(f); if(l.length>15) o.push('ועוד '+(l.length-15)); return o.join('\\n'); };\nconst remDone=norm((tt[0]||[])[16])===todayIso;\nconst daily=!quiet && H>=9 && !remDone && openL.length>0;\nif(!quiet && (newL.length||daily)){\n  let m='🔴 שימורים לטיפולך\\n\\nהיי טלי';\n  if(newL.length) m+=', '+(newL.length===1?'נכנס לקוח חדש שהנציג לא ענה עליו 24 שעות:':'נכנסו '+newL.length+' לקוחות חדשים שהנציג לא ענה עליהם 24 שעות:')+'\\n'+cap(newL,line);\n  const old=openL.filter(x=>!newL.includes(x));\n  if(daily && old.length) m+='\\n\\n'+(newL.length?'ועוד פתוחים אצלך':', פתוחים אצלך')+' ('+old.length+'):\\n'+cap(old,(x,i)=>line(x,i)+(x.st?' | '+x.st:'')+(x.h>=20?' | '+x.h+' שעות בלי עדכון':''));\n  m+='\\n\\n'+((newL.length+(daily?openL.length-newL.length:0))===1?'תתקשרי אליו היום.':'תתקשרי אליהם היום.')+' בחוצץ \"שימורים לטלי\" בדוח המכר מעדכנים סטטוס והערה. אם שימרת, העסקה שלך.\\nאם אין עדכון 24 שעות, זה עולה לירדן ולסטיב.';\n  if(m.length>1990) m=m.slice(0,1985)+'…';\n  msgs.push({phone:TALI, msg:m});\n}\nif(daily||(!quiet&&H>=9&&!remDone&&newL.length)) writes.push({range:T+'!Q1', values:[[todayIso]]});\nif(breachL.length){\n  MGR.forEach(([n,p])=>{ let m='⏰ חריגה בשימורים\\n\\nהיי '+n+', '+(breachL.length===1?'לקוח אחד אצל טלי בלי עדכון יותר מ-24 שעות:':breachL.length+' לקוחות אצל טלי בלי עדכון יותר מ-24 שעות:')+'\\n'+cap(breachL,(x,i)=>line(x,i)+' | '+x.h+' שעות')+'\\n\\nהפירוט בחוצץ \"שימורים לטלי\" בדוח המכר.';\n    if(m.length>1990) m=m.slice(0,1985)+'…'; msgs.push({phone:p, msg:m}); });\n}\nreturn {writeBody:JSON.stringify({valueInputOption:'RAW',data:writes}), writeCount:writes.length, msgs, msgCount:msgs.length,\n  dbg:JSON.stringify({quiet, fresh:fresh.length, open:openL.length, new:newL.length, breach:breachL.length, daily})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 6,
+        "filter": {
+         "name": "יש מה לכתוב",
+         "conditions": [
+          [
+           {
+            "a": "{{4.result.writeCount}}",
+            "b": "0",
+            "o": "number:greater"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "qs": [],
+         "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+         "body": "{{4.result.writeBody}}",
+         "method": "POST",
+         "headers": [
+          {
+           "key": "Content-Type",
+           "value": "application/json"
+          }
+         ]
+        },
+        "module": "google-sheets:makeAPICall",
+        "version": 2,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": 0
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 12661457
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 7,
+        "filter": {
+         "name": "יש הודעות",
+         "conditions": [
+          [
+           {
+            "a": "{{4.result.msgCount}}",
+            "b": "0",
+            "o": "number:greater"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "array": "{{4.result.msgs}}"
+        },
+        "module": "builtin:BasicFeeder",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 1500,
+          "y": 300
+         }
+        },
+        "parameters": {}
+       },
+       {
+        "id": 8,
+        "mapper": {
+         "url": "https://wa-gateway-production-3ddb70bf.up.railway.app/gate?key=__ENV:GATEWAY_KEY__",
+         "method": "post",
+         "contentType": "json",
+         "inputMethod": "dataStructure",
+         "shareCookies": false,
+         "parseResponse": true,
+         "allowRedirects": true,
+         "stopOnHttpError": true,
+         "bodyDataStructure": 656096,
+         "dataStructureBodyContent": {
+          "chatId": "{{7.phone}}@c.us",
+          "message": "{{7.msg}}"
+         },
+         "requestCompressedContent": true
+        },
+        "module": "http:MakeRequest",
+        "version": 4,
+        "metadata": {
+         "designer": {
+          "x": 1800,
+          "y": 300
+         }
+        },
+        "parameters": {
+         "authenticationType": "noAuth"
+        }
+       },
+       {
+        "id": 9,
+        "mapper": {
+         "duration": 3
+        },
+        "module": "util:FunctionSleep",
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2100,
+          "y": 300
+         }
+        },
+        "parameters": {}
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - שימורים לטלי: העברה אחרי 24 שעות + תזכורות וחריגות",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

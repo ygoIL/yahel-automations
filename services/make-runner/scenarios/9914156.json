@@ -1,0 +1,205 @@
+{
+ "id": 9914156,
+ "name": "Claude - מילוי בקשות להקדמה (דוח מכר)",
+ "scheduling": {
+  "days": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "time": "11:40",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:02.630Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [
+      {
+       "key": "fields",
+       "value": "sheets.properties.title"
+      }
+     ],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(let k=0;k<2;k++){const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+k,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(d>=new Date(2026,9,1) && titles.includes(t)) tabs.push(t);}\nreturn {count:tabs.length, body: JSON.stringify({dataFilters: tabs.map(t=>({a1Range:\"'\"+t+\"'!A1:T2000\"})).concat([{a1Range:\"'בקשות להקדמה'!A1:O5000\"}]), valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/1Bc0BlfVic8MrE3yUC1qty57bxeFprCwLgpLtkYIZhpQ/values:batchGetByDataFilter",
+     "body": "{\"dataFilters\":[{\"a1Range\":\"'גיליון1'!A1:O10000\"}],\"valueRenderOption\":\"FORMATTED_VALUE\"}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "ranges",
+       "value": "{{3.body.valueRanges}}"
+      },
+      {
+       "name": "old",
+       "value": "{{4.body.valueRanges[1].valueRange.values}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst DAYS=['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי','יום שישי','יום שבת'];\n// today in Israel\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst today=new Date(nowIL.getFullYear(),nowIL.getMonth(),nowIL.getDate());\nfunction parseHeb(s){\n  s=String(s||'');\n  const m=s.match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/);\n  if(m){const mi=MONTHS.indexOf(m[2]); if(mi>=0) return new Date(+m[3],mi,+m[1]);}\n  const n=s.match(/(\\d{1,2})[\\/.](\\d{1,2})[\\/.](\\d{2,4})/);\n  if(n){let y=+n[3]; if(y<100)y+=2000; return new Date(y,+n[2]-1,+n[1]);}\n  return null;\n}\nfunction workdaysAhead(d){ // Sun-Thu days from tomorrow through d inclusive\n  let c=0; const x=new Date(today);\n  while(true){x.setDate(x.getDate()+1); if(x>d) break; const w=x.getDay(); if(w<=4) c++; if(c>60) break;}\n  return c;\n}\nconst all=input.ranges||[];\nconst isReq=vr=>String((vr.valueRange||{}).range||'').includes('בקשות להקדמה');\nconst reqVr=all.find(isReq);\nconst ranges=all.filter(vr=>!isReq(vr));\nconst existing=(reqVr&&reqVr.valueRange&&reqVr.valueRange.values)||[];\nconst old=(input.old||[]).filter(r=>String(r[6]||'').trim()==='כן');\nconst seenCust=new Set(), seenPhone=new Set();\nconst digits=v=>String(v||'').replace(/\\D/g,'').replace(/^972/,'0');\nfor(const r of existing.concat(old)){ if(r[9]) seenCust.add(String(r[9]).trim()); if(r[2]) seenPhone.add(digits(r[2])); }\nlet num=0; for(const r of existing){const a=parseInt(r[0],10); if(!isNaN(a)&&a>num) num=a;}\nconst out=[]; const skipped={short:0,recentSale:0,dup:0,noPhone:0,notSigned:0,bezeq:0,infra:0};\nconst todayTxt=today.getDate()+'/'+(today.getMonth()+1)+'/'+today.getFullYear();\nconst minSale=new Date(today); minSale.setDate(minSale.getDate()-2);\nfor(const vr of ranges){\n  const vals=(vr.valueRange&&vr.valueRange.values)||[];\n  if(!vals.length) continue;\n  const h=vals[0].map(x=>String(x||'').trim());\n  const ix=name=>h.findIndex(x=>x.startsWith(name));\n  const tabName=String((vr.valueRange||{}).range||'').split('!')[0].replace(/'/g,'');\n  const iSale=ix('תאריך מכירה'), iName=ix('שם לקוח'), iPhone=ix('נייד'), iInst=ix('תאריך התקנה'), iTime=ix('שעת התקנה'), iCust=ix('מספר לקוח'), iRep=ix('נציג מוכר'), iNote=ix('הערות'), iWhat=ix('מה נמכר'), iInfra=ix('תשתיות');\n  for(const r of vals.slice(1)){\n    const inst=parseHeb(r[iInst]); if(!inst) continue;\n    const what=String(iWhat>=0?(r[iWhat]||''):'');\n    if(what.includes('בזק')){skipped.bezeq++; continue;}\n    const sale=parseHeb(r[iSale]);\n    const cust=String(r[iCust]||'').trim();\n    const ph=digits(r[iPhone]);\n    if(!ph){skipped.noPhone++; continue;}\n    const note=String(iNote>=0?(r[iNote]||''):'');\n    if(note.includes('בוטל')){skipped.notSigned++; continue;}\n    const infraMarked=iInfra>=0 && String(r[iInfra]||'').trim()==='כן';\n    if(infraMarked||note.includes('תשתיות')){skipped.infra++; continue;}\n    const wd=workdaysAhead(inst);\n    if(wd<5){skipped.short++; continue;}\n    if(!sale||sale>minSale){skipped.recentSale++; continue;}\n    if((cust&&seenCust.has(cust))||seenPhone.has(ph)){skipped.dup++; continue;}\n    seenPhone.add(ph); if(cust) seenCust.add(cust);\n    const instTxt=DAYS[inst.getDay()]+' '+inst.getDate()+' '+MONTHS[inst.getMonth()]+' '+inst.getFullYear();\n    num++;\n    out.push([num,String(r[iName]||'').trim(),String(r[iPhone]||'').trim(),instTxt,String(r[iTime]||'').trim(),String(r[iRep]||'').trim(),(/^05\\d{8}$/.test(ph)?'':'מספר לא תקין'),'','',cust,String(r[iSale]||'').trim(),wd,tabName,todayTxt]);\n  }\n}\nconst startRow=Math.max(existing.length,1)+1;\nreturn {count:out.length, skipped:JSON.stringify(skipped), body:JSON.stringify({valueInputOption:'RAW',data:[{range:\"'בקשות להקדמה'!A\"+startRow,values:out}]})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "filter": {
+     "name": "יש לקוחות חדשים",
+     "conditions": [
+      [
+       {
+        "a": "{{5.result.count}}",
+        "b": "0",
+        "o": "number:greater"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+     "body": "{{5.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   }
+  ],
+  "name": "Claude - מילוי בקשות להקדמה (דוח מכר)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

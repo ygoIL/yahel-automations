@@ -1,0 +1,224 @@
+{
+ "id": 10106402,
+ "name": "Claude - תמלול הקלטות נציגים (ElevenLabs Scribe)",
+ "scheduling": {
+  "type": "indefinitely",
+  "interval": 900
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:47:58.165Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "from": "drive",
+     "mode": "select",
+     "limit": "15",
+     "filter": [
+      [
+       {
+        "a": "H",
+        "o": "exist"
+       },
+       {
+        "a": "I",
+        "o": "notexist"
+       },
+       {
+        "a": "K",
+        "b": "כן",
+        "o": "text:equal"
+       }
+      ],
+      [
+       {
+        "a": "H",
+        "o": "exist"
+       },
+       {
+        "a": "I",
+        "o": "notexist"
+       },
+       {
+        "a": "K",
+        "b": "שגיאה 1",
+        "o": "text:equal"
+       }
+      ]
+     ],
+     "orderBy": "",
+     "sheetId": "Untitled",
+     "sortOrder": "asc",
+     "spreadsheetId": "/1QXWDWawAVRj6W5dxtbKesD7Z3NZtOuEEBaq0O-2QYF0",
+     "tableFirstRow": "A1:Z1",
+     "includesHeaders": true,
+     "valueRenderOption": "FORMATTED_VALUE",
+     "dateTimeRenderOption": "FORMATTED_STRING"
+    },
+    "module": "google-sheets:filterRows",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 14650651
+    }
+   },
+   {
+    "id": 2,
+    "filter": {
+     "name": "יש קישור להקלטה",
+     "conditions": [
+      [
+       {
+        "a": "{{1.`7`}}",
+        "o": "exist"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "diarize": true,
+     "model_id": "scribe_v2",
+     "source_url": "{{1.`7`}}",
+     "num_speakers": 2,
+     "language_code": "he",
+     "tag_audio_events": false,
+     "timestamps_granularity": "word"
+    },
+    "module": "elevenlabs:createSpeechToText",
+    "onerror": [
+     {
+      "id": 7,
+      "mapper": {
+       "from": "drive",
+       "mode": "select",
+       "values": {
+        "10": "{{if(1.`10` = \"כן\"; \"שגיאה 1\"; \"שגיאה\")}}",
+        "12": "שגיאת תמלול {{formatDate(now; \"DD/MM/YYYY HH:mm\"; \"Asia/Jerusalem\")}}"
+       },
+       "sheetId": "Untitled",
+       "rowNumber": "{{1.__ROW_NUMBER__}}",
+       "spreadsheetId": "/1QXWDWawAVRj6W5dxtbKesD7Z3NZtOuEEBaq0O-2QYF0",
+       "includesHeaders": true,
+       "useColumnHeaders": false,
+       "valueInputOption": "RAW"
+      },
+      "module": "google-sheets:updateRow",
+      "version": 2,
+      "parameters": {
+       "__IMTCONN__": 14650651
+      }
+     },
+     {
+      "id": 8,
+      "mapper": {},
+      "module": "builtin:Ignore",
+      "version": 1,
+      "parameters": {}
+     }
+    ],
+    "version": 1,
+    "parameters": {
+     "__IMTCONN__": 14720061
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "from": "drive",
+     "mode": "select",
+     "values": {
+      "8": "{{substring(ifempty(2.text; \"(לא זוהה דיבור בהקלטה)\"); 0; 49000)}}"
+     },
+     "sheetId": "Untitled",
+     "rowNumber": "{{1.__ROW_NUMBER__}}",
+     "spreadsheetId": "/1QXWDWawAVRj6W5dxtbKesD7Z3NZtOuEEBaq0O-2QYF0",
+     "includesHeaders": true,
+     "useColumnHeaders": false,
+     "valueInputOption": "RAW"
+    },
+    "module": "google-sheets:updateRow",
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 14650651
+    }
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "array": "{{2.words}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "parameters": {}
+   },
+   {
+    "id": 4,
+    "filter": {
+     "name": "מילים בלבד",
+     "conditions": [
+      [
+       {
+        "a": "{{3.type}}",
+        "b": "word",
+        "o": "text:equal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "value": "{{replace(3.speaker_id; \"speaker_\"; \"\")}}|{{3.text}} "
+    },
+    "module": "util:TextAggregator",
+    "version": 1,
+    "parameters": {
+     "feeder": 3,
+     "rowSeparator": "other",
+     "otherRowSeparator": ""
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "from": "drive",
+     "mode": "select",
+     "values": {
+      "9": "{{substring(4.text; 0; 49000)}}"
+     },
+     "sheetId": "Untitled",
+     "rowNumber": "{{1.__ROW_NUMBER__}}",
+     "spreadsheetId": "/1QXWDWawAVRj6W5dxtbKesD7Z3NZtOuEEBaq0O-2QYF0",
+     "includesHeaders": true,
+     "useColumnHeaders": false,
+     "valueInputOption": "RAW"
+    },
+    "module": "google-sheets:updateRow",
+    "onerror": [
+     {
+      "id": 9,
+      "mapper": {},
+      "module": "builtin:Ignore",
+      "version": 1,
+      "parameters": {}
+     }
+    ],
+    "version": 2,
+    "parameters": {
+     "__IMTCONN__": 14650651
+    }
+   }
+  ],
+  "name": "Claude - תמלול הקלטות נציגים (ElevenLabs Scribe)",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "maxErrors": 10,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}

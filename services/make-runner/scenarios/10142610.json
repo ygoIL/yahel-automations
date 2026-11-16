@@ -1,0 +1,237 @@
+{
+ "id": 10142610,
+ "name": "Claude - הקדמות 6: הודעה שנייה ללקוח שלא ענה על הצעת הקדמה",
+ "scheduling": {
+  "days": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "time": "12:10",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:45:48.642Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [
+      {
+       "key": "fields",
+       "value": "sheets.properties.title"
+      }
+     ],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(let k=-1;k<2;k++){const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+k,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(d>=new Date(2026,9,1) && titles.includes(t)) tabs.push(t);}\nreturn {body: JSON.stringify({dataFilters: tabs.map(t=>({a1Range:\"'\"+t+\"'!A1:T2000\"})).concat([{a1Range:\"'בקשות להקדמה'!A1:P5000\"}]), valueRenderOption:'FORMATTED_VALUE'})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "input": [
+      {
+       "name": "ranges",
+       "value": "{{3.body.valueRanges}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const DRY = false;\nconst MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst today=new Date(nowIL.getFullYear(),nowIL.getMonth(),nowIL.getDate());\nfunction parseHeb(s){\n  s=String(s||'');\n  const m=s.match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/);\n  if(m){const mi=MONTHS.indexOf(m[2]); if(mi>=0) return new Date(+m[3],mi,+m[1]);}\n  const n=s.match(/(\\d{1,2})[\\/.](\\d{1,2})[\\/.](\\d{2,4})/);\n  if(n){let y=+n[3]; if(y<100)y+=2000; return new Date(y,+n[2]-1,+n[1]);}\n  return null;\n}\nfunction workdaysBetween(a,b){ // Sun-Thu days after a through b inclusive\n  let c=0; const x=new Date(a);\n  while(true){x.setDate(x.getDate()+1); if(x>b) break; const w=x.getDay(); if(w<=4) c++; if(c>90) break;}\n  return c;\n}\nconst digits=v=>String(v||'').replace(/\\D/g,'').replace(/^972/,'0');\nconst all=input.ranges||[];\nconst isReq=vr=>String((vr.valueRange||{}).range||'').includes('בקשות להקדמה');\nconst reqVr=all.find(isReq);\nconst req=(reqVr&&reqVr.valueRange&&reqVr.valueRange.values)||[];\n// index sales report rows by customer number and phone\n// RULE (15/11/2026, כפילויות): אותו לקוח בכמה שורות/טאבים (אותו נייד 9 ספרות אחרונות או אותו מספר לקוח) = לקוח אחד: דילוג אם אחת השורות בוטלה/בזק/תשתיות, ותאריך+שעת התקנה מהשורה הטובה (טאב החודש, מספר לקוח, תאריך); ביטול/סימון בטאב ישן יותר מהשורה הנבחרת לא חוסם (רכישה חוזרת). Do not remove.\nconst __ddMo=s=>{const m=String(s==null?'':s).replace(/'/g,'').match(/(\\S+)\\s+(\\d{4})/); if(!m) return undefined; const i=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'].indexOf(m[1]); return i<0?undefined:(+m[2])*12+i;};\nconst __ddMerge=(L,LOCAL)=>{const P=L.map((_,i)=>i),F=i=>P[i]===i?i:(P[i]=F(P[i])),K={},S=x=>String(x==null?'':x).trim(),E=x=>S(x)==='';\n L.forEach((e,i)=>{e.ph=S(e.ph).replace(/\\D/g,''); e.cn=S(e.cn).replace(/\\D/g,''); if(e.cn.length<4) e.cn=''; if(e.cand===undefined) e.cand=true;\n  e.v={}; for(const f in e.ix) if(e.ix[f]>=0) e.v[f]=e.r[e.ix[f]];\n  for(const k of [e.ph.length>=9?'p'+e.ph.slice(-9):'', e.cn?'c'+e.cn:'']){ if(!k) continue; if(K[k]===undefined) K[k]=i; else P[F(i)]=F(K[k]); } });\n const G={}; L.forEach((e,i)=>{(G[F(i)]=G[F(i)]||[]).push(e);}); const M=new Map();\n for(const g of Object.values(G)){ if(g.length<2) continue; g.forEach(e=>M.set(e.r,null));\n  const sc=e=>(e.cur?4:0)+(e.cn?2:0)+(e.dt?1:0); const o=g.slice().sort((a,b)=>sc(b)-sc(a)); const b=o.find(e=>e.cand); if(!b) continue;\n  const v=Object.assign({},b.v);\n  if(E(v.date)){ const d=o.find(e=>e.dt); if(d){ v.date=d.v.date; if(!E(d.v.slot)) v.slot=d.v.slot; } }\n  else if(E(v.slot)){ const s=o.find(e=>!E(e.v.slot)&&S(e.v.date)===S(b.v.date)); if(s) v.slot=s.v.slot; }\n  for(const f in v){ if(f!=='date'&&f!=='slot'&&E(v[f])){ const s=o.find(e=>!E(e.v[f])); if(s) v[f]=s.v[f]; } }\n  const r=b.r.slice(); for(const f in b.ix) if(b.ix[f]>=0&&v[f]!==undefined) r[b.ix[f]]=v[f];\n  const x={r,v,b,n:g.length}; g.forEach(e=>{ const old=e.mo!==undefined&&b.mo!==undefined&&e.mo<b.mo; for(const k in (e.fl||{})) if(e.fl[k]&&!(old&&(LOCAL||[]).includes(k))) x[k]=true; e.x=x; }); M.set(b.r,x); }\n return M;};\nconst __L=[], __cur=MONTHS[today.getMonth()]+' '+today.getFullYear();\nconst byCust={}, byPhone={};\nfor(const vr of all.filter(v=>!isReq(v))){\n  const vals=(vr.valueRange&&vr.valueRange.values)||[];\n  if(!vals.length) continue;\n  const h=vals[0].map(x=>String(x||'').trim());\n  const ix=name=>h.findIndex(x=>x.startsWith(name));\n  const iInst=ix('תאריך התקנה'), iCust=ix('מספר לקוח'), iPhone=ix('נייד'), iNote=ix('הערות'), iWhat=ix('מה נמכר'), iInfra=ix('תשתיות'), iTime=ix('שעת התקנה');\n  for(const r of vals.slice(1)){\n    const rec={inst:r[iInst], time:iTime>=0?r[iTime]:'', note:String(iNote>=0?(r[iNote]||''):''), what:String(iWhat>=0?(r[iWhat]||''):''), infra:iInfra>=0?String(r[iInfra]||'').trim():''};\n    const hasDate=!!parseHeb(rec.inst);\n    const c=String(r[iCust]||'').trim(); if(c && (hasDate || !byCust[c])) byCust[c]=rec;\n    const p=digits(r[iPhone]); if(p && (hasDate || !byPhone[p])) byPhone[p]=rec;\n    if(c||p) __L.push({r, rec, c, p, ix:{date:iInst, slot:iTime}, ph:p, cn:c, cur:String((vr.valueRange||{}).range||'').includes(__cur), mo:__ddMo((vr.valueRange||{}).range), dt:hasDate,\n      fl:{bad:rec.note.includes('בוטל')||rec.what.includes('בזק')||rec.infra==='כן'||rec.note.includes('תשתיות')}});\n  }\n}\nconst __M=__ddMerge(__L,['bad']);\nfor(const e of __L){ const x=e.x; if(!x) continue;\n  if(!x.rec) x.rec=Object.assign({}, x.b.rec, {inst:x.v.date, time:x.v.slot===undefined?x.b.rec.time:x.v.slot, __bad:!!x.bad});\n  if(e.c) byCust[e.c]=x.rec; if(e.p) byPhone[e.p]=x.rec; }\nconst items=[], data=[], skipped={answered:0,notSentYet:0,already:0,noId:0,tooSoon:0,notInReport:0,dateChanged:0,cancelled:0,closeToInstall:0};\nconst todayTxt=today.getDate()+'/'+(today.getMonth()+1)+'/'+today.getFullYear();\nfor(let i=1;i<req.length;i++){\n  const r=req[i];\n  if(String(r[6]||'').trim()!=='כן'){skipped.notSentYet++; continue;}\n  if(String(r[7]||'').trim()||String(r[8]||'').trim()){skipped.answered++; continue;}\n  if(String(r[15]||'').trim()){skipped.already++; continue;}\n  const sub=String(r[14]||'').trim(); if(!sub){skipped.noId++; continue;}\n  const added=parseHeb(r[13]); if(!added||workdaysBetween(added,today)<2){skipped.tooSoon++; continue;}\n  const rec=byCust[String(r[9]||'').trim()]||byPhone[digits(r[2])];\n  if(!rec){skipped.notInReport++; continue;}\n  if(rec.__bad||rec.note.includes('בוטל')||rec.what.includes('בזק')||rec.infra==='כן'||rec.note.includes('תשתיות')){skipped.cancelled++; continue;}\n  const inst=parseHeb(rec.inst), reqInst=parseHeb(r[3]);\n  if(!inst||!reqInst||inst<reqInst){skipped.dateChanged++; continue;}\n  if(workdaysBetween(today,inst)<3){skipped.closeToInstall++; continue;}\n  items.push({row:i+1, name:String(r[1]||''), sub:sub, date:String(rec.inst||'').trim()+','+String(rec.time||'').trim(), rep:String(r[5]||'').trim().split(' ')[0]});\n  data.push({range:\"'בקשות להקדמה'!P\"+(i+1), values:[[todayTxt]]});\n}\nconst dbg=JSON.stringify({valueInputOption:'RAW',data:[{range:\"'בקשות להקדמה'!P1000\",values:[[items.length+' ### '+items.map(x=>x.row+' '+x.name+' '+x.date+' '+x.rep).join(' | ')+' ### '+JSON.stringify(skipped)]]}]});\nreturn {dbg:dbg, count:DRY?0:items.length, found:items.length, names:items.map(x=>x.row+' '+x.name).join(' | '), skipped:JSON.stringify(skipped), items:DRY?[]:items, body:JSON.stringify({valueInputOption:'RAW',data:data})};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 5,
+    "filter": {
+     "name": "יש למי לשלוח שוב",
+     "conditions": [
+      [
+       {
+        "a": "{{4.result.count}}",
+        "b": "0",
+        "o": "number:greater"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchUpdate",
+     "body": "{{4.result.body}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "array": "{{4.result.items}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "actions": [
+      {
+       "value": "{{6.date}}",
+       "action": "set_field_value",
+       "field_name": "תאריך התקנה"
+      },
+      {
+       "value": "{{6.rep}}",
+       "action": "set_field_value",
+       "field_name": "שם נציג"
+      }
+     ],
+     "subscriberId": "{{6.sub}}"
+    },
+    "module": "manychat:PerformAction",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 8,
+    "mapper": {
+     "flowName": "content20260728133615_773505",
+     "subscriberId": "{{6.sub}}"
+    },
+    "module": "manychat:SendFlow",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2100,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   }
+  ],
+  "name": "Claude - הקדמות 6: הודעה שנייה ללקוח שלא ענה על הצעת הקדמה",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "dlq": false,
+    "dataloss": false,
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": false,
+    "confidential": false,
+    "freshVariables": false,
+    "autoCommitTriggerLast": true
+   }
+  }
+ }
+}

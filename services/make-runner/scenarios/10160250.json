@@ -1,0 +1,404 @@
+{
+ "id": 10160250,
+ "name": "Claude - מגן ניתוקים: שביעות רצון ביום 7 וביום 40 אחרי ההתקנה",
+ "scheduling": {
+  "days": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "time": "11:00",
+  "type": "weekly"
+ },
+ "hookId": null,
+ "hookUdid": null,
+ "exportedAt": "2026-11-16T16:46:53.761Z",
+ "blueprint": {
+  "flow": [
+   {
+    "id": 1,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?fields=sheets.properties.title",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 0,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 2,
+    "mapper": {
+     "input": [
+      {
+       "name": "sheets",
+       "value": "{{1.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];\nconst titles=(input.sheets||[]).map(s=>String((s.properties||{}).title||'').trim());\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst tabs=[];\nfor(const off of [0,-1,-2,-3]){ const d=new Date(nowIL.getFullYear(),nowIL.getMonth()+off,1); const t=MONTHS[d.getMonth()]+' '+d.getFullYear(); if(titles.includes(t)) tabs.push(t); }\nconst q=s=>\"'\"+s+\"'\";\nconst filters=tabs.map(t=>({a1Range:q(t)+'!A1:Z1500'}));\n// טאבי ניתוקים - כדי לא לשלוח סקר ללקוח בניתוק פתוח\nfor(const dt of ['מעקב ניתוקים','ניתוקים']){ if(titles.includes(dt)) filters.push({a1Range:q(dt)+'!A1:J2000'}); }\nconst colorQs=tabs.map(t=>'ranges='+encodeURIComponent(q(t)+'!C1:C1500')).join('&')+'&fields='+encodeURIComponent('sheets(properties(title),data(startRow,rowData(values(effectiveFormat(backgroundColor)))))');\nreturn {tabs: JSON.stringify(tabs), readBody: JSON.stringify({dataFilters:filters, valueRenderOption:'FORMATTED_VALUE'}), colorUrl: 'spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI?'+colorQs};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 300,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 3,
+    "mapper": {
+     "qs": [],
+     "url": "spreadsheets/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI/values:batchGetByDataFilter",
+     "body": "{{2.result.readBody}}",
+     "method": "POST",
+     "headers": [
+      {
+       "key": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 600,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 4,
+    "mapper": {
+     "qs": [],
+     "url": "{{2.result.colorUrl}}",
+     "method": "GET",
+     "headers": []
+    },
+    "module": "google-sheets:makeAPICall",
+    "version": 2,
+    "metadata": {
+     "designer": {
+      "x": 900,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 12661457
+    }
+   },
+   {
+    "id": 5,
+    "mapper": {
+     "input": [
+      {
+       "name": "vr",
+       "value": "{{3.body.valueRanges}}"
+      },
+      {
+       "name": "tabs",
+       "value": "{{2.result.tabs}}"
+      },
+      {
+       "name": "colors",
+       "value": "{{4.body.sheets}}"
+      }
+     ],
+     "language": "javascript",
+     "inputFormat": "editor",
+     "dependencies": [],
+     "codeEditorJavascript": "const MONTHS={'ינואר':1,'פברואר':2,'מרץ':3,'אפריל':4,'מאי':5,'יוני':6,'יולי':7,'אוגוסט':8,'ספטמבר':9,'אוקטובר':10,'נובמבר':11,'דצמבר':12};\nconst arr=v=>{ if(typeof v==='string'){ try{return JSON.parse(v);}catch(e){return [];} } return Array.isArray(v)?v:[]; };\nconst norm=s=>String(s==null?'':s).replace(/\\s+/g,' ').trim();\nconst digits=s=>String(s==null?'':s).replace(/\\D/g,'');\nconst pdate=s=>{const m=norm(s).match(/(\\d{1,2})\\s+(\\S+)\\s+(\\d{4})/); if(!m) return null; const mon=MONTHS[m[2]]; if(!mon) return null; return new Date(+m[3],mon-1,+m[1]);};\nconst nowIL=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem'}));\nconst today=new Date(nowIL.getFullYear(),nowIL.getMonth(),nowIL.getDate());\nconst vr=arr(input.vr).map(v=>(v&&v.valueRange)||v||{}); const tabs=arr(input.tabs).map(norm);\nconst byName=n=>{ const x=vr.find(v=>{ const r=norm(v.range).replace(/^'/,''); return r.startsWith(n+\"'!\")||r.startsWith(n+'!'); }); return (x&&x.values)||[]; };\nconst colorSheets=arr(input.colors);\nconst isGreen=c=>{ if(!c) return false; const r=c.red||0,g=c.green||0,b=c.blue||0; return g>r+0.08 && g>b+0.15 && g<0.95; };\nconst isRed=c=>{ if(!c) return false; const r=c.red||0,g=c.green||0,b=c.blue||0; return r>0.8 && g<0.6 && b<0.6; };\nconst ALIAS={'אוסי':'אוסי גיאן','אופק פ':'אופק','דוד':'דוד חי','איתמר':'איתמר ששון'};\n// הודעה 1 ביום 7 (בתוך שיא הניתוקים של השבועיים הראשונים), הודעה 2 ביום 40. 4 ימים לכל חלון כדי לתפוס שישי-שבת.\nconst W1=[7,10], W3=[40,43];\nconst seen={}; const items=[]; let skipped=0;\n// --- חסימת לקוחות בניתוק פתוח (טאבים 'מעקב ניתוקים' + 'ניתוקים') ---\nconst discBlockNum={}, discBlockPhone={};\nconst p972=s=>{ let p=digits(s); if(!p) return ''; if(p.startsWith('0')) p='972'+p.slice(1); else if(!p.startsWith('972')) p='972'+p; return p; };\nbyName('מעקב ניתוקים').forEach((r,i)=>{ if(!r) return; const num=digits(r[0]); const st=norm(r[9]); if(num.length>=6 && st && !st.startsWith('שומר')) discBlockNum[num]=1; });\nbyName('ניתוקים').forEach((r,i)=>{ if(!r) return; const num=digits(r[1]); const kept=norm(r[9]); if(num.length<6) return; if(/^(כן|שומר)/.test(kept)) return; discBlockNum[num]=1; const ph=p972(r[3]); if(ph) discBlockPhone[ph]=1; });\nlet blockedDisc=0;\n// RULE (15/11/2026, כפילויות): אותו לקוח בכמה שורות/טאבים (אותו נייד 9 ספרות אחרונות או אותו מספר לקוח) = לקוח אחד: לא שולחים אם שורה באותו טאב או בטאב חדש יותר בוטלה/אדומה, או אם אחת השורות בניתוק פתוח; ירוק = שורה ירוקה באותו טאב או חדש יותר; הנתונים מהשורה הטובה (טאב החודש, מספר לקוח, תאריך התקנה). Do not remove.\nconst __ddMo=s=>{const m=String(s==null?'':s).replace(/'/g,'').match(/(\\S+)\\s+(\\d{4})/); if(!m) return undefined; const i=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'].indexOf(m[1]); return i<0?undefined:(+m[2])*12+i;};\nconst __ddMerge=(L,LOCAL)=>{const P=L.map((_,i)=>i),F=i=>P[i]===i?i:(P[i]=F(P[i])),K={},S=x=>String(x==null?'':x).trim(),E=x=>S(x)==='';\n L.forEach((e,i)=>{e.ph=S(e.ph).replace(/\\D/g,''); e.cn=S(e.cn).replace(/\\D/g,''); if(e.cn.length<4) e.cn=''; if(e.cand===undefined) e.cand=true;\n  e.v={}; for(const f in e.ix) if(e.ix[f]>=0) e.v[f]=e.r[e.ix[f]];\n  for(const k of [e.ph.length>=9?'p'+e.ph.slice(-9):'', e.cn?'c'+e.cn:'']){ if(!k) continue; if(K[k]===undefined) K[k]=i; else P[F(i)]=F(K[k]); } });\n const G={}; L.forEach((e,i)=>{(G[F(i)]=G[F(i)]||[]).push(e);}); const M=new Map();\n for(const g of Object.values(G)){ if(g.length<2) continue; g.forEach(e=>M.set(e.r,null));\n  const sc=e=>(e.cur?4:0)+(e.cn?2:0)+(e.dt?1:0); const o=g.slice().sort((a,b)=>sc(b)-sc(a)); const b=o.find(e=>e.cand); if(!b) continue;\n  const v=Object.assign({},b.v);\n  if(E(v.date)){ const d=o.find(e=>e.dt); if(d){ v.date=d.v.date; if(!E(d.v.slot)) v.slot=d.v.slot; } }\n  else if(E(v.slot)){ const s=o.find(e=>!E(e.v.slot)&&S(e.v.date)===S(b.v.date)); if(s) v.slot=s.v.slot; }\n  for(const f in v){ if(f!=='date'&&f!=='slot'&&E(v[f])){ const s=o.find(e=>!E(e.v[f])); if(s) v[f]=s.v[f]; } }\n  const r=b.r.slice(); for(const f in b.ix) if(b.ix[f]>=0&&v[f]!==undefined) r[b.ix[f]]=v[f];\n  const x={r,v,b,n:g.length}; g.forEach(e=>{ const old=e.mo!==undefined&&b.mo!==undefined&&e.mo<b.mo; for(const k in (e.fl||{})) if(e.fl[k]&&!(old&&(LOCAL||[]).includes(k))) x[k]=true; e.x=x; }); M.set(b.r,x); }\n return M;};\nconst __L=[], __cur=Object.keys(MONTHS)[nowIL.getMonth()]+' '+nowIL.getFullYear();\nfor(let t=0;t<tabs.length;t++){\n  const rows=byName(tabs[t]);\n  const hN=(rows[0]||[]).map(norm).findIndex(x=>x.startsWith('הערות')); const iN=hN>=0?hN:18;\n  const cs=colorSheets.find(x=>norm((x.properties||{}).title)===tabs[t] && (x.data||[]).length)||{}; const data=((cs.data||[])[0])||{}; const start=data.startRow||0; const rd=data.rowData||[];\n  rows.forEach((r,i)=>{ if(i===0||!r) return;\n    const cell=((rd[i-start]||{}).values||[])[0]||{}; const bg=(cell.effectiveFormat||{}).backgroundColor; const cn=digits(r[6]);\n    __L.push({r, ix:{name:2,phone:3,date:4,slot:5,cnum:6,rep:7}, ph:digits(r[3]), cn, cur:tabs[t]===__cur, mo:__ddMo(tabs[t]), dt:!!pdate(r[4]),\n      fl:{block:/בוטל|ביטול|ביטל|לא מעוניין/.test(norm(r[iN]))||isRed(bg), green:isGreen(bg), disc:(cn.length>=6&&!!discBlockNum[cn])||!!discBlockPhone[p972(r[3])]}});\n  });\n}\nconst __M=__ddMerge(__L,['block','green']);\nfor(let t=0;t<tabs.length;t++){\n  const rows=byName(tabs[t]);\n  const hN=(rows[0]||[]).map(norm).findIndex(x=>x.startsWith('הערות')); const iN=hN>=0?hN:18;\n  const cs=colorSheets.find(x=>norm((x.properties||{}).title)===tabs[t] && (x.data||[]).length)||{}; const data=((cs.data||[])[0])||{}; const start=data.startRow||0; const rd=data.rowData||[];\n  rows.forEach((r,i)=>{\n    if(i===0||!r) return;\n    const __d=__M.get(r); if(__d===null) return; if(__d) r=__d.r;\n    const rep=norm(r[7]); const name=norm(r[2]); if(!rep||!name) return;\n    const note=norm(r[iN]);\n    if(/בוטל|ביטול|ביטל|לא מעוניין/.test(note)||(__d&&__d.block)) return;\n    const cell=((rd[i-start]||{}).values||[])[0]||{}; const bg=(cell.effectiveFormat||{}).backgroundColor;\n    if(isRed(bg)||(!isGreen(bg)&&!(__d&&__d.green))) return;\n    const inst=pdate(r[4]); if(!inst) return;\n    const age=Math.round((today-inst)/86400000);\n    let kind='';\n    if(age>=W1[0]&&age<=W1[1]) kind='bill1'; else if(age>=W3[0]&&age<=W3[1]) kind='bill3'; else return;\n    let p=digits(r[3]); if(p.startsWith('0')) p='972'+p.slice(1); else if(!p.startsWith('972')) p='972'+p;\n    if(!/^9725\\d{8}$/.test(p)) { skipped++; return; }\n    const cnum=digits(r[6]);\n    if((cnum.length>=6 && discBlockNum[cnum]) || discBlockPhone[p] || (__d&&__d.disc)) { blockedDisc++; return; }\n    if(seen[p]) return; seen[p]=1;\n    items.push({name:name.split(' ')[0], fullName:name, phone:p, rep:ALIAS[rep]||rep, instText:norm(r[4]), kind, age});\n  });\n}\nconst dow=nowIL.getDay(); const okDay=(dow!==5&&dow!==6);\nconst out=okDay?items.slice(0,150):[];\nreturn {items:out, count:out.length, bill1:out.filter(x=>x.kind==='bill1').length, bill3:out.filter(x=>x.kind==='bill3').length, okDay, skipped, blockedDisc};\n"
+    },
+    "module": "code:ExecuteCode",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1200,
+      "y": 0
+     }
+    },
+    "parameters": {}
+   },
+   {
+    "id": 6,
+    "mapper": {
+     "array": "{{5.result.items}}"
+    },
+    "module": "builtin:BasicFeeder",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1500,
+      "y": 0
+     }
+    }
+   },
+   {
+    "id": 7,
+    "mapper": {
+     "key": "{{6.phone}}",
+     "returnWrapped": true
+    },
+    "module": "datastore:GetRecord",
+    "onerror": [
+     {
+      "id": 70,
+      "mapper": {
+       "data": {}
+      },
+      "module": "builtin:Resume",
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1650,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1650,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 202662
+    }
+   },
+   {
+    "id": 8,
+    "filter": {
+     "name": "עוד לא נשלח לו בחלון הזה",
+     "conditions": [
+      [
+       {
+        "a": "{{7.data.kind}}",
+        "b": "{{6.kind}}",
+        "o": "text:notequal"
+       }
+      ]
+     ]
+    },
+    "mapper": {
+     "key": "{{6.phone}}",
+     "data": {
+      "kind": "{{6.kind}}",
+      "phone": "{{6.phone}}",
+      "rating": "",
+      "sentAt": "{{formatDate(now; \"YYYY-MM-DD HH:mm\"; \"Asia/Jerusalem\")}}",
+      "repName": "{{6.rep}}",
+      "alertedAt": "",
+      "thankedAt": "",
+      "installDate": "{{6.instText}}",
+      "customerName": "{{6.fullName}}"
+     },
+     "overwrite": true
+    },
+    "module": "datastore:AddRecord",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1800,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 202662
+    }
+   },
+   {
+    "id": 9,
+    "mapper": {
+     "limit": "1",
+     "cFieldId": 14028645,
+     "cFieldValue": "{{6.phone}}"
+    },
+    "module": "manychat:FindSubscriberByCustomField",
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2100,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "__IMTCONN__": 13316809
+    }
+   },
+   {
+    "id": 10,
+    "mapper": null,
+    "module": "builtin:BasicRouter",
+    "routes": [
+     {
+      "flow": [
+       {
+        "id": 11,
+        "filter": {
+         "name": "נמצא ב-ManyChat",
+         "conditions": [
+          [
+           {
+            "a": "{{9.id}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "flowName": "content20261113173352_160495",
+         "subscriberId": "{{9.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "onerror": [
+         {
+          "id": 15,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 2700,
+            "y": -300
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": -150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       }
+      ]
+     },
+     {
+      "flow": [
+       {
+        "id": 12,
+        "filter": {
+         "name": "לא נמצא",
+         "conditions": [
+          [
+           {
+            "a": "{{9.id}}",
+            "o": "notexist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "phone": "{{6.phone}}",
+         "firstName": "{{6.name}}",
+         "hasOptInSms": true,
+         "consentPhrase": "true",
+         "hasOptInEmail": true,
+         "whatsAppPhone": "{{6.phone}}"
+        },
+        "module": "manychat:CreateSubscriber",
+        "onerror": [
+         {
+          "id": 13,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 3000,
+            "y": 450
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 2700,
+          "y": 150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       },
+       {
+        "id": 14,
+        "mapper": {
+         "flowName": "content20261113173352_160495",
+         "subscriberId": "{{12.data.id}}"
+        },
+        "module": "manychat:SendFlow",
+        "onerror": [
+         {
+          "id": 16,
+          "module": "builtin:Ignore",
+          "version": 1,
+          "metadata": {
+           "designer": {
+            "x": 3150,
+            "y": 300
+           }
+          }
+         }
+        ],
+        "version": 1,
+        "metadata": {
+         "designer": {
+          "x": 3000,
+          "y": 150
+         }
+        },
+        "parameters": {
+         "__IMTCONN__": 13316809
+        }
+       }
+      ]
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 2400,
+      "y": 0
+     }
+    }
+   }
+  ],
+  "name": "Claude - מגן ניתוקים: שביעות רצון ביום 7 וביום 40 אחרי ההתקנה",
+  "metadata": {
+   "instant": false,
+   "version": 1,
+   "scenario": {
+    "maxErrors": 3,
+    "autoCommit": true,
+    "roundtrips": 1,
+    "sequential": true
+   }
+  }
+ }
+}
