@@ -46,7 +46,8 @@ async function msToken() {
 }
 const meToUser = (url) => String(url).replace(/\/me(\/|$)/, `/users/${encodeURIComponent(process.env.MS_MAILBOX || '')}$1`);
 async function graph(method, url, { qs, headers, body } = {}) {
-  let rel = meToUser(url); if (!/^https?:/.test(rel)) rel = 'https://graph.microsoft.com' + (rel.startsWith('/') ? '' : '/') + rel;
+  let rel = meToUser(url);
+  if (!/^https?:/.test(rel)) { rel = (rel.startsWith('/') ? '' : '/') + rel; if (!/^\/(v1\.0|beta)\//.test(rel)) rel = '/v1.0' + rel; rel = 'https://graph.microsoft.com' + rel; }
   const u = new URL(rel); for (const q of [].concat(qs || [])) if (q && (q.key ?? q.name)) u.searchParams.set(q.key ?? q.name, q.value);
   const h = { Authorization: 'Bearer ' + (await msToken()), 'Content-Type': 'application/json' };
   for (const x of headers || []) if (x.key ?? x.name) h[x.key ?? x.name] = x.value;

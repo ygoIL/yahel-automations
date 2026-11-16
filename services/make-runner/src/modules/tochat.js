@@ -1,8 +1,9 @@
 // ToChat (custom Make app). Only the generic "Make an API call" is supported; base/auth from env.
-const base = () => process.env.TOCHAT_BASE_URL || 'https://api.tochat.co.il';
+const base = () => process.env.TOCHAT_BASE_URL || 'https://api.tochat.co.il/integrations/v1';
+// HTTP Basic: username = tenant id, password = tenant integration API key.
 function authHeaders() {
-  const k = process.env.TOCHAT_API_KEY || ''; const h = process.env.TOCHAT_AUTH_HEADER || 'Authorization: Bearer';
-  const [name, prefix] = h.split(':').map((s) => s.trim()); return { [name]: prefix ? `${prefix} ${k}` : k };
+  const t = process.env.TOCHAT_TENANT || 'YahelCommunication', k = process.env.TOCHAT_API_KEY || '';
+  return { Authorization: 'Basic ' + Buffer.from(`${t}:${k}`).toString('base64') };
 }
 async function call(mp) {
   const u = new URL(base() + (String(mp.url).startsWith('/') ? '' : '/') + mp.url);

@@ -57,12 +57,18 @@ http.createServer(async (req, res) => {
       return send(res, 200, r);
     }
     if ((m = /^\/admin\/runs\/(\d+)$/.exec(u.pathname))) return send(res, 200, store.load(`runs/${m[1]}${u.searchParams.get('dry') === '1' ? '.dry' : ''}`, []).slice(0, Number(u.searchParams.get('n')) || 20));
-    if ((m = /^\/admin\/mode\/(\d+)$/.exec(u.pathname))) { scenarios.setMode(m[1], body.mode); return send(res, 200, { id: m[1], mode: body.mode || '(registry)' }); }
+    if ((m = /^\/admin\/mode\/(\d+)$/.exec(u.pathname))) {
+      scenarios.setMode(m[1], body.mode);
+      // switching on: start the schedule from now, so a run Make already did today is not repeated
+      if (body.mode === 'live' || body.mode === 'dry') scheduler.markRun(m[1], new Date().toISOString());
+      return send(res, 200, { id: m[1], mode: body.mode || '(registry)', lastRun: scheduler.lastRun(m[1]) });
+    }
     if ((m = /^\/admin\/ds\/(\d+)$/.exec(u.pathname))) { // GET = read local, POST = import from Make
+      if (req.method === 'POST' && body.records) { store.dsSave(m[1], { records: body.records, importedAt: new Date().toISOString() }); return send(res, 200, { loaded: Object.keys(body.records).length }); }
       if (req.method === 'POST') { const n = await require('./tools').importDataStore(m[1]); return send(res, 200, { imported: n }); }
       return send(res, 200, store.ds(m[1], u.searchParams.get('dry') === '1'));
     }
-    if (u.pathname === '/admin/check') return send(res, 200, await require('./tools').check());
+    if (u.pathname === '/admin/check') return send(res, 200, await require('./tools').check(u.searchParams.get('only')));
     if (u.pathname === '/admin/tochat' && req.method === 'POST') return send(res, 200, await require('./modules/tochat').call(body).catch((e) => ({ error: String(e.message) })));
     return send(res, 404, { error: 'not found' });
   } catch (e) { log({ ev: 'http_err', path: u.pathname, err: String(e && e.stack || e) }); return send(res, 500, { error: String(e.message || e) }); }

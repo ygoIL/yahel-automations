@@ -19,8 +19,8 @@ function hdrToObj(h) { const o = {}; for (const x of h || []) { const k = x.key 
 async function call(base, { url, method = 'GET', qs, headers, body }) {
   let rel = String(url || '');
   if (!/^https?:/.test(rel)) rel = base + (rel.startsWith('/') ? rel : '/' + rel);
-  let dec = rel; try { dec = decodeURI(rel); } catch {}
-  const u = new URL(encodeURI(dec));
+  // WHATWG URL percent-encodes spaces/non-ASCII and keeps existing %XX escapes (no double encoding).
+  const u = new URL(rel);
   for (const [k, v] of Object.entries(qsToObj(qs))) u.searchParams.set(k, v);
   const h = { Authorization: 'Bearer ' + (await token()), ...hdrToObj(headers) };
   let b = body;
