@@ -1,0 +1,25 @@
+# yahel-automations
+
+Automations moved off Make.com onto Railway.
+
+## services/wa-gateway  (Railway project `yahel-reps-bot`, service `wa-gateway`)
+WhatsApp hub on Green API. Replaces these Make scenarios:
+
+| Make scenario | What it did | Now |
+|---|---|---|
+| 10115344 | Incoming Green API webhook → reps bot, group, Bezeq, customer replies | `POST /greenapi` |
+| 10171886 | Central WhatsApp sender (primary/backup) | `POST /send` `{chatId|phone, message}` |
+| 10125129 | Rep gate: Fri 16:00+ / Sat → queue | `POST /gate` `{chatId|phone, message, source}` |
+| 10125131 | Sunday 08:30 queue flush | in-process scheduler |
+| 10171903 | Health check every 5 min + failover | in-process scheduler (alerts by WhatsApp) |
+| 10125213 / 10125215 | Rep reminders intake / sender | intake via bot, sender every minute |
+
+Kinds still handled in Make (forwarded to the old Make hook): shikuf, disc, port, cancel, save, shikdone, advance.
+
+All endpoints except `/health` need `?key=$GATEWAY_KEY`.
+
+### Environment variables
+`GATEWAY_KEY, REPS_BOT_URL, REPS_BOT_KEY, GREEN_P_BASE, GREEN_P_TOKEN, GREEN_B_BASE?, GREEN_B_TOKEN?, GREEN_ACTIVE, IN_WEBHOOK, ALERT_WHATSAPP, MAKE_FALLBACK_HOOK, MAKE_API_TOKEN, GOOGLE_SERVICE_ACCOUNT_JSON, DATA_DIR=/data` (volume).
+
+### Deploy
+`cd services/wa-gateway && railway up --service wa-gateway`
