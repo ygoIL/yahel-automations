@@ -87,6 +87,19 @@ http.createServer(async (req, res) => {
       return send(res, 200, await api({ url: u.searchParams.get('url'), method, body: req.method === 'POST' ? body.body : undefined, qs: body.qs }).catch((e) => ({ error: String(e.message) })));
     }
     if (u.pathname === '/admin/check') return send(res, 200, await require('./tools').check(u.searchParams.get('only')));
+    // ---- lead upload to ToChat campaigns (dry run first; a real upload only via /confirm of an approved dry run) ----
+    if (u.pathname.startsWith('/admin/leads/')) {
+      const L = require('./leads/upload');
+      const out = (j) => send(res, j.status === 'error' ? (j.missingKey ? 412 : 500) : 200, j.status === 'done' ? { jobId: j.id, ...j.result } : j);
+      if (u.pathname === '/admin/leads/upload' && req.method === 'POST') {
+        if (body.dryRun === false || body.dryRun === 'false') return send(res, 400, { error: 'העלאה אמיתית רק אחרי הרצה יבשה ואישור: POST /admin/leads/confirm {"runId":"..."}' });
+        return out(await L.start('dry', body));
+      }
+      if (u.pathname === '/admin/leads/confirm' && req.method === 'POST') return out(await L.start('confirm', body));
+      if ((m = /^\/admin\/leads\/job\/(\w+)$/.exec(u.pathname))) { const j = L.job(m[1]); return j ? out(j) : send(res, 404, { error: 'no such job' }); }
+      if (u.pathname === '/admin/leads/log') return send(res, 200, L.runLog(Number(u.searchParams.get('n')) || 50));
+      if (u.pathname === '/admin/leads/campaigns') return send(res, 200, (await require('./leads/tochat-client').listCampaigns()).map((c) => ({ id: c.id, name: c.name })));
+    }
     if (u.pathname === '/admin/tochat' && req.method === 'POST') return send(res, 200, await require('./modules/tochat').call(body).catch((e) => ({ error: String(e.message) })));
     return send(res, 404, { error: 'not found' });
   } catch (e) { log({ ev: 'http_err', path: u.pathname, err: String(e && e.stack || e) }); return send(res, 500, { error: String(e.message || e) }); }
