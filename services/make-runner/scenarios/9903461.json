@@ -132,7 +132,7 @@
      "select": "map",
      "convert": true,
      "filename": "{{2.name}}",
-     "folderId": "root",
+     "folderId": "1KkoUX7zBUI2WR8v8dEc-PG52IK47Xg0c",
      "targetType": "application/vnd.google-apps.spreadsheet"
     },
     "module": "google-drive:uploadAFile",
