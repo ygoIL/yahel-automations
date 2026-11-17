@@ -26,6 +26,14 @@ function due(sch, last, now = new Date()) {
   }
   return false;
 }
+// daily/weekly/monthly: has a scheduled slot for today already gone by? (interval types: always true)
+function slotPassedToday(sch, now = new Date()) {
+  if (!sch || !['daily', 'weekly', 'monthly'].includes(sch.type)) return true;
+  const p = dates.parts(now, TZ); const mins = p.h * 60 + p.m;
+  if (sch.type === 'weekly' && !(sch.days || []).includes(p.wd)) return false;
+  if (sch.type === 'monthly' && !(sch.dates || []).includes(p.D)) return false;
+  return [].concat(sch.time || '00:00').some((t) => mins >= hm(t));
+}
 function lastRun(id) { return store.load('lastrun', {})[id]; }
 function markRun(id, at) { const o = store.load('lastrun', {}); o[id] = at; store.save('lastrun', o); }
-module.exports = { due, lastRun, markRun, allowed };
+module.exports = { due, lastRun, markRun, allowed, slotPassedToday };

@@ -68,8 +68,13 @@ http.createServer(async (req, res) => {
     if ((m = /^\/admin\/mode\/(\d+)$/.exec(u.pathname))) {
       scenarios.setMode(m[1], body.mode);
       // switching on: start the schedule from now, so a run Make already did today is not repeated
-      if (body.mode === 'live' || body.mode === 'dry') scheduler.markRun(m[1], new Date().toISOString());
+      // daily/weekly: only when today's slot has already passed (Make ran it); otherwise today's run would be skipped.
+      if (body.mode === 'live' || body.mode === 'dry') { const sc = scenarios.all()[m[1]]; if (!sc || scheduler.slotPassedToday(sc.scheduling)) scheduler.markRun(m[1], new Date().toISOString()); }
       return send(res, 200, { id: m[1], mode: body.mode || '(registry)', lastRun: scheduler.lastRun(m[1]) });
+    }
+    if ((m = /^\/admin\/lastrun\/(\d+)$/.exec(u.pathname))) { // POST {"at": ISO} – set/repair the scheduler's last-run stamp
+      if (req.method === 'POST' && body.at && !isNaN(new Date(body.at))) scheduler.markRun(m[1], new Date(body.at).toISOString());
+      return send(res, 200, { id: m[1], lastRun: scheduler.lastRun(m[1]) });
     }
     if ((m = /^\/admin\/ds\/(\d+)$/.exec(u.pathname))) { // GET = read local, POST = import from Make
       if (req.method === 'POST' && body.records) { store.dsSave(m[1], { records: body.records, importedAt: new Date().toISOString() }); return send(res, 200, { loaded: Object.keys(body.records).length }); }

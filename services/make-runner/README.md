@@ -14,6 +14,7 @@ Runs exported Make.com scenario blueprints on Railway (project `yahel-reps-bot`,
 | `POST /admin/run/<id>?dry=1` | run now (dry by default; `dry=0` for real) |
 | `GET /admin/runs/<id>?dry=1` | last runs with trace |
 | `POST /admin/mode/<id>` `{"mode":"live"}` | switch mode (overrides registry until next change) |
+| `POST /admin/lastrun/<id>` `{"at":"<ISO>"}` | repair the scheduler last-run stamp |
 | `POST /admin/ds/<id>` | re-import a data store from Make |
 | `GET /admin/check?only=google\|manychat\|tochat\|mail` | connectivity |
 
