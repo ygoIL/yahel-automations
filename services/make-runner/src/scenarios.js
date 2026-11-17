@@ -15,6 +15,7 @@ function all() {
     const sc = JSON.parse(subEnv(fs.readFileSync(path.join(DIR, f), 'utf8')));
     const r = reg[sc.id] || {};
     sc.mode = r.mode || 'off'; // off | dry | live
+    if (r.since) sc.since = r.since; // watch triggers ignore items created before this (cut-over from Make)
     cache[sc.id] = sc;
   }
   return cache;
