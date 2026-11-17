@@ -580,7 +580,7 @@
           },
           {
            "name": "text",
-           "value": "{{ifempty(2.last_input_text; 1.last_input_text)}}"
+           "value": "{{ifempty(3.result.text; 2.last_input_text)}}"
           }
          ],
          "requestCompressedContent": true
@@ -656,7 +656,7 @@
           },
           {
            "name": "text",
-           "value": "{{ifempty(2.last_input_text; 1.last_input_text)}}"
+           "value": "{{ifempty(3.result.text; 2.last_input_text)}}"
           }
          ],
          "requestCompressedContent": true
@@ -734,7 +734,7 @@
           },
           {
            "name": "text",
-           "value": "{{ifempty(2.last_input_text; 1.last_input_text)}}"
+           "value": "{{ifempty(3.result.text; 2.last_input_text)}}"
           }
          ],
          "requestCompressedContent": true
