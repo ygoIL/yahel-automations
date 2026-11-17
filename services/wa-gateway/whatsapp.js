@@ -18,7 +18,7 @@ async function sendVia(a, chatId, message) {
   try {
     const r = await post(`${a.base}/sendMessage/${a.token}`, { chatId, message });
     if (r.data && r.data.idMessage) return r.data.idMessage;
-    log({ ev: 'send_fail', via: a.name, status: r.status });
+    log({ ev: 'send_fail', via: a.name, status: r.status, chatId, len: String(message || '').length, resp: typeof r.data === 'string' ? r.data.slice(0, 300) : JSON.stringify(r.data).slice(0, 300), preview: String(message || '').slice(0, 80) });
   } catch (e) { log({ ev: 'send_err', via: a.name, err: String(e) }); }
   return null;
 }

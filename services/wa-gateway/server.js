@@ -39,7 +39,8 @@ async function handleIncoming(p, depth = 0) {
       let rp = d.reroutePayload; try { if (typeof rp === 'string') rp = JSON.parse(rp); } catch { return; }
       return handleIncoming(rp, depth + 1);
     }
-    if (d.reply) await wa.send(r.chatId, d.reply);
+    log({ ev: 'ask_result', chat: r.chatId, id: r.id, status: a.status, mode: d.mode || null, replyLen: d.reply ? String(d.reply).length : 0, q: String(r.text).slice(0, 60) });
+    if (d.reply) { const s = await wa.send(r.chatId, d.reply); if (!s) log({ ev: 'reply_not_sent', chat: r.chatId, id: r.id }); }
     if (d.mode !== 'deny') makeDsAdd(DS_BOT_LOG, r.id, { a: d.reply || '', q: r.text, ts: ilStamp(), rep: d.rep || '', phone: r.sender, topic: d.topic || '' });
     if (d.advSubmit) { try { await post(E.ADV_HOOK || 'https://make-runner-production.up.railway.app/hook/x9p7y4lwz3mbnapzd6e2djc5qrwqjqq1', d.advSubmit); } catch (e) { log({ ev: 'adv_fwd_err', err: String(e) }); } }
     return;
@@ -84,6 +85,12 @@ async function bezeqStatus(code, status) {
   } catch (e) { log({ ev: 'bz_status_err', err: String(e) }); return ''; }
 }
 
+let inflight = 0, closing = false;
+const track = (p) => { inflight++; return p.finally(() => { inflight--; }); };
+process.on('SIGTERM', () => {
+  closing = true; log({ ev: 'sigterm', inflight });
+  const t0 = Date.now(); const iv = setInterval(() => { if (inflight === 0 || Date.now() - t0 > 110000) { log({ ev: 'exit', inflight }); process.exit(0); } }, 500);
+});
 const readBody = (req) => new Promise((res) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => res(b)); });
 
 http.createServer(async (req, res) => {
@@ -95,7 +102,7 @@ http.createServer(async (req, res) => {
   try {
     if (u.pathname === '/greenapi' && req.method === 'POST') {
       ok(200, { ok: true });
-      handleIncoming(body).catch((e) => log({ ev: 'handle_err', err: String((e && e.stack) || e) }));
+      track(handleIncoming(body)).catch((e) => log({ ev: 'handle_err', err: String((e && e.stack) || e) }));
       return;
     }
     if (u.pathname === '/send' && req.method === 'POST') { // former Make central sender hook
