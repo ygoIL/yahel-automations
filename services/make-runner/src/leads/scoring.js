@@ -36,7 +36,9 @@ function amountPaid(text) { const m = /משל[מם]\S*[^\d\n]{0,30}?(\d{2,4})(?!
 function scoreCall(text) {
   const t = String(text || '');
   const sig = Object.entries(SIGNALS).filter(([k, s]) => s.re && s.re.test(t)).map(([k]) => k);
-  const disq = DISQ.filter(([, , re]) => re.test(t)).map(([k, label]) => ({ k, label }));
+  // Negated mentions ("ללא סגירת עסקה", "לא נקבע מועד התקנה", "לא ביקש להסיר") must not disqualify.
+  const tn = t.replace(/(ללא|בלי|טרם|לא|אין|מבלי)\s+(?:\S+\s+){0,3}?(סגירת|נסגר\S*|עסקה|הזמנה|הופק\S*|חוזה|חתימה|נקבע\S*|מועד|התקנה|תיאום|ביקש\S*|להסיר|הסרה)\S*/g, ' ');
+  const disq = DISQ.filter(([, , re]) => re.test(tn)).map(([k, label]) => ({ k, label }));
   return { sig, disq, paid: amountPaid(t) };
 }
 

@@ -11,7 +11,7 @@ const BLOCKED = [
   [/כבר לקוח/, 'כבר לקוח'],
 ];
 // Closing reasons that mean "nobody actually talked" (do not count as a recent conversation).
-const NO_TALK = /NO_?ANSWER|NOT_?ANSWER|UNANSWER|BUSY|VOICE_?MAIL|WRONG_?NUMBER|לא ענה|לא עונה|אין מענה|לא נענ|תא קולי|תפוס|מספר שגוי/i;
+const NO_TALK = /CALL_ATTEMPTS|NO_?ANSWER|NOT_?ANSWER|UNANSWER|BUSY|VOICE_?MAIL|WRONG_?NUMBER|לא ענה|לא עונה|אין מענה|לא נענ|תא קולי|תפוס|מספר שגוי/i;
 const RECENT_DAYS = 4;
 
 const txt = (l) => [l.reason, l.subReason && l.subReason.name, l.note].filter(Boolean).join(' ');

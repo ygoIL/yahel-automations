@@ -44,6 +44,12 @@ assert.deepStrictEqual(C('0504444444').disqualified, ['כבר לקוח yes']);
 assert.ok(C('0505555555').disqualified.includes('עסקה נסגרה'));
 assert.ok(C('0506666666').disqualified.includes('שיחה בקמפיין סייבר'));
 assert.ok(C('0523333333').disqualified.includes('סירוב חד'));
+// negated mentions do not disqualify
+assert.deepStrictEqual(scoring.scoreCall('השיחה הסתיימה ללא סגירת עסקה או הצעת המשך.').disq, []);
+assert.deepStrictEqual(scoring.scoreCall('לא נקבע מועד התקנה, הלקוח יחשוב.').disq, []);
+assert.deepStrictEqual(scoring.scoreCall('הלקוח ביקש להסיר אותו מהרשימה.').disq.map((x) => x.k), ['remove']);
+assert.deepStrictEqual(scoring.scoreCall('העסקה נסגרה ונקבע מועד התקנה.').disq.map((x) => x.k), ['deal']);
+assert.deepStrictEqual(scoring.scoreCall('אין תשתית סיבים בבניין.').disq.map((x) => x.k), ['noInfra']);
 // 4 signals but short call is not "hot"
 assert.strictEqual(scoring.buildCustomers([[d(5), '', '972530000000', 'x', '02:59', 'c', HOT]])[0].tier, 'חם');
 
@@ -57,6 +63,7 @@ assert.deepStrictEqual(ev({ inactiveCampaigns: [{ reason: 'NOT_RELEVANT', subRea
 assert.deepStrictEqual(rules.evaluate({ phone: '0500000000', status: { activeLeads: [], inactiveCampaigns: [{ reason: 'NOT_RELEVANT', subReason: { name: 'לקוח פעיל' }, timestamp: '2019-01-01' }] }, deny: new Set(), target: { id: 'p', name: 'פלאפון סלולר' } }), [], 'pelephone exception');
 assert.deepStrictEqual(ev({ inactiveCampaigns: [{ reason: 'NOT_RELEVANT', subReason: { name: 'אין תשתית' }, timestamp: '2019-01-01' }] }), ['blockedStatus']);
 assert.deepStrictEqual(ev({ inactiveCampaigns: [{ reason: 'NOT_INTERESTED', timestamp: new Date(now - 86400000).toISOString() }] }), ['recentTalk']);
+assert.deepStrictEqual(ev({ inactiveCampaigns: [{ reason: 'CALL_ATTEMPTS_EXCEEDED', timestamp: new Date(now - 86400000).toISOString() }] }), []);
 assert.deepStrictEqual(ev({ inactiveCampaigns: [{ reason: 'NO_ANSWER', timestamp: new Date(now - 86400000).toISOString() }] }), []);
 assert.deepStrictEqual(ev({ inactiveCampaigns: [{ reason: 'NOT_INTERESTED', timestamp: new Date(now - 5 * 86400000).toISOString() }] }), []);
 assert.deepStrictEqual(ev({ activeLeads: [{ status: 'NEW', campaignId: 'c1', campaignName: 'בוסט' }] }), ['inTarget']);

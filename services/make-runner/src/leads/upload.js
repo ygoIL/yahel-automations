@@ -86,12 +86,12 @@ async function dryRun({ count, tier, campaign }) {
   const inTier = customers.filter((c) => {
     if (c.tier !== t) return false;
     const d = [...c.disq.entries()].filter(([k]) => !(pelephone && k === 'yesCustomer'));
-    if (d.length) { scoringRejected.push({ c, why: [{ k: 'scoring', d: d.map(([, v]) => v).join(', ') }] }); return false; }
+    if (d.length) { scoringRejected.push({ c, why: d.map(([, v]) => ({ k: `סיכום שיחה: ${v}`, d: v })) }); return false; }
     return true;
   });
 
   const { passed, rejected, checked, seenStatuses } = await checkCandidates(inTier, target, deny, count);
-  const allRejected = [...scoringRejected, ...rejected];
+  const allRejected = [...rejected, ...scoringRejected];
   const byReason = {};
   for (const r of allRejected) for (const w of r.why) byReason[rules.REASON_LABELS[w.k] || w.k] = (byReason[rules.REASON_LABELS[w.k] || w.k] || 0) + 1;
   const runId = new Date().toISOString().slice(0, 10) + '-' + crypto.randomBytes(3).toString('hex');
