@@ -176,6 +176,38 @@
     }
    },
    {
+    "id": 14,
+    "mapper": {
+     "key": "{{6.phone}}",
+     "returnWrapped": true
+    },
+    "module": "datastore:GetRecord",
+    "onerror": [
+     {
+      "id": 15,
+      "module": "builtin:Resume",
+      "mapper": {},
+      "version": 1,
+      "metadata": {
+       "designer": {
+        "x": 1650,
+        "y": 300
+       }
+      }
+     }
+    ],
+    "version": 1,
+    "metadata": {
+     "designer": {
+      "x": 1650,
+      "y": 0
+     }
+    },
+    "parameters": {
+     "datastore": 202662
+    }
+   },
+   {
     "id": 7,
     "mapper": {
      "key": "{{6.phone}}",
@@ -184,8 +216,13 @@
       "sentAt": "{{formatDate(now; \"YYYY-MM-DD HH:mm\"; \"Asia/Jerusalem\")}}",
       "repName": "{{6.rep}}",
       "installDate": "{{6.instText}}",
-      "customerName": "{{6.fullName}}"
-     }
+      "customerName": "{{6.fullName}}",
+      "kind": "",
+      "rating": "",
+      "alertedAt": "",
+      "thankedAt": ""
+     },
+     "overwrite": true
     },
     "module": "datastore:AddRecord",
     "onerror": [
@@ -210,6 +247,24 @@
     },
     "parameters": {
      "datastore": 202662
+    },
+    "filter": {
+     "name": "לא נשלח עדיין על ההתקנה הזאת",
+     "conditions": [
+      [
+       {
+        "a": "{{14.data.phone}}",
+        "o": "notexist"
+       }
+      ],
+      [
+       {
+        "a": "{{14.data.installDate}}",
+        "b": "{{6.instText}}",
+        "o": "text:notequal"
+       }
+      ]
+     ]
     }
    },
    {
