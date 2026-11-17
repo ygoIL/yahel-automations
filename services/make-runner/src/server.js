@@ -34,7 +34,15 @@ http.createServer(async (req, res) => {
     const hm = /^\/hook\/([a-z0-9]+)$/.exec(u.pathname);
     if (hm) {
       const sc = scenarios.byHook(hm[1]); const mode = sc && scenarios.mode(sc);
-      if (!sc || mode === 'off') return send(res, 410, 'There is no scenario listening for this webhook.');
+      if (!sc || mode === 'off') {
+        // Not handled here: pass the request through unchanged to the original Make webhook.
+        const raw = await readBody(req);
+        const h = {}; for (const k of ['content-type', 'accept', 'user-agent']) if (req.headers[k]) h[k] = req.headers[k];
+        const r = await fetch(`https://hook.eu2.make.com/${hm[1]}${u.search}`, { method: req.method, headers: h, body: /GET|HEAD/.test(req.method) ? undefined : raw });
+        const txt = Buffer.from(await r.arrayBuffer());
+        log({ ev: 'hook_passthrough', udid: hm[1], status: r.status });
+        res.writeHead(r.status, { 'Content-Type': r.headers.get('content-type') || 'text/plain' }); return res.end(txt);
+      }
       const body = parseBody(await readBody(req), req.headers['content-type'], u.searchParams);
       const responds = JSON.stringify(sc.blueprint.flow).includes('gateway:WebhookRespond');
       const p = enqueue(sc, { type: 'webhook', body, headers: req.headers }, { dry: mode === 'dry' });
