@@ -56,7 +56,9 @@ http.createServer(async (req, res) => {
     const isAdmin = !!E.ADMIN_KEY && given === E.ADMIN_KEY;
     // TASK_KEY: limited key for scheduled Claude tasks that cannot read Railway variables.
     // It may run scenarios and read run logs, data stores and saved files; nothing else (no mode switches, no Google passthrough).
-    const isTask = !!E.TASK_KEY && given === E.TASK_KEY && /^\/admin\/(run\/\d+|runs\/\d+|ds\/\d+|files(\/.*)?|scenarios|green\/[A-Za-z]+)$/.test(u.pathname) && (req.method === 'GET' || /^\/admin\/(run|green)\//.test(u.pathname));
+    // Also: POST /admin/dedupe/run (immediate check), GET/POST /admin/dedupe/pinned (prioritized campaigns), GET /admin/dedupe/runs.
+    const isTask = !!E.TASK_KEY && given === E.TASK_KEY && /^\/admin\/(run\/\d+|runs\/\d+|ds\/\d+|files(\/.*)?|scenarios|green\/[A-Za-z]+|dedupe\/(run|runs|pinned))$/.test(u.pathname)
+      && (req.method === 'GET' ? u.pathname !== '/admin/dedupe/run' : (/^\/admin\/(run|green)\//.test(u.pathname) || u.pathname === '/admin/dedupe/run' || u.pathname === '/admin/dedupe/pinned'));
     if (!isAdmin && !isTask) return send(res, 401, { error: 'unauthorized' });
     const body = req.method === 'POST' ? parseBody(await readBody(req), 'application/json', []) : {};
     let m;
