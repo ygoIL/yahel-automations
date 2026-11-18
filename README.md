@@ -14,14 +14,14 @@ WhatsApp hub on Green API. Replaces these Make scenarios:
 | 10171903 | Health check every 5 min + failover | in-process scheduler (alerts by WhatsApp) |
 | 10125213 / 10125215 | Rep reminders intake / sender | intake via bot, sender every minute |
 
-group `מנהלים yes`: messages of the senders in `YES_FWD_SENDERS` (יורן טוויטו) are forwarded as-is to `הנהלה מצומצם` (`MGMT_GROUP`) and text also goes to the bot's group knowledge. The bot is a member of the group.
+group `מנהלים yes`: messages of the senders in `YES_FWD_SENDERS` (default יורן טוויטו 050-8680888) are forwarded as-is to `הנהלה מצומצם` (`MGMT_GROUP`) and text also goes to the bot's group knowledge. The bot is a member of the group.
 
 Kinds still handled in Make (forwarded to the old Make hook): shikuf, disc, port, cancel, save, shikdone, advance.
 
 All endpoints except `/health` need `?key=$GATEWAY_KEY`.
 
 ### Environment variables
-`GATEWAY_KEY, REPS_BOT_URL, REPS_BOT_KEY, GREEN_P_BASE, GREEN_P_TOKEN, GREEN_B_BASE?, GREEN_B_TOKEN?, GREEN_ACTIVE, IN_WEBHOOK, ALERT_WHATSAPP, MAKE_FALLBACK_HOOK, MAKE_API_TOKEN, YES_FWD_SENDERS, MGMT_GROUP?, GOOGLE_SERVICE_ACCOUNT_JSON, DATA_DIR=/data` (volume).
+`GATEWAY_KEY, REPS_BOT_URL, REPS_BOT_KEY, GREEN_P_BASE, GREEN_P_TOKEN, GREEN_B_BASE?, GREEN_B_TOKEN?, GREEN_ACTIVE, IN_WEBHOOK, ALERT_WHATSAPP, MAKE_FALLBACK_HOOK, MAKE_API_TOKEN, YES_FWD_SENDERS?, MGMT_GROUP?, GOOGLE_SERVICE_ACCOUNT_JSON, DATA_DIR=/data` (volume).
 
 ### Deploy
 `cd services/wa-gateway && railway up --service wa-gateway`

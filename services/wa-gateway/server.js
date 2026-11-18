@@ -21,9 +21,9 @@ const MAKE_KINDS = (E.MAKE_KINDS || 'shikuf,disc,port,cancel,save,shikdone,advan
 
 // RULE (Steve 18/11/2026): in the group מנהלים yes only messages of יורן טוויטו (יורן יס) count.
 // Each one (text, image or file) is forwarded as-is to "הנהלה מצומצם"; text also goes through the group AI filter into the bot's
-// knowledge (DS 206718). Senders = Railway variable YES_FWD_SENDERS (comma-separated phones). Do not remove.
+// knowledge (DS 206718). Senders = YES_FWD_SENDERS (comma-separated phones), default יורן 050-8680888. Do not remove.
 const YES_GROUP = /מנהלים\s*yes/i;
-const YES_SENDERS = String(E.YES_FWD_SENDERS || '').split(',').map((x) => x.replace(/\D/g, '').slice(-9)).filter((x) => x.length === 9);
+const YES_SENDERS = String(E.YES_FWD_SENDERS || '0508680888').split(',').map((x) => x.replace(/\D/g, '').slice(-9)).filter((x) => x.length === 9);
 const MGMT_GROUP = E.MGMT_GROUP || '120363430128240440@g.us'; // הנהלה מצומצם
 async function handleYesGroup(p) {
   const md = p.messageData || {}, sd = p.senderData || {};
