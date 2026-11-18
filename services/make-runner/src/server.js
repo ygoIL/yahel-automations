@@ -125,6 +125,10 @@ http.createServer(async (req, res) => {
       const dry = u.searchParams.get('dry') !== '0';
       return send(res, 200, await runDedupe({ dry, notify: u.searchParams.get('notify') === '1', full: u.searchParams.get('full') === '1' ? true : undefined }));
     }
+    if (u.pathname === '/admin/dedupe/pinned') { // GET list / POST {"names":["..."]} – campaigns Steve asked to prioritize
+      const G = require('./guard'); if (req.method === 'POST') G.setPinned(body.names); return send(res, 200, { pinned: G.pinned() });
+    }
+    if (u.pathname === '/admin/upload-guard') return send(res, 200, store.load('jobs/upload-guard', []).slice(0, Number(u.searchParams.get('n')) || 20));
     if (u.pathname === '/admin/dedupe/runs') return send(res, 200, store.load('jobs/dedupe', []).slice(0, Number(u.searchParams.get('n')) || 10));
     if (u.pathname === '/admin/tochat' && req.method === 'POST') return send(res, 200, await require('./modules/tochat').call(body).catch((e) => ({ error: String(e.message) })));
     return send(res, 404, { error: 'not found' });
@@ -152,6 +156,13 @@ async function runDedupe({ dry, notify, full }) {
 setInterval(() => {
   const mode = (E.DEDUPE_MODE || 'live').toLowerCase(); if (mode === 'off' || dedupeBusy) return;
   const D = require('./dedupe'); const now = new Date();
+  const G = require('./guard');
+  if (scheduler.due(G.MORNING_SCHEDULE, scheduler.lastRun('job_pinned_ask'), now)) {
+    scheduler.markRun('job_pinned_ask', now.toISOString());
+    const wa = scenarios.all()['9900449'];
+    G.morningMessage().then((msg) => wa && mode !== 'dry' && enqueue(wa, { type: 'manual', body: { phone: E.DEDUPE_ALERT_PHONE || '972544604246', message: msg }, input: { phone: E.DEDUPE_ALERT_PHONE || '972544604246', message: msg } }, { dry: false })).catch((e) => log({ ev: 'pinned_ask_err', err: String(e.message) }));
+  }
+  if (scheduler.due(D.FULL_SCHEDULE, scheduler.lastRun('job_dedupe_full'), now)) { scheduler.markRun('job_dedupe_full', now.toISOString()); runDedupe({ dry: mode === 'dry', notify: true, full: true }); return; }
   if (!scheduler.due(D.SCHEDULE, scheduler.lastRun('job_dedupe'), now)) return;
   scheduler.markRun('job_dedupe', now.toISOString());
   runDedupe({ dry: mode === 'dry', notify: true });

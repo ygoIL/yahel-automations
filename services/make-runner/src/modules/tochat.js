@@ -18,7 +18,20 @@ async function call(mp) {
   return { body: data, headers: Object.fromEntries(r.headers), statusCode: r.status };
 }
 const registerBase = (reg) => {
-  reg('tochat:makeAnApiCall', { write: true, readOnlyWhen: (mp) => /^get$/i.test(mp.method || 'GET'), dryResult: () => ({ body: {}, statusCode: 200 }), run: call });
+  reg('tochat:makeAnApiCall', { write: true, readOnlyWhen: (mp) => /^get$/i.test(mp.method || 'GET'), dryResult: () => ({ body: {}, statusCode: 200 }), run: async (mp) => {
+    const m = /\/campaigns\/([^/?]+)\/customers\/?$/.exec(String(mp.url || ''));
+    if (m && /^post$/i.test(mp.method || '')) { // lead upload through the generic call → same upload guard
+      let b = mp.body; try { if (typeof b === 'string') b = JSON.parse(b); } catch { b = null; }
+      if (b && Array.isArray(b.customers)) {
+        const g = await require('../guard').filter(decodeURIComponent(m[1]), b.customers);
+        if (!g.keep.length) return { body: { created: [], updated: [], failed: g.skipped.map((x) => ({ phone: x.phone, reason: 'OPEN_ELSEWHERE', detail: x.why })) }, headers: {}, statusCode: 200 };
+        b.customers = g.keep; const r = await call({ ...mp, body: b });
+        if (g.skipped.length && r.body && typeof r.body === 'object') r.body.failed = (r.body.failed || []).concat(g.skipped.map((x) => ({ phone: x.phone, reason: 'OPEN_ELSEWHERE', detail: x.why })));
+        return r;
+      }
+    }
+    return call(mp);
+  } });
 };
 
 module.exports.call = call;
@@ -32,9 +45,14 @@ const registerApp = (reg) => {
   reg('tochat:GetCampaigns', { multi: true, run: async () => { const r = await call({ url: '/campaigns', method: 'GET' }); return Array.isArray(r.body) ? r.body : []; } });
   reg('tochat:AddLeadsToCampaign2', { ...W, run: async (mp) => {
     const customers = (Array.isArray(mp.customers) ? mp.customers : []).map((c) => { const o = clean(c); if (o.customLeadFields && !Object.keys(o.customLeadFields).length) delete o.customLeadFields; return o; });
+    const g = await require('../guard').filter(mp.campaignId, customers); // upload guard: no customer that is open elsewhere
+    if (!g.keep.length) return { created: [], updated: [], failed: g.skipped.map((x) => ({ phone: x.phone, reason: 'OPEN_ELSEWHERE', detail: x.why })) };
+    customers.length = 0; customers.push(...g.keep);
     const ds = clean(mp.dataSource); if (ds.priority !== undefined) ds.priority = Number(ds.priority);
     for (const k of ['newCustomersOnly', 'shouldCheckWithDontCallMe', 'shouldOverrideCustomerData']) if (k in ds) ds[k] = ds[k] === true || ds[k] === 'true';
-    return (await call({ url: `/tenants/${T()}/campaigns/${enc(mp.campaignId)}/customers`, method: 'POST', body: { customers, dataSource: ds } })).body;
+    const out = (await call({ url: `/tenants/${T()}/campaigns/${enc(mp.campaignId)}/customers`, method: 'POST', body: { customers, dataSource: ds } })).body;
+    if (g.skipped.length && out && typeof out === 'object') out.failed = (out.failed || []).concat(g.skipped.map((x) => ({ phone: x.phone, reason: 'OPEN_ELSEWHERE', detail: x.why })));
+    return out;
   } });
   const page = (kind) => async (mp) => {
     const qs = [{ key: 'limit', value: String(mp.limit || 50000) }]; if (mp.pageToken) qs.push({ key: 'pageToken', value: mp.pageToken });

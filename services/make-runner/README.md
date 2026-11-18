@@ -49,7 +49,15 @@ Because of ToChat's hourly openLeads row cap, the hourly pass reads only the FOC
 At most `DEDUPE_MAX_CLOSE` (default 5000) closes per run; the rest are picked up by the next run.
 Finds every phone that is open in 2+ campaigns, reads the live customer record, then:
 1. open follow-up anywhere = sacred → every other copy is closed (IRRELEVANT, with a note);
-   two follow-ups by different reps (edge case) → a rep listed in יעדים beats one who is not; otherwise the earlier one (lastCall/createDate) keeps the customer; <10 min apart or no time → not closed, reported;
-2. no follow-up → keep by priority: פולואפים כל הזמנים → רותחים → תקשורת כל החברות חדש → תקשורת כל החברות → הזדמנות שניה → בוסט → מבצע → מצטרפים → (oldest lead).
+   two follow-ups by different reps (edge case) → a rep listed in יעדים beats one who is not; otherwise the earlier one (lastCall/createDate) keeps the customer; no time → not closed, reported (minutes apart: still the earlier one);
+2. no follow-up → keep by priority: (pinned) → הזדמנות שניה → בוסט → פולואפים כל הזמנים → רותחים → תקשורת כל החברות חדש → תקשורת כל החברות → מבצע → מצטרפים → (oldest lead). Uploads to a campaign that outranks every other open copy "pull" the customer.
+Nightly full scan of all campaigns at 02:10 (`DEDUPE_FULL_TIME`); if the ToChat hourly budget runs out it waits for the next hour and continues.
 WhatsApp to Steve (`DEDUPE_ALERT_PHONE`) only when a follow-up conflict was resolved, a case needs review, or the run had errors.
 `POST /admin/dedupe/run?dry=1` (dry=0 for real, `notify=1` to send the message), `GET /admin/dedupe/runs`.
+
+## Upload guard (`src/guard/`)
+Every lead upload that goes through make-runner (AddLeadsToCampaign2, makeAnApiCall POST …/customers, the leads tool) skips customers that
+have an open follow-up anywhere (always), or that are open in another campaign – unless the target campaign is prioritized ("pinned").
+Pinned campaigns: `GET/POST /admin/dedupe/pinned {"names":[...]}`; the hourly dedupe also keeps the copy in a pinned campaign. Log: `GET /admin/upload-guard`. `UPLOAD_GUARD=off` disables.
+Hourly pass reads focus + prioritized + every campaign whose status is ON (so a campaign opened during the day is covered), rotating big ones under `DEDUPE_MAX_ROWS` (default 90k).
+Prioritized campaigns also come from the sheet tab `קמפיינים מתועדפים` (A2:A, first = most important) in 1-mXfg…; Steve gets a WhatsApp at 08:40 (Sun–Fri) asking which campaigns matter today.

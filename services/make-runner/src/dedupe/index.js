@@ -4,7 +4,7 @@
 //   2. An open follow-up (FOLLOWUP / INCOMING_FOLLOWUP) is sacred: it always stays; every other copy is closed.
 //      Two follow-ups by different reps (should never happen): a rep listed in the דוח מכר 'יעדים' tab beats a rep
 //      who is not there (Steve, 18/11); if both or neither are listed – whoever set it first keeps it
-//      (lastCall, else createDate); less than 10 minutes apart or a missing time → nothing is closed, reported.
+//      (lastCall, else createDate) – always, even minutes apart; only a missing time → nothing is closed, reported.
 //   3. No follow-up anywhere: keep the copy by campaign priority –
 //      פולואפים כל הזמנים → רותחים → תקשורת כל החברות (חדש) → … ; the rest are closed.
 // ToChat caps openLeads at 150,000 rows per hour for the whole tenant (shared with every other automation), so the
@@ -17,26 +17,28 @@ const store = require('../store');
 const enc = encodeURIComponent;
 
 // Campaign priority for customers without a follow-up (first match wins; lower index = keep).
-const PRIORITY = [
+const PRIORITY = [ // Steve 18/11 (evening): הזדמנות שניה and בוסט first, then the rest
+  /^הזדמנות שני/,
+  /^בוסט$/,
   /^פולואפים כל הזמנים$/,
   /^רותחים/,
   /^תקשורת כל החברות חדש$/,
   /^תקשורת כל החברות$/,
-  /^הזדמנות שני/,
-  /^בוסט$/,
   /מבצע/,
   /מצטרפים/,
 ];
 // Campaigns that are never touched (not counted, never closed).
 const SKIP = /רשימה שחורה/;
 // Campaigns read every hour (every customer in them is checked against all his other open copies).
-const FOCUS = [/^פולואפים כל הזמנים$/, /^רותחים/, /^הזדמנות שני/, /^בוסט$/];
+const FOCUS = [/^פולואפים כל הזמנים$/, /^רותחים/, /^הזדמנות שני/, /^בוסט$/]; // + pinned campaigns
 const FOLLOW = /FOLLOW/i;
 const FU_GAP_MS = 10 * 60 * 1000;
 const MAX_CLOSE = Number(process.env.DEDUPE_MAX_CLOSE || 5000);
 const MAX_FU_CLOSE = Number(process.env.DEDUPE_MAX_FU_CLOSE || 30);
 
-const rank = (name) => { const i = PRIORITY.findIndex((re) => re.test(String(name || '').trim())); return i < 0 ? PRIORITY.length : i; };
+// Campaigns Steve asked to prioritize ("pinned") come before the fixed order; open follow-ups still win over everything.
+const pinnedList = () => { try { return require('../guard').pinned(); } catch { return []; } };
+const rank = (name) => { const n = String(name || '').trim(); const pi = pinnedList().indexOf(n); if (pi >= 0) return -100 + pi; const i = PRIORITY.findIndex((re) => re.test(n)); return i < 0 ? PRIORITY.length : i; };
 const time = (l) => { const d = new Date(l.lastCall || l.createDate || ''); return isNaN(d) ? null : d.getTime(); };
 const created = (l) => { const d = new Date(l.createDate || ''); return isNaN(d) ? Infinity : d.getTime(); };
 const isFU = (l) => FOLLOW.test(String(l.status || ''));
@@ -73,8 +75,7 @@ function decide(leads, ours) {
       else {
         // our reps (יעדים) first, then earliest follow-up
         const s = fu.map((l, i) => ({ l, t: t[i] === null ? Infinity : t[i], o: our[i] })).sort((a, b) => (b.o - a.o) || (a.t - b.t));
-        if (!mixed && s[1].t - s[0].t < FU_GAP_MS) review = 'שני פולואפים של נציגים שונים בהפרש של פחות מ-10 דקות';
-        else {
+        { // Steve 18/11: always whoever set it first – also when they are minutes apart
           keep = [s[0].l];
           for (const x of s.slice(1)) if (String(x.l.followByName || '').trim() !== String(s[0].l.followByName || '').trim()) close.push({ lead: x.l, fu: true, why: `${mixed ? 'הנציג לא ביעדים' : 'פולואפ מאוחר יותר'} – הלקוח נשאר אצל ${s[0].l.followByName || '?'} (${s[0].l.campaignName || ''})` });
             else keep.push(x.l);
@@ -125,16 +126,46 @@ async function run({ dry = false, full: full_, log = () => {} } = {}) {
   const started = new Date();
   const res = { at: started.toISOString(), dry, campaigns: 0, openLeads: 0, failedCampaigns: [], dupPhones: 0, checked: 0, closed: 0, closedFU: 0, failedClose: 0, review: [], fuConflicts: [], byCampaign: {}, errors: [] };
   const full = full_ ?? process.env.DEDUPE_FULL === '1';
-  const camps = (await tc.listCampaigns()).filter((c) => !SKIP.test(c.name) && (full || FOCUS.some((re) => re.test(c.name))));
+  await require('../guard').refreshPinned(true);
+  const all = (await tc.listCampaigns()).filter((c) => !SKIP.test(c.name));
+  const isOn = (c) => String((c.raw && c.raw.status) || '').toUpperCase() === 'ON';
+  const isFocus = (c) => FOCUS.some((re) => re.test(c.name)) || pinnedList().includes(c.name);
+  // Hourly pass: focus + prioritized campaigns + every campaign that is ON right now (also one opened during the day).
+  // Big campaigns are rotated so one pass stays under DEDUPE_MAX_ROWS (ToChat allows 150k rows/hour for the whole tenant).
+  const memo = store.load('jobs/dedupe-camps', {}); // id -> { status, at, rows }
+  let camps;
+  if (full) camps = all;
+  else {
+    const cand = all.filter((c) => isFocus(c) || isOn(c));
+    const turnedOn = (c) => isOn(c) && (memo[c.id] || {}).status !== 'ON';
+    cand.sort((a, b) => (turnedOn(b) - turnedOn(a)) || (isFocus(b) - isFocus(a)) || String((memo[a.id] || {}).at || '').localeCompare(String((memo[b.id] || {}).at || '')));
+    const cap = Number(process.env.DEDUPE_MAX_ROWS || 90000); let est = 0; camps = [];
+    for (const c of cand) { const r = (memo[c.id] || {}).rows || 0; if (camps.length && !isFocus(c) && est + r > cap) { res.deferred = (res.deferred || 0) + 1; continue; } camps.push(c); est += r; }
+  }
+  for (const c of all) memo[c.id] = { ...(memo[c.id] || {}), status: isOn(c) ? 'ON' : 'OFF' };
+  res.campaignNames = camps.map((c) => c.name);
   const where = new Map(); // phone -> Set(campaignId)
-  for (const c of camps) {
+  const focusPhones = new Set();
+  let waits = 0;
+  for (let i = 0; i < camps.length; i++) {
+    const c = camps[i];
     try {
       const L = await openLeads(c.id); res.campaigns++; res.openLeads += L.length;
-      for (const l of L) { const p = tc.normPhone(l.displayPhone || l.phone || (l.customer && l.customer.phone)); if (!p) continue; if (!where.has(p)) where.set(p, new Set()); where.get(p).add(c.id); }
-    } catch (e) { res.failedCampaigns.push(c.name); if (/429/.test(String(e.message))) { res.errors.push('מכסת השעה של טוצ\'אט לקריאת לידים נגמרה – הבדיקה תושלם בשעה הבאה'); break; } }
+      memo[c.id] = { ...(memo[c.id] || {}), at: new Date().toISOString(), rows: L.length };
+      for (const l of L) { const p = tc.normPhone(l.displayPhone || l.phone || (l.customer && l.customer.phone)); if (!p) continue; if (!where.has(p)) where.set(p, new Set()); where.get(p).add(c.id); if (!full && isFocus(c)) focusPhones.add(p); }
+    } catch (e) {
+      if (/429/.test(String(e.message))) {
+        // full (nightly) scan: the hourly ToChat budget ran out – wait for the next clock hour and continue (at most twice)
+        if (full && waits < 2) { waits++; const now = new Date(); const next = new Date(now); next.setUTCMinutes(2, 0, 0); next.setUTCHours(now.getUTCHours() + 1); log({ ev: 'dedupe_wait_budget', until: next.toISOString(), at: c.name }); await new Promise((r) => setTimeout(r, next - now)); i--; continue; }
+        res.failedCampaigns.push(c.name); res.errors.push('מכסת השעה של טוצ\'אט לקריאת לידים נגמרה – הבדיקה תושלם בהרצה הבאה'); break;
+      }
+      res.failedCampaigns.push(c.name);
+    }
   }
-  // focus mode: every customer of the focus campaigns is checked (his other copies are in the customer record)
-  const dups = [...where].filter(([, s]) => !full || s.size > 1).map(([p]) => p);
+  store.save('jobs/dedupe-camps', memo);
+  // every customer of a focus/prioritized campaign is checked (his other copies are in the customer record);
+  // for the rest, a customer open in 2+ of the campaigns read now
+  const dups = [...where].filter(([p, s]) => s.size > 1 || focusPhones.has(p)).map(([p]) => p);
   res.dupPhones = dups.length;
   log({ ev: 'dedupe_scan', campaigns: res.campaigns, openLeads: res.openLeads, dups: dups.length, failed: res.failedCampaigns.length });
 
@@ -187,6 +218,8 @@ function message(r, hhmm) {
 
 // Schedule: every hour during working hours (Steve 18/11) – Sun–Fri 09:00–17:00 (Asia/Jerusalem).
 // Runs on Railway only (ToChat API + Google) – no Make operations, no Claude.
+// Nightly full scan of ALL campaigns (Steve 18/11) – at night nothing else uses the ToChat budget; continues into the next hour if needed.
+const FULL_SCHEDULE = { type: 'daily', time: [process.env.DEDUPE_FULL_TIME || '02:10'] };
 const SCHEDULE = { type: 'indefinitely', interval: Number(process.env.DEDUPE_INTERVAL_SEC || 3600), restrict: [{ days: [0, 1, 2, 3, 4, 5], time: ['09:00', '17:00'] }] };
 
-module.exports = { run, decide, message, isOurRep, SCHEDULE, PRIORITY, FOCUS, rank };
+module.exports = { run, decide, message, isOurRep, SCHEDULE, FULL_SCHEDULE, PRIORITY, FOCUS, rank };
