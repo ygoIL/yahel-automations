@@ -159,7 +159,7 @@ module.exports = (reg) => {
     if (p.search) qs.push({ key: '$search', value: `"${String(p.search).replace(/"/g, '\\"')}"` }); else qs.push({ key: '$orderby', value: 'receivedDateTime desc' });
     const path = p.folder ? `/me/mailFolders/${encodeURIComponent(p.folder)}/messages` : '/me/messages';
     const r = await graph('GET', path, { qs, headers: [{ key: 'ConsistencyLevel', value: 'eventual' }] });
-    const msgs = (r.body.value || []).filter((x) => !st.seen.includes(x.id)).sort((a, b) => String(a.createdDateTime || a.receivedDateTime).localeCompare(String(b.createdDateTime || b.receivedDateTime))).slice(-(Number(p.limit) || 5));
+    const msgs = (r.body.value || []).filter((x) => !st.seen.includes(x.id) && !(scenario.since && String(x.createdDateTime || x.receivedDateTime) < new Date(scenario.since).toISOString())).sort((a, b) => String(a.createdDateTime || a.receivedDateTime).localeCompare(String(b.createdDateTime || b.receivedDateTime))).slice(-(Number(p.limit) || 5));
     st.seen = [...new Set([...st.seen, ...(r.body.value || []).map((x) => x.id)])].slice(-5000); store.save(stKey, st);
     return st.init ? msgs : (st.init = true, store.save(stKey, st), msgs);
   } });

@@ -52,7 +52,15 @@ module.exports = (reg) => {
     const data = Buffer.isBuffer(mp.data) ? mp.data : Buffer.from(typeof mp.data === 'string' ? mp.data : JSON.stringify(mp.data || ''), Buffer.isBuffer(mp.data) ? undefined : 'binary');
     const body = Buffer.concat([Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`), data, Buffer.from(`\r\n--${boundary}--`)]);
     const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink&supportsAllDrives=true', { method: 'POST', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': `multipart/related; boundary=${boundary}` }, body }).then((x) => x.json());
-    if (r.error) throw new Error('Drive upload: ' + JSON.stringify(r.error).slice(0, 300));
+    if (r.error) {
+      // A service account has no Drive storage of its own, so it cannot create files in a personal My Drive folder.
+      // Keep the file on the Railway volume instead; GET /admin/files/<name> serves it to whoever uploads it with user credentials.
+      if (/storage quota/i.test(JSON.stringify(r.error))) {
+        const saved = require('../store').saveFile(meta.name + (/\.xlsx$/i.test(mp.filename || '') ? '.xlsx' : ''), data);
+        return { id: null, name: meta.name, savedOnRailway: saved };
+      }
+      throw new Error('Drive upload: ' + JSON.stringify(r.error).slice(0, 300));
+    }
     return r;
   } });
 };

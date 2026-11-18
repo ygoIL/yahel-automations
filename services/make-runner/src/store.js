@@ -24,4 +24,10 @@ function logRun(scenarioId, run) {
   const name = `runs/${scenarioId}`; const runs = load(name, []);
   runs.unshift(run); if (runs.length > 200) runs.length = 200; save(name, runs);
 }
-module.exports = { load, save, exists, ds, dsSave, logRun, DIR };
+// ---- binary files kept on the volume (e.g. uploads Drive refused) ----
+const FDIR = path.join(DIR, 'files'); fs.mkdirSync(FDIR, { recursive: true });
+const safeName = (n) => String(n).replace(/[\/\\\0]/g, '_').slice(0, 200);
+function saveFile(name, buf) { const n = safeName(name); fs.writeFileSync(path.join(FDIR, n), buf); return n; }
+function listFiles() { return fs.readdirSync(FDIR).map((n) => { const st = fs.statSync(path.join(FDIR, n)); return { name: n, size: st.size, at: st.mtime.toISOString() }; }).sort((a, b) => b.at.localeCompare(a.at)); }
+function readFile(name) { const f = path.join(FDIR, safeName(name)); return fs.existsSync(f) ? fs.readFileSync(f) : null; }
+module.exports = { load, save, exists, ds, dsSave, logRun, DIR, saveFile, listFiles, readFile };

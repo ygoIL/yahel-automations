@@ -35,7 +35,9 @@ reg('phonenumber:TransformerParseNumber', { run: (mp) => {
   let intl = d.startsWith('+') ? d.slice(1) : d.startsWith('00') ? d.slice(2) : (cc === 'IL' && d.startsWith('0') ? '972' + d.slice(1) : (cc === 'IL' && /^5\d{8}$/.test(d) ? '972' + d : d));
   const valid = /^972(5\d{8}|[2-9]\d{7})$/.test(intl);
   const national = intl.startsWith('972') ? '0' + intl.slice(3) : intl;
-  return { valid, possible: valid, countryCode: intl.startsWith('972') ? '972' : '', nationalNumber: intl.startsWith('972') ? intl.slice(3) : intl, e164: '+' + intl, international: '+' + intl, national, rfc3966: 'tel:+' + intl, type: /^9725/.test(intl) ? 'MOBILE' : 'FIXED_LINE', region: valid ? 'IL' : '' };
+  const cc2 = intl.startsWith('972') ? '972' : ''; const nn = cc2 ? intl.slice(3) : intl;
+  // Make's field names are countryCallingCode / phone; the others are kept for compatibility.
+  return { valid, possible: valid, countryCallingCode: cc2, phone: nn, country: valid ? 'IL' : '', number: '+' + intl, countryCode: cc2, nationalNumber: nn, e164: '+' + intl, international: '+' + intl, national, rfc3966: 'tel:+' + intl, type: /^9725/.test(intl) ? 'MOBILE' : 'FIXED_LINE', region: valid ? 'IL' : '' };
 } });
 
 // ---------------- code (Make "Code" app) ----------------

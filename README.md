@@ -24,6 +24,15 @@ All endpoints except `/health` need `?key=$GATEWAY_KEY`.
 ### Deploy
 `cd services/wa-gateway && railway up --service wa-gateway`
 
+## Health check
+`python3 tools/healthcheck.py [--hours 2] [--json]` — WhatsApp line, reps-bot, every `live` make-runner scenario
+(failed runs, interval scenarios that stopped, daily/weekly runs missed today) and Make scenarios that are
+scheduled in Make *and* live on Railway (would run twice). Reads keys from Railway at run time. Exit 1 = problems.
+
+### What stays active in Make (17 Nov 2026)
+* On-demand scenarios (Claude tools) – cost nothing while idle.
+* Webhooks whose senders still post to the Make hook URL: 8302844 (ManyChat), 10125496, 10151077, 10151108.
+
 ## tools/railway_keys.py — keys from Railway, without exposing them
 The single pre-approved way (`.claude/settings.json`) for a Claude session / Cowork to use keys stored in Railway variables. Values are never printed or saved; secrets in responses are masked.
 

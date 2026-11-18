@@ -68,8 +68,13 @@ http.createServer(async (req, res) => {
     if ((m = /^\/admin\/mode\/(\d+)$/.exec(u.pathname))) {
       scenarios.setMode(m[1], body.mode);
       // switching on: start the schedule from now, so a run Make already did today is not repeated
-      if (body.mode === 'live' || body.mode === 'dry') scheduler.markRun(m[1], new Date().toISOString());
+      // daily/weekly: only when today's slot has already passed (Make ran it); otherwise today's run would be skipped.
+      if (body.mode === 'live' || body.mode === 'dry') { const sc = scenarios.all()[m[1]]; if (!sc || scheduler.slotPassedToday(sc.scheduling)) scheduler.markRun(m[1], new Date().toISOString()); }
       return send(res, 200, { id: m[1], mode: body.mode || '(registry)', lastRun: scheduler.lastRun(m[1]) });
+    }
+    if ((m = /^\/admin\/lastrun\/(\d+)$/.exec(u.pathname))) { // POST {"at": ISO} – set/repair the scheduler's last-run stamp
+      if (req.method === 'POST' && body.at && !isNaN(new Date(body.at))) scheduler.markRun(m[1], new Date(body.at).toISOString());
+      return send(res, 200, { id: m[1], lastRun: scheduler.lastRun(m[1]) });
     }
     if ((m = /^\/admin\/ds\/(\d+)$/.exec(u.pathname))) { // GET = read local, POST = import from Make
       if (req.method === 'POST' && body.records) { store.dsSave(m[1], { records: body.records, importedAt: new Date().toISOString() }); return send(res, 200, { loaded: Object.keys(body.records).length }); }
@@ -81,7 +86,30 @@ http.createServer(async (req, res) => {
       const method = req.method === 'POST' ? (body.method || 'PUT') : 'GET';
       return send(res, 200, await api({ url: u.searchParams.get('url'), method, body: req.method === 'POST' ? body.body : undefined, qs: body.qs }).catch((e) => ({ error: String(e.message) })));
     }
+    if (u.pathname === '/admin/files') return send(res, 200, store.listFiles());
+    if ((m = /^\/admin\/files\/(.+)$/.exec(u.pathname))) {
+      const buf = store.readFile(decodeURIComponent(m[1])); if (!buf) return send(res, 404, { error: 'no such file' });
+      res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': buf.length }); return res.end(buf);
+    }
+    if ((m = /^\/admin\/watch-forget\/(\d+)$/.exec(u.pathname)) && req.method === 'POST') { // let a mail watcher return a message again
+      const key = `watch/ms_${m[1]}`; const st = store.load(key, { seen: [] }); const before = st.seen.length;
+      st.seen = st.seen.filter((x) => !(body.ids || []).includes(x)); store.save(key, st);
+      return send(res, 200, { removed: before - st.seen.length });
+    }
     if (u.pathname === '/admin/check') return send(res, 200, await require('./tools').check(u.searchParams.get('only')));
+    // ---- lead upload to ToChat campaigns (dry run first; a real upload only via /confirm of an approved dry run) ----
+    if (u.pathname.startsWith('/admin/leads/')) {
+      const L = require('./leads/upload');
+      const out = (j) => send(res, j.status === 'error' ? (j.missingKey ? 412 : 500) : 200, j.status === 'done' ? { jobId: j.id, ...j.result } : j);
+      if (u.pathname === '/admin/leads/upload' && req.method === 'POST') {
+        if (body.dryRun === false || body.dryRun === 'false') return send(res, 400, { error: 'העלאה אמיתית רק אחרי הרצה יבשה ואישור: POST /admin/leads/confirm {"runId":"..."}' });
+        return out(await L.start('dry', body));
+      }
+      if (u.pathname === '/admin/leads/confirm' && req.method === 'POST') return out(await L.start('confirm', body));
+      if ((m = /^\/admin\/leads\/job\/(\w+)$/.exec(u.pathname))) { const j = L.job(m[1]); return j ? out(j) : send(res, 404, { error: 'no such job' }); }
+      if (u.pathname === '/admin/leads/log') return send(res, 200, L.runLog(Number(u.searchParams.get('n')) || 50));
+      if (u.pathname === '/admin/leads/campaigns') return send(res, 200, (await require('./leads/tochat-client').listCampaigns()).map((c) => ({ id: c.id, name: c.name })));
+    }
     if (u.pathname === '/admin/tochat' && req.method === 'POST') return send(res, 200, await require('./modules/tochat').call(body).catch((e) => ({ error: String(e.message) })));
     return send(res, 404, { error: 'not found' });
   } catch (e) { log({ ev: 'http_err', path: u.pathname, err: String(e && e.stack || e) }); return send(res, 500, { error: String(e.message || e) }); }
