@@ -32,6 +32,22 @@ async function send(chatId, message) {
   return null;
 }
 
+// Forward an existing message as-is (text, image, file) with Green API forwardMessages; same account order as send().
+async function forward(chatId, chatIdFrom, idMessage) {
+  chatId = normChat(chatId);
+  const first = state().active === 'backup' && hasBackup() ? 'backup' : 'primary';
+  const order = [first]; if (hasBackup()) order.push(first === 'primary' ? 'backup' : 'primary');
+  for (const n of order) {
+    const a = acct(n);
+    try {
+      const r = await post(`${a.base}/forwardMessages/${a.token}`, { chatId, chatIdFrom, messages: [idMessage] });
+      if (r.status >= 200 && r.status < 300) { log({ ev: 'forwarded', via: n, chatId, from: chatIdFrom }); return true; }
+      log({ ev: 'forward_fail', via: n, status: r.status, resp: JSON.stringify(r.data).slice(0, 300) });
+    } catch (e) { log({ ev: 'forward_err', via: n, err: String(e) }); }
+  }
+  return false;
+}
+
 // Gate (former Make 10125129): reps don't get messages Fri 16:00+ / Sat; they are queued to Sunday 08:30. Managers always get them.
 const MGR = ['544604246', '504445169', '525102820', '525192071', '584896222', '542607144'];
 async function gate({ chatId, phone, message, source }) {
@@ -95,4 +111,4 @@ async function healthCheck() {
   save('wa_state', st);
 }
 
-module.exports = { send, gate, normChat, flushSundayQueue, healthCheck, state };
+module.exports = { send, forward, gate, normChat, flushSundayQueue, healthCheck, state };
