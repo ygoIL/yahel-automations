@@ -132,6 +132,7 @@ async function runDedupe({ dry, notify, full }) {
 setInterval(() => {
   const mode = (E.DEDUPE_MODE || 'live').toLowerCase(); if (mode === 'off' || dedupeBusy) return;
   const D = require('./dedupe'); const now = new Date();
+  if (scheduler.due(D.FULL_SCHEDULE, scheduler.lastRun('job_dedupe_full'), now)) { scheduler.markRun('job_dedupe_full', now.toISOString()); runDedupe({ dry: mode === 'dry', notify: true, full: true }); return; }
   if (!scheduler.due(D.SCHEDULE, scheduler.lastRun('job_dedupe'), now)) return;
   scheduler.markRun('job_dedupe', now.toISOString());
   runDedupe({ dry: mode === 'dry', notify: true });

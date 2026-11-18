@@ -46,5 +46,6 @@ Finds every phone that is open in 2+ campaigns, reads the live customer record, 
 1. open follow-up anywhere = sacred → every other copy is closed (IRRELEVANT, with a note);
    two follow-ups by different reps (edge case) → a rep listed in יעדים beats one who is not; otherwise the earlier one (lastCall/createDate) keeps the customer; <10 min apart or no time → not closed, reported;
 2. no follow-up → keep by priority: פולואפים כל הזמנים → רותחים → תקשורת כל החברות חדש → תקשורת כל החברות → הזדמנות שניה → בוסט → מבצע → מצטרפים → (oldest lead).
+Nightly full scan of all campaigns at 02:10 (`DEDUPE_FULL_TIME`); if the ToChat hourly budget runs out it waits for the next hour and continues.
 WhatsApp to Steve (`DEDUPE_ALERT_PHONE`) only when a follow-up conflict was resolved, a case needs review, or the run had errors.
 `POST /admin/dedupe/run?dry=1` (dry=0 for real, `notify=1` to send the message), `GET /admin/dedupe/runs`.

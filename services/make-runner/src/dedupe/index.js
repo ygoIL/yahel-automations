@@ -127,11 +127,20 @@ async function run({ dry = false, full: full_, log = () => {} } = {}) {
   const full = full_ ?? process.env.DEDUPE_FULL === '1';
   const camps = (await tc.listCampaigns()).filter((c) => !SKIP.test(c.name) && (full || FOCUS.some((re) => re.test(c.name))));
   const where = new Map(); // phone -> Set(campaignId)
-  for (const c of camps) {
+  let waits = 0;
+  for (let i = 0; i < camps.length; i++) {
+    const c = camps[i];
     try {
       const L = await openLeads(c.id); res.campaigns++; res.openLeads += L.length;
       for (const l of L) { const p = tc.normPhone(l.displayPhone || l.phone || (l.customer && l.customer.phone)); if (!p) continue; if (!where.has(p)) where.set(p, new Set()); where.get(p).add(c.id); }
-    } catch (e) { res.failedCampaigns.push(c.name); if (/429/.test(String(e.message))) { res.errors.push('מכסת השעה של טוצ\'אט לקריאת לידים נגמרה – הבדיקה תושלם בשעה הבאה'); break; } }
+    } catch (e) {
+      if (/429/.test(String(e.message))) {
+        // full (nightly) scan: the hourly ToChat budget ran out – wait for the next clock hour and continue (at most twice)
+        if (full && waits < 2) { waits++; const now = new Date(); const next = new Date(now); next.setUTCMinutes(2, 0, 0); next.setUTCHours(now.getUTCHours() + 1); log({ ev: 'dedupe_wait_budget', until: next.toISOString(), at: c.name }); await new Promise((r) => setTimeout(r, next - now)); i--; continue; }
+        res.failedCampaigns.push(c.name); res.errors.push('מכסת השעה של טוצ\'אט לקריאת לידים נגמרה – הבדיקה תושלם בהרצה הבאה'); break;
+      }
+      res.failedCampaigns.push(c.name);
+    }
   }
   // focus mode: every customer of the focus campaigns is checked (his other copies are in the customer record)
   const dups = [...where].filter(([, s]) => !full || s.size > 1).map(([p]) => p);
@@ -187,6 +196,8 @@ function message(r, hhmm) {
 
 // Schedule: every hour during working hours (Steve 18/11) – Sun–Fri 09:00–17:00 (Asia/Jerusalem).
 // Runs on Railway only (ToChat API + Google) – no Make operations, no Claude.
+// Nightly full scan of ALL campaigns (Steve 18/11) – at night nothing else uses the ToChat budget; continues into the next hour if needed.
+const FULL_SCHEDULE = { type: 'daily', time: [process.env.DEDUPE_FULL_TIME || '02:10'] };
 const SCHEDULE = { type: 'indefinitely', interval: Number(process.env.DEDUPE_INTERVAL_SEC || 3600), restrict: [{ days: [0, 1, 2, 3, 4, 5], time: ['09:00', '17:00'] }] };
 
-module.exports = { run, decide, message, isOurRep, SCHEDULE, PRIORITY, FOCUS, rank };
+module.exports = { run, decide, message, isOurRep, SCHEDULE, FULL_SCHEDULE, PRIORITY, FOCUS, rank };
