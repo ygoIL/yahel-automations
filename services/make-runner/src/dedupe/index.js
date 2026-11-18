@@ -101,7 +101,7 @@ async function openLeads(id) {
   // 4xx/429 are thrown (never treated as an empty campaign)
   const out = []; let pageToken; let guard = 0;
   do {
-    const r = await tc.request(`/tenants/${enc(tc.tenant())}/campaigns/${enc(id)}/openLeads`, { qs: { limit: 10000, pageToken } });
+    const r = await tc.request(`/tenants/${enc(tc.tenant())}/campaigns/${enc(id)}/openLeads`, { qs: { limit: 10000, pageToken }, wait429: false });
     if (r.status >= 400) throw new Error(`openLeads ${r.status}`);
     const b = r.body; const arr = Array.isArray(b) ? b : (b && (b.leads || b.items || b.data)) || [];
     out.push(...arr);
@@ -140,7 +140,8 @@ async function run({ dry = false, full: full_, log = () => {} } = {}) {
     const turnedOn = (c) => isOn(c) && (memo[c.id] || {}).status !== 'ON';
     cand.sort((a, b) => (turnedOn(b) - turnedOn(a)) || (isFocus(b) - isFocus(a)) || String((memo[a.id] || {}).at || '').localeCompare(String((memo[b.id] || {}).at || '')));
     const cap = Number(process.env.DEDUPE_MAX_ROWS || 90000); let est = 0; camps = [];
-    for (const c of cand) { const r = (memo[c.id] || {}).rows || 0; if (camps.length && !isFocus(c) && est + r > cap) { res.deferred = (res.deferred || 0) + 1; continue; } camps.push(c); est += r; }
+    // a campaign never read yet counts as DEDUPE_UNKNOWN_ROWS, so the very first pass also stays under the cap
+    for (const c of cand) { const r = (memo[c.id] || {}).rows ?? Number(process.env.DEDUPE_UNKNOWN_ROWS || 20000); if (camps.length && !isFocus(c) && est + r > cap) { res.deferred = (res.deferred || 0) + 1; continue; } camps.push(c); est += r; }
   }
   for (const c of all) memo[c.id] = { ...(memo[c.id] || {}), status: isOn(c) ? 'ON' : 'OFF' };
   res.campaignNames = camps.map((c) => c.name);

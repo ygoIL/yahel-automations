@@ -15,7 +15,9 @@ function requireKey() {
 
 // One HTTP call with retry on 429 / 5xx / network errors (exponential backoff, honours Retry-After).
 // Returns { status, body }. 4xx other than 429 are returned (not thrown) so callers can decide (e.g. 404 = unknown customer).
-async function request(path, { method = 'GET', body, qs, retries = 5 } = {}) {
+// wait429 = false: return the 429 at once instead of sleeping (the hourly row budget answers with Retry-After until the
+// next clock hour, so waiting would block the caller for up to an hour per attempt).
+async function request(path, { method = 'GET', body, qs, retries = 5, wait429 = true } = {}) {
   requireKey();
   const u = new URL(base() + path);
   for (const [k, v] of Object.entries(qs || {})) if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, v);
@@ -27,6 +29,7 @@ async function request(path, { method = 'GET', body, qs, retries = 5 } = {}) {
       const r = await fetch(u, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(60000) });
       const txt = await r.text(); let data; try { data = JSON.parse(txt); } catch { data = txt; }
       // Writes are retried only on 429 (request rejected before processing), so a 5xx/timeout never risks a double upload.
+      if (r.status === 429 && !wait429) return { status: r.status, body: data };
       if (r.status === 429 || (r.status >= 500 && method === 'GET')) {
         lastErr = new Error(`ToChat ${r.status}: ${String(txt).slice(0, 300)}`);
         const ra = Number(r.headers.get('retry-after'));
