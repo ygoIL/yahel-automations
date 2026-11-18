@@ -41,7 +41,7 @@ Tiers: רותח = 4+ signals and a 3+ min call; חם = 2–3; פושר = rest. S
 Iron rules (ToChat status, checked before upload): open FOLLOW in any campaign; ever CLOSED; ever marked לקוח פעיל (allowed only for a פלאפון campaign) / מוטרד / להסיר / אל תתקשר / אין תשתית / כבר לקוח; deny list; a real conversation in the last 4 days (unanswered calls don't count); already in the target campaign; already uploaded by this tool. `shouldCheckWithDontCallMe` is hard-wired to `false`. `priority` stays 20 as in Make – dialing-order semantics are not verified against ToChat docs.
 
 ## Global dedupe – one customer, one rep (`src/dedupe/`)
-Runs every hour in working hours – Sun–Thu 07:50–20:00, Fri 07:50–14:00 (`DEDUPE_INTERVAL_SEC`), mode `DEDUPE_MODE` = live (default) / dry / off.
+Runs every hour in working hours – Sun–Fri 09:00–17:00 (`DEDUPE_INTERVAL_SEC`), mode `DEDUPE_MODE` = live (default) / dry / off.
 Finds every phone that is open in 2+ campaigns, reads the live customer record, then:
 1. open follow-up anywhere = sacred → every other copy is closed (IRRELEVANT, with a note);
    two follow-ups by different reps (edge case) → a rep listed in יעדים beats one who is not; otherwise the earlier one (lastCall/createDate) keeps the customer; <10 min apart or no time → not closed, reported;
