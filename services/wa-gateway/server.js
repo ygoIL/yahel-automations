@@ -19,8 +19,30 @@ const ACK_NEG = /הקדמ|להקדים|ניתוק|חשמל|^\s*(עזרה|תפר�
 // Kinds whose logic still lives in Make (Sheets-heavy scenarios); forwarded to the old Make bot hook.
 const MAKE_KINDS = (E.MAKE_KINDS || 'shikuf,disc,port,cancel,save,shikdone,advance').split(',');
 
+// RULE (Steve 18/11/2026): in the yes groups (מנהלים yes / משווקי yes) only messages of יורן טוויטו and שחר קוטיגרו count.
+// Each one (text, image or file) is forwarded as-is to "הנהלה מצומצם"; text also goes through the group AI filter into the bot's
+// knowledge (DS 206718). Senders = Railway variable YES_FWD_SENDERS (comma-separated phones). Do not remove.
+const YES_GROUP = /(מנהלים|משווקי)\s*yes/i;
+const YES_SENDERS = String(E.YES_FWD_SENDERS || '').split(',').map((x) => x.replace(/\D/g, '').slice(-9)).filter((x) => x.length === 9);
+const MGMT_GROUP = E.MGMT_GROUP || '120363430128240440@g.us'; // הנהלה מצומצם
+async function handleYesGroup(p) {
+  const md = p.messageData || {}, sd = p.senderData || {};
+  if (!YES_SENDERS.includes(String(sd.sender || '').replace(/\D/g, '').slice(-9))) return;
+  const text = String((md.textMessageData && md.textMessageData.textMessage) || (md.extendedTextMessageData && md.extendedTextMessageData.text)
+    || (md.fileMessageData && md.fileMessageData.caption) || '').trim();
+  log({ ev: 'yes_group', chat: sd.chatName, type: md.typeMessage });
+  const head = `📢 ${sd.senderName || ''} בקבוצת ${sd.chatName}:`;
+  await wa.send(MGMT_GROUP, head);
+  if (!(await wa.forward(MGMT_GROUP, sd.chatId, p.idMessage)) && text) await wa.send(MGMT_GROUP, text);
+  if (text.length >= 12) {
+    const g = await post(`${BOT}/group?key=${BOT_KEY}`, JSON.stringify({ chatId: sd.chatId, sender: sd.sender, senderName: sd.senderName || '', text }), 60000);
+    if (String((g.data && g.data.result) || '').includes('כן')) makeDsAdd(DS_GROUP_KNOWLEDGE, p.idMessage, { ts: p.timestamp, chat: sd.chatName, text, sender: sd.senderName });
+  }
+}
+
 async function handleIncoming(p, depth = 0) {
   const md = p.messageData || {}, sd = p.senderData || {}, qm = md.quotedMessage || {};
+  if (p.typeWebhook === 'incomingMessageReceived' && String(sd.chatId || '').endsWith('@g.us') && YES_GROUP.test(String(sd.chatName || ''))) return handleYesGroup(p);
   const r = classify({
     type: p.typeWebhook, chatId: sd.chatId, sender: sd.sender, senderName: sd.senderName, chatName: sd.chatName,
     t1: md.textMessageData && md.textMessageData.textMessage, t2: md.extendedTextMessageData && md.extendedTextMessageData.text,
