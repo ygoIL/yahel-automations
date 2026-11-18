@@ -120,7 +120,9 @@ async function runDedupe({ dry, notify }) {
     const D = require('./dedupe');
     const r = await D.run({ dry, log });
     const hhmm = new Date().toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
-    const msg = notify && D.message(r, hhmm);
+    let msg = notify && D.message(r, hhmm);
+    // hourly runs: never repeat the same alert body on the same day
+    if (msg) { const body = msg.split('\n').slice(1).join('\n') || msg.replace(/\d\d:\d\d/, ''); const day = new Date().toISOString().slice(0, 10); const seen = store.load('jobs/dedupe-sent', {}); if (seen.day !== day) { seen.day = day; seen.bodies = []; } if (seen.bodies.includes(body) && !r.closedFU) msg = null; else { seen.bodies.push(body); store.save('jobs/dedupe-sent', seen); } }
     const wa = scenarios.all()['9900449'];
     if (msg && wa && !dry) await enqueue(wa, { type: 'manual', body: { phone: E.DEDUPE_ALERT_PHONE || '972544604246', message: msg }, input: { phone: E.DEDUPE_ALERT_PHONE || '972544604246', message: msg } }, { dry: false });
     return { status: 'done', message: msg || null, ...r };

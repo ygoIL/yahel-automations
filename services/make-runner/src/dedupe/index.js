@@ -170,7 +170,8 @@ function message(r, hhmm) {
   return lines.join('\n');
 }
 
-// Schedule: Sun–Fri 07:50, 12:30, 16:30 (Asia/Jerusalem). Override with DEDUPE_TIMES="07:50,12:30,16:30".
-const SCHEDULE = { type: 'daily', time: (process.env.DEDUPE_TIMES || '07:50,12:30,16:30').split(',').map((s) => s.trim()), restrict: [{ days: [0, 1, 2, 3, 4, 5] }] };
+// Schedule: every hour during working hours (Steve 18/11) – Sun–Thu 07:50–20:00, Fri 07:50–14:00 (Asia/Jerusalem).
+// Runs on Railway only (ToChat API + Google) – no Make operations, no Claude.
+const SCHEDULE = { type: 'indefinitely', interval: Number(process.env.DEDUPE_INTERVAL_SEC || 3600), restrict: [{ days: [0, 1, 2, 3, 4], time: ['07:50', '20:00'] }, { days: [5], time: ['07:50', '14:00'] }] };
 
 module.exports = { run, decide, message, isOurRep, SCHEDULE, PRIORITY, rank };
