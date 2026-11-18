@@ -39,3 +39,12 @@ Source: Google Sheet `LEADS_SHEET_ID` (default 1QXWDWaw…), tab `לוג שיק�
 Tiers: רותח = 4+ signals and a 3+ min call; חם = 2–3; פושר = rest. Signals: 3+ min call, said what they pay, asked what's included, installation, disconnection/penalty, got a price, deferred the decision. Disqualified from the summary: deal closed, already a yes customer, no infrastructure, asked to be removed, sharp refusal, cyber campaigns. If the tier is short, the summary says so – it never fills from a lower tier.
 
 Iron rules (ToChat status, checked before upload): open FOLLOW in any campaign; ever CLOSED; ever marked לקוח פעיל (allowed only for a פלאפון campaign) / מוטרד / להסיר / אל תתקשר / אין תשתית / כבר לקוח; deny list; a real conversation in the last 4 days (unanswered calls don't count); already in the target campaign; already uploaded by this tool. `shouldCheckWithDontCallMe` is hard-wired to `false`. `priority` stays 20 as in Make – dialing-order semantics are not verified against ToChat docs.
+
+## Global dedupe – one customer, one rep (`src/dedupe/`)
+Runs Sun–Fri at 07:50, 12:30 and 16:30 (`DEDUPE_TIMES`), mode `DEDUPE_MODE` = live (default) / dry / off.
+Finds every phone that is open in 2+ campaigns, reads the live customer record, then:
+1. open follow-up anywhere = sacred → every other copy is closed (IRRELEVANT, with a note);
+   two follow-ups by different reps → the earlier one (lastCall/createDate) keeps the customer; <10 min apart or no time → not closed, reported;
+2. no follow-up → keep by priority: פולואפים כל הזמנים → רותחים → תקשורת כל החברות חדש → תקשורת כל החברות → הזדמנות שניה → בוסט → מבצע → מצטרפים → (oldest lead).
+WhatsApp to Steve (`DEDUPE_ALERT_PHONE`) only when a follow-up conflict was resolved, a case needs review, or the run had errors.
+`POST /admin/dedupe/run?dry=1` (dry=0 for real, `notify=1` to send the message), `GET /admin/dedupe/runs`.
