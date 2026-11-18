@@ -17,13 +17,13 @@ const store = require('../store');
 const enc = encodeURIComponent;
 
 // Campaign priority for customers without a follow-up (first match wins; lower index = keep).
-const PRIORITY = [
+const PRIORITY = [ // Steve 18/11 (evening): הזדמנות שניה and בוסט first, then the rest
+  /^הזדמנות שני/,
+  /^בוסט$/,
   /^פולואפים כל הזמנים$/,
   /^רותחים/,
   /^תקשורת כל החברות חדש$/,
   /^תקשורת כל החברות$/,
-  /^הזדמנות שני/,
-  /^בוסט$/,
   /מבצע/,
   /מצטרפים/,
 ];

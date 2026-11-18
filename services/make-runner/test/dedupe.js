@@ -68,12 +68,19 @@ console.log('dedupe tests ok');
   // ---- upload guard ----
   const status = { '0501111111': [], '0502222222': [{ campaignId: 'x', campaignName: 'ממירים', status: 'PENDING' }], '0503333333': [{ campaignId: 'y', campaignName: 'רותחים', status: 'FOLLOWUP', followByName: 'עמית' }] };
   tc.customerStatus = async (p) => ({ found: true, activeLeads: status[p] || [], inactiveCampaigns: [] });
-  tc.listCampaigns = async () => [{ id: 'c1', name: 'פולואפים כל הזמנים' }, { id: 'c2', name: '⭐ מבצע חנוכה' }];
+  tc.listCampaigns = async () => [{ id: 'c1', name: 'פולואפים כל הזמנים' }, { id: 'c2', name: '⭐ מבצע חנוכה' }, { id: 'c3', name: 'הזדמנות שניה' }, { id: 'c4', name: 'ממירים' }];
   const cs = [{ phone: '0501111111' }, { phone: '0502222222' }, { phone: '0503333333' }];
-  let g = await G.filter('c1', cs.slice());
-  assert.deepStrictEqual(g.keep.map((c) => c.phone), ['0501111111']); assert.strictEqual(g.skipped.length, 2);
+  let g = await G.filter('c1', cs.slice()); // פולואפים כל הזמנים outranks ממירים → pulls 0502; follow-up 0503 blocked
+  assert.deepStrictEqual(g.keep.map((c) => c.phone).sort(), ['0501111111', '0502222222']); assert.strictEqual(g.skipped.length, 1);
+  status['0504444444'] = [{ campaignId: 'c3', campaignName: 'הזדמנות שניה', status: 'PENDING' }];
+  g = await G.filter('c1', [{ phone: '0504444444' }]); // הזדמנות שניה outranks פולואפים כל הזמנים → not uploaded
+  assert.strictEqual(g.keep.length, 0);
   g = await G.filter('c2', cs.slice()); // pinned: open elsewhere is allowed, follow-up never
   assert.deepStrictEqual(g.keep.map((c) => c.phone).sort(), ['0501111111', '0502222222']);
+  g = await G.filter('c3', cs.slice()); // הזדמנות שניה outranks ממירים → pulls the pending customer, not the follow-up
+  assert.deepStrictEqual(g.keep.map((c) => c.phone).sort(), ['0501111111', '0502222222']);
+  g = await G.filter('c4', cs.slice()); // ממירים does not outrank ממירים copy elsewhere
+  assert.deepStrictEqual(g.keep.map((c) => c.phone), ['0501111111']);
   process.env.UPLOAD_GUARD = 'off'; g = await G.filter('c1', cs.slice()); assert.strictEqual(g.keep.length, 3); delete process.env.UPLOAD_GUARD;
   console.log('guard tests ok');
 })().catch((e) => { console.error(e); process.exit(1); });
