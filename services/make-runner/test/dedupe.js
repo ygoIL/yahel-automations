@@ -33,9 +33,9 @@ assert.deepStrictEqual(names(d.close), ['ג']); assert.ok(d.review);
 // Missing time → review, follow-ups untouched.
 d = decide([L('א', 'FOLLOWUP', 'דני', '', ''), L('ב', 'FOLLOWUP', 'רוני', '2026-11-18T10:05:00Z')]);
 assert.deepStrictEqual(d.close, []); assert.ok(d.review);
-// Same rep with two follow-ups: nothing of his is closed.
+// Same rep with two follow-ups: his most recent one stays, the older copy is closed.
 d = decide([L('א', 'FOLLOWUP', 'דני', '2026-11-18T09:00:00Z'), L('ב', 'INCOMING_FOLLOWUP', 'דני', '2026-11-18T10:00:00Z')]);
-assert.deepStrictEqual(d.close, []); assert.strictEqual(d.review, null);
+assert.deepStrictEqual(names(d.keep), ['ב']); assert.deepStrictEqual(names(d.close), ['א']); assert.strictEqual(d.review, null);
 // Single lead / blacklist campaign never touched.
 assert.deepStrictEqual(decide([L('א')]).close, []);
 assert.deepStrictEqual(decide([L('רשימה שחורה'), L('א')]).close, []);

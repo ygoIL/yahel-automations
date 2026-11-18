@@ -81,6 +81,12 @@ function decide(leads, ours) {
         }
       }
     }
+    // Same rep with the customer open twice (Steve 18/11): keep his most recent follow-up, close the older copies.
+    if (keep.length > 1 && new Set(keep.map((l) => String(l.followByName || '').trim())).size === 1) {
+      const s2 = keep.slice().sort((a, b) => (time(b) ?? 0) - (time(a) ?? 0));
+      for (const l of s2.slice(1)) close.push({ lead: l, fu: false, why: `פולואפ כפול של ${l.followByName || '?'} – נשאר הפולואפ העדכני שלו (${s2[0].campaignName || ''})` });
+      keep = [s2[0]];
+    }
     const owner = keep[0];
     for (const l of L) if (!isFU(l)) close.push({ lead: l, fu: false, why: `ללקוח פולואפ פתוח אצל ${owner.followByName || '?'} (${owner.campaignName || ''})` });
     return { keep, close, review: review && `${review}: ${fu.map(label).join(' / ')}` };
