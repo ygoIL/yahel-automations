@@ -103,7 +103,7 @@ http.createServer(async (req, res) => {
     // ---- global cross-campaign dedupe (sacred follow-up + campaign priority) ----
     if (u.pathname === '/admin/dedupe/run' && req.method === 'POST') { // ?dry=1 (default) / dry=0
       const dry = u.searchParams.get('dry') !== '0';
-      return send(res, 200, await runDedupe({ dry, notify: u.searchParams.get('notify') === '1' }));
+      return send(res, 200, await runDedupe({ dry, notify: u.searchParams.get('notify') === '1', full: u.searchParams.get('full') === '1' ? true : undefined }));
     }
     if (u.pathname === '/admin/dedupe/runs') return send(res, 200, store.load('jobs/dedupe', []).slice(0, Number(u.searchParams.get('n')) || 10));
     if (u.pathname === '/admin/tochat' && req.method === 'POST') return send(res, 200, await require('./modules/tochat').call(body).catch((e) => ({ error: String(e.message) })));
@@ -113,12 +113,12 @@ http.createServer(async (req, res) => {
 
 // ---- dedupe job (not a Make blueprint) ----
 let dedupeBusy = null;
-async function runDedupe({ dry, notify }) {
+async function runDedupe({ dry, notify, full }) {
   if (dedupeBusy) return { status: 'busy', since: dedupeBusy };
   dedupeBusy = new Date().toISOString();
   try {
     const D = require('./dedupe');
-    const r = await D.run({ dry, log });
+    const r = await D.run({ dry, full, log });
     const hhmm = new Date().toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
     let msg = notify && D.message(r, hhmm);
     // hourly runs: never repeat the same alert body on the same day

@@ -7,7 +7,10 @@
 //      (lastCall, else createDate); less than 10 minutes apart or a missing time → nothing is closed, reported.
 //   3. No follow-up anywhere: keep the copy by campaign priority –
 //      פולואפים כל הזמנים → רותחים → תקשורת כל החברות (חדש) → … ; the rest are closed.
-// Open leads are only used to FIND phones that are open in 2+ campaigns. Every decision is taken from the live
+// ToChat caps openLeads at 150,000 rows per hour for the whole tenant (shared with every other automation), so the
+// hourly pass reads only the FOCUS campaigns (small, high priority) and finds the other copies of each of their customers
+// through the customer record (activeLeads lists every campaign). A full scan of all campaigns: DEDUPE_FULL=1.
+// Open leads are only used to FIND phones. Every decision is taken from the live
 // customer record (/customers/<phone> → activeLeads), read just before closing.
 const tc = require('../leads/tochat-client');
 const store = require('../store');
@@ -26,6 +29,8 @@ const PRIORITY = [
 ];
 // Campaigns that are never touched (not counted, never closed).
 const SKIP = /רשימה שחורה/;
+// Campaigns read every hour (every customer in them is checked against all his other open copies).
+const FOCUS = [/^פולואפים כל הזמנים$/, /^רותחים/, /^הזדמנות שני/, /^בוסט$/];
 const FOLLOW = /FOLLOW/i;
 const FU_GAP_MS = 10 * 60 * 1000;
 const MAX_CLOSE = Number(process.env.DEDUPE_MAX_CLOSE || 5000);
@@ -86,6 +91,7 @@ function decide(leads, ours) {
 
 // All open leads of one campaign (follows pageToken; handles array / {leads} / {items} shapes).
 async function openLeads(id) {
+  // 4xx/429 are thrown (never treated as an empty campaign)
   const out = []; let pageToken; let guard = 0;
   do {
     const r = await tc.request(`/tenants/${enc(tc.tenant())}/campaigns/${enc(id)}/openLeads`, { qs: { limit: 10000, pageToken } });
@@ -109,18 +115,20 @@ async function closeLead(campaignId, phone, note) {
 }
 
 // One full pass. dry = decide and report only.
-async function run({ dry = false, log = () => {} } = {}) {
+async function run({ dry = false, full: full_, log = () => {} } = {}) {
   const started = new Date();
   const res = { at: started.toISOString(), dry, campaigns: 0, openLeads: 0, failedCampaigns: [], dupPhones: 0, checked: 0, closed: 0, closedFU: 0, failedClose: 0, review: [], fuConflicts: [], byCampaign: {}, errors: [] };
-  const camps = (await tc.listCampaigns()).filter((c) => !SKIP.test(c.name));
+  const full = full_ ?? process.env.DEDUPE_FULL === '1';
+  const camps = (await tc.listCampaigns()).filter((c) => !SKIP.test(c.name) && (full || FOCUS.some((re) => re.test(c.name))));
   const where = new Map(); // phone -> Set(campaignId)
-  await pool(camps, 3, async (c) => {
+  for (const c of camps) {
     try {
       const L = await openLeads(c.id); res.campaigns++; res.openLeads += L.length;
       for (const l of L) { const p = tc.normPhone(l.displayPhone || l.phone || (l.customer && l.customer.phone)); if (!p) continue; if (!where.has(p)) where.set(p, new Set()); where.get(p).add(c.id); }
-    } catch (e) { res.failedCampaigns.push(c.name); }
-  });
-  const dups = [...where].filter(([, s]) => s.size > 1).map(([p]) => p);
+    } catch (e) { res.failedCampaigns.push(c.name); if (/429/.test(String(e.message))) { res.errors.push('מכסת השעה של טוצ\'אט לקריאת לידים נגמרה – הבדיקה תושלם בשעה הבאה'); break; } }
+  }
+  // focus mode: every customer of the focus campaigns is checked (his other copies are in the customer record)
+  const dups = [...where].filter(([, s]) => !full || s.size > 1).map(([p]) => p);
   res.dupPhones = dups.length;
   log({ ev: 'dedupe_scan', campaigns: res.campaigns, openLeads: res.openLeads, dups: dups.length, failed: res.failedCampaigns.length });
 
@@ -133,8 +141,9 @@ async function run({ dry = false, log = () => {} } = {}) {
       const d = decide(st.activeLeads, ours);
       if (d.review) res.review.push({ p, d: d.review });
       if (d.close.length) plans.push({ p, ...d });
-    } catch (e) { res.errors.push(`${p.slice(-4)}: ${String(e.message).slice(0, 120)}`); }
+    } catch (e) { if (res.errors.length < 20) res.errors.push(`${p.slice(-4)}: ${String(e.message).slice(0, 120)}`); }
   });
+  res.dupPhones = plans.length;
   const fuPlans = plans.filter((x) => x.close.some((c) => c.fu));
   const allowFU = fuPlans.length <= MAX_FU_CLOSE;
   if (!allowFU) res.errors.push(`${fuPlans.length} התנגשויות פולואפ בין נציגים – יותר מ-${MAX_FU_CLOSE}, לא נסגר אף פולואפ (לבדיקה ידנית)`);
@@ -174,4 +183,4 @@ function message(r, hhmm) {
 // Runs on Railway only (ToChat API + Google) – no Make operations, no Claude.
 const SCHEDULE = { type: 'indefinitely', interval: Number(process.env.DEDUPE_INTERVAL_SEC || 3600), restrict: [{ days: [0, 1, 2, 3, 4], time: ['07:50', '20:00'] }, { days: [5], time: ['07:50', '14:00'] }] };
 
-module.exports = { run, decide, message, isOurRep, SCHEDULE, PRIORITY, rank };
+module.exports = { run, decide, message, isOurRep, SCHEDULE, PRIORITY, FOCUS, rank };
