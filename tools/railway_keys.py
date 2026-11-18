@@ -3,7 +3,7 @@
 
 The single pre-approved entry point (see .claude/settings.json) for anything that
 needs a key stored in Railway service variables. Railway auth comes from the
-session proxy (or RAILWAY_TOKEN if set). Key values are never printed or written
+session proxy, RAILWAY_TOKEN, or a local `railway login` (see railway_auth.py). Key values are never printed or written
 to disk: they live only in memory, and any occurrence of a secret value in a
 response is masked before output.
 
@@ -26,6 +26,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from railway_auth import railway_token
+
 API = "https://backboard.railway.com/graphql/v2"
 PROJECT = os.environ.get("RAILWAY_PROJECT", "yahel-reps-bot")
 ENVIRONMENT = os.environ.get("RAILWAY_ENVIRONMENT", "production")
@@ -46,8 +48,9 @@ def die(msg, code=1):
 
 def gql(query, variables=None):
     headers = {"Content-Type": "application/json", "User-Agent": UA}
-    if os.environ.get("RAILWAY_TOKEN"):
-        headers["Authorization"] = "Bearer " + os.environ["RAILWAY_TOKEN"]
+    token = railway_token()
+    if token != "proxy":
+        headers["Authorization"] = "Bearer " + token
     req = urllib.request.Request(API, json.dumps({"query": query, "variables": variables or {}}).encode(), headers)
     try:
         with urllib.request.urlopen(req, timeout=30) as r:

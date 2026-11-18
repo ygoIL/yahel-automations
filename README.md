@@ -29,6 +29,9 @@ All endpoints except `/health` need `?key=$GATEWAY_KEY`.
 (failed runs, interval scenarios that stopped, daily/weekly runs missed today) and Make scenarios that are
 scheduled in Make *and* live on Railway (would run twice). Reads keys from Railway at run time. Exit 1 = problems.
 
+Runs in a Claude cloud session (proxy auth) or on a local computer after `railway login` (or with `RAILWAY_TOKEN`);
+see `tools/railway_auth.py`. On Windows also `pip install tzdata` once.
+
 ### What stays active in Make (17 Nov 2026)
 * On-demand scenarios (Claude tools) – cost nothing while idle.
 * Webhooks whose senders still post to the Make hook URL: 8302844 (ManyChat), 10125496, 10151077, 10151108.
