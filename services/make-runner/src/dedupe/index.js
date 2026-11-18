@@ -37,8 +37,8 @@ const MAX_CLOSE = Number(process.env.DEDUPE_MAX_CLOSE || 5000);
 const MAX_FU_CLOSE = Number(process.env.DEDUPE_MAX_FU_CLOSE || 30);
 
 // Campaigns Steve asked to prioritize ("pinned") come before the fixed order; open follow-ups still win over everything.
-const pinnedList = () => { try { return require('../store').load('jobs/dedupe-pinned', []); } catch { return []; } };
-const rank = (name) => { const n = String(name || '').trim(); if (pinnedList().includes(n)) return -1; const i = PRIORITY.findIndex((re) => re.test(n)); return i < 0 ? PRIORITY.length : i; };
+const pinnedList = () => { try { return require('../guard').pinned(); } catch { return []; } };
+const rank = (name) => { const n = String(name || '').trim(); const pi = pinnedList().indexOf(n); if (pi >= 0) return -100 + pi; const i = PRIORITY.findIndex((re) => re.test(n)); return i < 0 ? PRIORITY.length : i; };
 const time = (l) => { const d = new Date(l.lastCall || l.createDate || ''); return isNaN(d) ? null : d.getTime(); };
 const created = (l) => { const d = new Date(l.createDate || ''); return isNaN(d) ? Infinity : d.getTime(); };
 const isFU = (l) => FOLLOW.test(String(l.status || ''));
@@ -127,14 +127,33 @@ async function run({ dry = false, full: full_, log = () => {} } = {}) {
   const started = new Date();
   const res = { at: started.toISOString(), dry, campaigns: 0, openLeads: 0, failedCampaigns: [], dupPhones: 0, checked: 0, closed: 0, closedFU: 0, failedClose: 0, review: [], fuConflicts: [], byCampaign: {}, errors: [] };
   const full = full_ ?? process.env.DEDUPE_FULL === '1';
-  const camps = (await tc.listCampaigns()).filter((c) => !SKIP.test(c.name) && (full || FOCUS.some((re) => re.test(c.name)) || pinnedList().includes(c.name)));
+  await require('../guard').refreshPinned(true);
+  const all = (await tc.listCampaigns()).filter((c) => !SKIP.test(c.name));
+  const isOn = (c) => String((c.raw && c.raw.status) || '').toUpperCase() === 'ON';
+  const isFocus = (c) => FOCUS.some((re) => re.test(c.name)) || pinnedList().includes(c.name);
+  // Hourly pass: focus + prioritized campaigns + every campaign that is ON right now (also one opened during the day).
+  // Big campaigns are rotated so one pass stays under DEDUPE_MAX_ROWS (ToChat allows 150k rows/hour for the whole tenant).
+  const memo = store.load('jobs/dedupe-camps', {}); // id -> { status, at, rows }
+  let camps;
+  if (full) camps = all;
+  else {
+    const cand = all.filter((c) => isFocus(c) || isOn(c));
+    const turnedOn = (c) => isOn(c) && (memo[c.id] || {}).status !== 'ON';
+    cand.sort((a, b) => (turnedOn(b) - turnedOn(a)) || (isFocus(b) - isFocus(a)) || String((memo[a.id] || {}).at || '').localeCompare(String((memo[b.id] || {}).at || '')));
+    const cap = Number(process.env.DEDUPE_MAX_ROWS || 90000); let est = 0; camps = [];
+    for (const c of cand) { const r = (memo[c.id] || {}).rows || 0; if (camps.length && !isFocus(c) && est + r > cap) { res.deferred = (res.deferred || 0) + 1; continue; } camps.push(c); est += r; }
+  }
+  for (const c of all) memo[c.id] = { ...(memo[c.id] || {}), status: isOn(c) ? 'ON' : 'OFF' };
+  res.campaignNames = camps.map((c) => c.name);
   const where = new Map(); // phone -> Set(campaignId)
+  const focusPhones = new Set();
   let waits = 0;
   for (let i = 0; i < camps.length; i++) {
     const c = camps[i];
     try {
       const L = await openLeads(c.id); res.campaigns++; res.openLeads += L.length;
-      for (const l of L) { const p = tc.normPhone(l.displayPhone || l.phone || (l.customer && l.customer.phone)); if (!p) continue; if (!where.has(p)) where.set(p, new Set()); where.get(p).add(c.id); }
+      memo[c.id] = { ...(memo[c.id] || {}), at: new Date().toISOString(), rows: L.length };
+      for (const l of L) { const p = tc.normPhone(l.displayPhone || l.phone || (l.customer && l.customer.phone)); if (!p) continue; if (!where.has(p)) where.set(p, new Set()); where.get(p).add(c.id); if (!full && isFocus(c)) focusPhones.add(p); }
     } catch (e) {
       if (/429/.test(String(e.message))) {
         // full (nightly) scan: the hourly ToChat budget ran out – wait for the next clock hour and continue (at most twice)
@@ -144,8 +163,10 @@ async function run({ dry = false, full: full_, log = () => {} } = {}) {
       res.failedCampaigns.push(c.name);
     }
   }
-  // focus mode: every customer of the focus campaigns is checked (his other copies are in the customer record)
-  const dups = [...where].filter(([, s]) => !full || s.size > 1).map(([p]) => p);
+  store.save('jobs/dedupe-camps', memo);
+  // every customer of a focus/prioritized campaign is checked (his other copies are in the customer record);
+  // for the rest, a customer open in 2+ of the campaigns read now
+  const dups = [...where].filter(([p, s]) => s.size > 1 || focusPhones.has(p)).map(([p]) => p);
   res.dupPhones = dups.length;
   log({ ev: 'dedupe_scan', campaigns: res.campaigns, openLeads: res.openLeads, dups: dups.length, failed: res.failedCampaigns.length });
 

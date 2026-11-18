@@ -136,6 +136,12 @@ async function runDedupe({ dry, notify, full }) {
 setInterval(() => {
   const mode = (E.DEDUPE_MODE || 'live').toLowerCase(); if (mode === 'off' || dedupeBusy) return;
   const D = require('./dedupe'); const now = new Date();
+  const G = require('./guard');
+  if (scheduler.due(G.MORNING_SCHEDULE, scheduler.lastRun('job_pinned_ask'), now)) {
+    scheduler.markRun('job_pinned_ask', now.toISOString());
+    const wa = scenarios.all()['9900449'];
+    G.morningMessage().then((msg) => wa && mode !== 'dry' && enqueue(wa, { type: 'manual', body: { phone: E.DEDUPE_ALERT_PHONE || '972544604246', message: msg }, input: { phone: E.DEDUPE_ALERT_PHONE || '972544604246', message: msg } }, { dry: false })).catch((e) => log({ ev: 'pinned_ask_err', err: String(e.message) }));
+  }
   if (scheduler.due(D.FULL_SCHEDULE, scheduler.lastRun('job_dedupe_full'), now)) { scheduler.markRun('job_dedupe_full', now.toISOString()); runDedupe({ dry: mode === 'dry', notify: true, full: true }); return; }
   if (!scheduler.due(D.SCHEDULE, scheduler.lastRun('job_dedupe'), now)) return;
   scheduler.markRun('job_dedupe', now.toISOString());

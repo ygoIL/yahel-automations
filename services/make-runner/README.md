@@ -54,3 +54,5 @@ WhatsApp to Steve (`DEDUPE_ALERT_PHONE`) only when a follow-up conflict was reso
 Every lead upload that goes through make-runner (AddLeadsToCampaign2, makeAnApiCall POST …/customers, the leads tool) skips customers that
 have an open follow-up anywhere (always), or that are open in another campaign – unless the target campaign is prioritized ("pinned").
 Pinned campaigns: `GET/POST /admin/dedupe/pinned {"names":[...]}`; the hourly dedupe also keeps the copy in a pinned campaign. Log: `GET /admin/upload-guard`. `UPLOAD_GUARD=off` disables.
+Hourly pass reads focus + prioritized + every campaign whose status is ON (so a campaign opened during the day is covered), rotating big ones under `DEDUPE_MAX_ROWS` (default 90k).
+Prioritized campaigns also come from the sheet tab `קמפיינים מתועדפים` (A2:A, first = most important) in 1-mXfg…; Steve gets a WhatsApp at 08:40 (Sun–Fri) asking which campaigns matter today.

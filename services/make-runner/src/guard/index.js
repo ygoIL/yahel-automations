@@ -7,7 +7,17 @@ const tc = require('../leads/tochat-client');
 const store = require('../store');
 const FOLLOW = /FOLLOW/i;
 
-const pinned = () => store.load('jobs/dedupe-pinned', []);
+// Prioritized campaigns come from two places: the sheet tab 'קמפיינים מתועדפים' (A2:A, Steve edits it; first = most important)
+// and the admin list (POST /admin/dedupe/pinned). The sheet is re-read at most every 10 minutes.
+const SHEET = () => process.env.PINNED_SHEET_ID || '1-mXfg-H5pZzGtTLTYOcU_SBgOEu8S2FnTrvz3Brc_7M';
+const TAB = "'קמפיינים מתועדפים'!A2:A50";
+let sheetCache = { at: 0, names: [] };
+async function refreshPinned(force) {
+  if (!force && Date.now() - sheetCache.at < 600e3) return;
+  try { const r = await require('../google').sheets({ url: `/spreadsheets/${SHEET()}/values/${encodeURIComponent(TAB)}` }); sheetCache = { at: Date.now(), names: (r.body.values || []).map((x) => String(x[0] || '').trim()).filter(Boolean) }; }
+  catch (e) { sheetCache.at = Date.now(); } // keep the last known list on failure
+}
+const pinned = () => [...new Set([...sheetCache.names, ...store.load('jobs/dedupe-pinned', [])])];
 const setPinned = (names) => store.save('jobs/dedupe-pinned', (names || []).map((n) => String(n).trim()).filter(Boolean));
 const isPinned = (nameOrId, list = pinned()) => list.some((p) => p === String(nameOrId || '').trim());
 
@@ -22,6 +32,7 @@ async function campaignName(id) {
 // customers: [{ phone, ... }] → { keep: [...], skipped: [{ phone, why }] }
 async function filter(campaignId, customers) {
   if (String(process.env.UPLOAD_GUARD || 'on').toLowerCase() === 'off' || !Array.isArray(customers) || !customers.length) return { keep: customers || [], skipped: [] };
+  await refreshPinned();
   const name = await campaignName(campaignId);
   const pin = isPinned(name) || isPinned(campaignId);
   const keep = [], skipped = [];
@@ -40,4 +51,14 @@ async function filter(campaignId, customers) {
   return { keep, skipped };
 }
 
-module.exports = { filter, pinned, setPinned, isPinned };
+// Morning question to Steve: which campaigns matter most today (Steve 18/11).
+async function morningMessage() {
+  await refreshPinned(true);
+  const camps = await tc.listCampaigns();
+  const on = camps.filter((c) => String((c.raw && c.raw.status) || '').toUpperCase() === 'ON').map((c) => c.name);
+  const p = pinned();
+  return `🎯 בוקר טוב! אילו קמפיינים הכי חשובים היום?\n\nמתועדפים עכשיו: ${p.length ? p.join(', ') : 'אין (רק הסדר הקבוע: פולואפים כל הזמנים ← רותחים ← תקשורת כל החברות)'}\nפתוחים בטוצ'אט: ${on.join(', ') || '-'}\n\nלשנות – תכתוב ל-Claude או תעדכן כאן (שורה לכל קמפיין, הראשון הכי חשוב):\nhttps://docs.google.com/spreadsheets/d/${SHEET()}/edit#gid=1880073664`;
+}
+const MORNING_SCHEDULE = { type: 'weekly', days: [0, 1, 2, 3, 4, 5], time: process.env.PINNED_ASK_TIME || '08:40' };
+
+module.exports = { filter, pinned, setPinned, isPinned, refreshPinned, morningMessage, MORNING_SCHEDULE };
