@@ -94,7 +94,7 @@ process.on('SIGTERM', () => {
 const readBody = (req) => new Promise((res) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => res(b)); });
 
 http.createServer(async (req, res) => {
-  const u = new URL(req.url, 'http://x');
+  const u = new URL(req.url, 'http://x'); let m;
   const ok = (code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); };
   if (u.pathname === '/health') return ok(200, { ok: true, wa: (({ active, last_state, last_check }) => ({ active, last_state, last_check }))(wa.state()) });
   if (!GW_KEY || u.searchParams.get('key') !== GW_KEY) return ok(401, { error: 'unauthorized' });
@@ -112,6 +112,12 @@ http.createServer(async (req, res) => {
     }
     if (u.pathname === '/gate' && req.method === 'POST') { // former Make Shabbat gate hook
       const r = await wa.gate(body); return ok(r.ok ? 200 : 400, r);
+    }
+    if ((m = /^\/green\/([A-Za-z]+)$/.exec(u.pathname))) { // Green API passthrough on the primary account (for scheduled tasks via make-runner)
+      const gu = new URL(`${String(E.GREEN_P_BASE).replace(/\/$/, '')}/${m[1]}/${E.GREEN_P_TOKEN}`);
+      for (const [k, v] of u.searchParams) if (k !== 'key') gu.searchParams.set(k, v);
+      const r = await fetch(gu, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method === 'POST' ? JSON.stringify(body) : undefined });
+      res.writeHead(r.status, { 'Content-Type': 'application/json' }); return res.end(await r.text());
     }
     ok(404, { error: 'not found' });
   } catch (e) { log({ ev: 'route_err', path: u.pathname, err: String(e) }); ok(500, { error: 'internal' }); }

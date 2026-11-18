@@ -52,7 +52,12 @@ http.createServer(async (req, res) => {
       return send(res, rp.status, typeof rp.body === 'string' ? rp.body : JSON.stringify(rp.body), rp.headers);
     }
     // ---- admin ----
-    if (!E.ADMIN_KEY || (u.searchParams.get('key') !== E.ADMIN_KEY && req.headers['x-admin-key'] !== E.ADMIN_KEY)) return send(res, 401, { error: 'unauthorized' });
+    const given = u.searchParams.get('key') || req.headers['x-admin-key'];
+    const isAdmin = !!E.ADMIN_KEY && given === E.ADMIN_KEY;
+    // TASK_KEY: limited key for scheduled Claude tasks that cannot read Railway variables.
+    // It may run scenarios and read run logs, data stores and saved files; nothing else (no mode switches, no Google passthrough).
+    const isTask = !!E.TASK_KEY && given === E.TASK_KEY && /^\/admin\/(run\/\d+|runs\/\d+|ds\/\d+|files(\/.*)?|scenarios|green\/[A-Za-z]+)$/.test(u.pathname) && (req.method === 'GET' || /^\/admin\/(run|green)\//.test(u.pathname));
+    if (!isAdmin && !isTask) return send(res, 401, { error: 'unauthorized' });
     const body = req.method === 'POST' ? parseBody(await readBody(req), 'application/json', []) : {};
     let m;
     if (u.pathname === '/admin/scenarios') {
@@ -85,6 +90,11 @@ http.createServer(async (req, res) => {
       const g = require('./google'); const api = u.searchParams.get('api') === 'drive' ? g.drive : g.sheets;
       const method = req.method === 'POST' ? (body.method || 'PUT') : 'GET';
       return send(res, 200, await api({ url: u.searchParams.get('url'), method, body: req.method === 'POST' ? body.body : undefined, qs: body.qs }).catch((e) => ({ error: String(e.message) })));
+    }
+    if ((m = /^\/admin\/green\/([A-Za-z]+)$/.exec(u.pathname))) { // Green API via wa-gateway (which holds the Green credentials)
+      const gu = new URL(`https://wa-gateway-production-3ddb70bf.up.railway.app/green/${m[1]}`); for (const [k, v] of u.searchParams) if (k !== 'key') gu.searchParams.set(k, v); gu.searchParams.set('key', E.GATEWAY_KEY || '');
+      const r = await fetch(gu, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method === 'POST' ? JSON.stringify(body) : undefined });
+      res.writeHead(r.status, { 'Content-Type': 'application/json' }); return res.end(await r.text());
     }
     if (u.pathname === '/admin/files') return send(res, 200, store.listFiles());
     if ((m = /^\/admin\/files\/(.+)$/.exec(u.pathname))) {
