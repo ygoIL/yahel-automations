@@ -110,10 +110,42 @@ http.createServer(async (req, res) => {
       if (u.pathname === '/admin/leads/log') return send(res, 200, L.runLog(Number(u.searchParams.get('n')) || 50));
       if (u.pathname === '/admin/leads/campaigns') return send(res, 200, (await require('./leads/tochat-client').listCampaigns()).map((c) => ({ id: c.id, name: c.name })));
     }
+    // ---- global cross-campaign dedupe (sacred follow-up + campaign priority) ----
+    if (u.pathname === '/admin/dedupe/run' && req.method === 'POST') { // ?dry=1 (default) / dry=0
+      const dry = u.searchParams.get('dry') !== '0';
+      return send(res, 200, await runDedupe({ dry, notify: u.searchParams.get('notify') === '1', full: u.searchParams.get('full') === '1' ? true : undefined }));
+    }
+    if (u.pathname === '/admin/dedupe/runs') return send(res, 200, store.load('jobs/dedupe', []).slice(0, Number(u.searchParams.get('n')) || 10));
     if (u.pathname === '/admin/tochat' && req.method === 'POST') return send(res, 200, await require('./modules/tochat').call(body).catch((e) => ({ error: String(e.message) })));
     return send(res, 404, { error: 'not found' });
   } catch (e) { log({ ev: 'http_err', path: u.pathname, err: String(e && e.stack || e) }); return send(res, 500, { error: String(e.message || e) }); }
 }).listen(E.PORT || 8080, () => log({ ev: 'listening', port: E.PORT || 8080, scenarios: Object.keys(scenarios.all()).length }));
+
+// ---- dedupe job (not a Make blueprint) ----
+let dedupeBusy = null;
+async function runDedupe({ dry, notify, full }) {
+  if (dedupeBusy) return { status: 'busy', since: dedupeBusy };
+  dedupeBusy = new Date().toISOString();
+  try {
+    const D = require('./dedupe');
+    const r = await D.run({ dry, full, log });
+    const hhmm = new Date().toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
+    let msg = notify && D.message(r, hhmm);
+    // hourly runs: never repeat the same alert body on the same day
+    if (msg) { const body = msg.split('\n').slice(1).join('\n') || msg.replace(/\d\d:\d\d/, ''); const day = new Date().toISOString().slice(0, 10); const seen = store.load('jobs/dedupe-sent', {}); if (seen.day !== day) { seen.day = day; seen.bodies = []; } if (seen.bodies.includes(body) && !r.closedFU) msg = null; else { seen.bodies.push(body); store.save('jobs/dedupe-sent', seen); } }
+    const wa = scenarios.all()['9900449'];
+    if (msg && wa && !dry) await enqueue(wa, { type: 'manual', body: { phone: E.DEDUPE_ALERT_PHONE || '972544604246', message: msg }, input: { phone: E.DEDUPE_ALERT_PHONE || '972544604246', message: msg } }, { dry: false });
+    return { status: 'done', message: msg || null, ...r };
+  } catch (e) { log({ ev: 'dedupe_crash', err: String(e && e.stack || e) }); return { status: 'error', error: String(e.message || e) }; }
+  finally { dedupeBusy = null; }
+}
+setInterval(() => {
+  const mode = (E.DEDUPE_MODE || 'live').toLowerCase(); if (mode === 'off' || dedupeBusy) return;
+  const D = require('./dedupe'); const now = new Date();
+  if (!scheduler.due(D.SCHEDULE, scheduler.lastRun('job_dedupe'), now)) return;
+  scheduler.markRun('job_dedupe', now.toISOString());
+  runDedupe({ dry: mode === 'dry', notify: true });
+}, 30000);
 
 // ---- scheduler tick ----
 setInterval(() => {
