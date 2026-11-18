@@ -105,6 +105,10 @@ http.createServer(async (req, res) => {
       const dry = u.searchParams.get('dry') !== '0';
       return send(res, 200, await runDedupe({ dry, notify: u.searchParams.get('notify') === '1', full: u.searchParams.get('full') === '1' ? true : undefined }));
     }
+    if (u.pathname === '/admin/dedupe/pinned') { // GET list / POST {"names":["..."]} – campaigns Steve asked to prioritize
+      const G = require('./guard'); if (req.method === 'POST') G.setPinned(body.names); return send(res, 200, { pinned: G.pinned() });
+    }
+    if (u.pathname === '/admin/upload-guard') return send(res, 200, store.load('jobs/upload-guard', []).slice(0, Number(u.searchParams.get('n')) || 20));
     if (u.pathname === '/admin/dedupe/runs') return send(res, 200, store.load('jobs/dedupe', []).slice(0, Number(u.searchParams.get('n')) || 10));
     if (u.pathname === '/admin/tochat' && req.method === 'POST') return send(res, 200, await require('./modules/tochat').call(body).catch((e) => ({ error: String(e.message) })));
     return send(res, 404, { error: 'not found' });

@@ -88,6 +88,8 @@ async function listCampaigns() {
 // shouldCheckWithDontCallMe is hard-wired to false: the "don't call me" service is disabled and `true` makes the whole upload fail silently.
 // priority stays 20 exactly as in the Make scenarios; its dialing-order semantics are NOT verified against ToChat docs, so nothing here relies on them.
 async function addLeads(campaignId, customers, sourceName) {
+  const g = await require('../guard').filter(campaignId, customers); customers = g.keep;
+  if (!customers.length) return { status: 200, body: { created: [], updated: [], failed: g.skipped.map((x) => ({ phone: x.phone, reason: 'OPEN_ELSEWHERE', detail: x.why })) } };
   const body = {
     customers: customers.map((c) => ({ phone: c.phone, firstName: '', lastName: '', audience: c.audience || '', notes: c.notes || '' })),
     dataSource: { name: sourceName, priority: 20, newCustomersOnly: false, shouldCheckWithDontCallMe: false, shouldOverrideCustomerData: false },

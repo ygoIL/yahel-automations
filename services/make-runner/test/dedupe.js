@@ -55,3 +55,25 @@ assert.ok(isOurRep('איתמר חסון', ours)); assert.ok(isOurRep('שילת �
 assert.strictEqual(message({ closedFU: 0, review: [], failedCampaigns: [], errors: [], failedClose: 0, closed: 40, dupPhones: 40, fuConflicts: [] }, '07:50'), null);
 assert.ok(message({ closedFU: 1, review: [], failedCampaigns: [], errors: [], failedClose: 0, closed: 3, dupPhones: 3, fuConflicts: [{ p: '0506267777', kept: 'x', closed: 'y' }] }, '07:50').includes('7777'));
 console.log('dedupe tests ok');
+
+// ---- pinned (prioritized) campaign ranks first; follow-up still wins ----
+(async () => {
+  const store = require('../src/store'); const G = require('../src/guard'); const tc = require('../src/leads/tochat-client');
+  G.setPinned(['⭐ מבצע חנוכה']);
+  let d2 = decide([L('פולואפים כל הזמנים'), L('⭐ מבצע חנוכה')]);
+  assert.deepStrictEqual(names(d2.keep), ['⭐ מבצע חנוכה']);
+  d2 = decide([L('⭐ מבצע חנוכה'), L('ממירים', 'FOLLOWUP', 'עמית הראל')]);
+  assert.deepStrictEqual(names(d2.keep), ['ממירים']);
+
+  // ---- upload guard ----
+  const status = { '0501111111': [], '0502222222': [{ campaignId: 'x', campaignName: 'ממירים', status: 'PENDING' }], '0503333333': [{ campaignId: 'y', campaignName: 'רותחים', status: 'FOLLOWUP', followByName: 'עמית' }] };
+  tc.customerStatus = async (p) => ({ found: true, activeLeads: status[p] || [], inactiveCampaigns: [] });
+  tc.listCampaigns = async () => [{ id: 'c1', name: 'פולואפים כל הזמנים' }, { id: 'c2', name: '⭐ מבצע חנוכה' }];
+  const cs = [{ phone: '0501111111' }, { phone: '0502222222' }, { phone: '0503333333' }];
+  let g = await G.filter('c1', cs.slice());
+  assert.deepStrictEqual(g.keep.map((c) => c.phone), ['0501111111']); assert.strictEqual(g.skipped.length, 2);
+  g = await G.filter('c2', cs.slice()); // pinned: open elsewhere is allowed, follow-up never
+  assert.deepStrictEqual(g.keep.map((c) => c.phone).sort(), ['0501111111', '0502222222']);
+  process.env.UPLOAD_GUARD = 'off'; g = await G.filter('c1', cs.slice()); assert.strictEqual(g.keep.length, 3); delete process.env.UPLOAD_GUARD;
+  console.log('guard tests ok');
+})().catch((e) => { console.error(e); process.exit(1); });

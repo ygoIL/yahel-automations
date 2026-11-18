@@ -30,13 +30,15 @@ const PRIORITY = [
 // Campaigns that are never touched (not counted, never closed).
 const SKIP = /רשימה שחורה/;
 // Campaigns read every hour (every customer in them is checked against all his other open copies).
-const FOCUS = [/^פולואפים כל הזמנים$/, /^רותחים/, /^הזדמנות שני/, /^בוסט$/];
+const FOCUS = [/^פולואפים כל הזמנים$/, /^רותחים/, /^הזדמנות שני/, /^בוסט$/]; // + pinned campaigns
 const FOLLOW = /FOLLOW/i;
 const FU_GAP_MS = 10 * 60 * 1000;
 const MAX_CLOSE = Number(process.env.DEDUPE_MAX_CLOSE || 5000);
 const MAX_FU_CLOSE = Number(process.env.DEDUPE_MAX_FU_CLOSE || 30);
 
-const rank = (name) => { const i = PRIORITY.findIndex((re) => re.test(String(name || '').trim())); return i < 0 ? PRIORITY.length : i; };
+// Campaigns Steve asked to prioritize ("pinned") come before the fixed order; open follow-ups still win over everything.
+const pinnedList = () => { try { return require('../store').load('jobs/dedupe-pinned', []); } catch { return []; } };
+const rank = (name) => { const n = String(name || '').trim(); if (pinnedList().includes(n)) return -1; const i = PRIORITY.findIndex((re) => re.test(n)); return i < 0 ? PRIORITY.length : i; };
 const time = (l) => { const d = new Date(l.lastCall || l.createDate || ''); return isNaN(d) ? null : d.getTime(); };
 const created = (l) => { const d = new Date(l.createDate || ''); return isNaN(d) ? Infinity : d.getTime(); };
 const isFU = (l) => FOLLOW.test(String(l.status || ''));
@@ -125,7 +127,7 @@ async function run({ dry = false, full: full_, log = () => {} } = {}) {
   const started = new Date();
   const res = { at: started.toISOString(), dry, campaigns: 0, openLeads: 0, failedCampaigns: [], dupPhones: 0, checked: 0, closed: 0, closedFU: 0, failedClose: 0, review: [], fuConflicts: [], byCampaign: {}, errors: [] };
   const full = full_ ?? process.env.DEDUPE_FULL === '1';
-  const camps = (await tc.listCampaigns()).filter((c) => !SKIP.test(c.name) && (full || FOCUS.some((re) => re.test(c.name))));
+  const camps = (await tc.listCampaigns()).filter((c) => !SKIP.test(c.name) && (full || FOCUS.some((re) => re.test(c.name)) || pinnedList().includes(c.name)));
   const where = new Map(); // phone -> Set(campaignId)
   let waits = 0;
   for (let i = 0; i < camps.length; i++) {

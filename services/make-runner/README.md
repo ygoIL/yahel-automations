@@ -49,3 +49,8 @@ Finds every phone that is open in 2+ campaigns, reads the live customer record, 
 Nightly full scan of all campaigns at 02:10 (`DEDUPE_FULL_TIME`); if the ToChat hourly budget runs out it waits for the next hour and continues.
 WhatsApp to Steve (`DEDUPE_ALERT_PHONE`) only when a follow-up conflict was resolved, a case needs review, or the run had errors.
 `POST /admin/dedupe/run?dry=1` (dry=0 for real, `notify=1` to send the message), `GET /admin/dedupe/runs`.
+
+## Upload guard (`src/guard/`)
+Every lead upload that goes through make-runner (AddLeadsToCampaign2, makeAnApiCall POST …/customers, the leads tool) skips customers that
+have an open follow-up anywhere (always), or that are open in another campaign – unless the target campaign is prioritized ("pinned").
+Pinned campaigns: `GET/POST /admin/dedupe/pinned {"names":[...]}`; the hourly dedupe also keeps the copy in a pinned campaign. Log: `GET /admin/upload-guard`. `UPLOAD_GUARD=off` disables.
