@@ -19,10 +19,10 @@ const ACK_NEG = /הקדמ|להקדים|ניתוק|חשמל|^\s*(עזרה|תפר�
 // Kinds whose logic still lives in Make (Sheets-heavy scenarios); forwarded to the old Make bot hook.
 const MAKE_KINDS = (E.MAKE_KINDS || 'shikuf,disc,port,cancel,save,shikdone,advance').split(',');
 
-// RULE (Steve 18/11/2026): in the yes groups (מנהלים yes / משווקי yes) only messages of יורן טוויטו and שחר קוטיגרו count.
+// RULE (Steve 18/11/2026): in the group מנהלים yes only messages of יורן טוויטו (יורן יס) count.
 // Each one (text, image or file) is forwarded as-is to "הנהלה מצומצם"; text also goes through the group AI filter into the bot's
 // knowledge (DS 206718). Senders = Railway variable YES_FWD_SENDERS (comma-separated phones). Do not remove.
-const YES_GROUP = /(מנהלים|משווקי)\s*yes/i;
+const YES_GROUP = /מנהלים\s*yes/i;
 const YES_SENDERS = String(E.YES_FWD_SENDERS || '').split(',').map((x) => x.replace(/\D/g, '').slice(-9)).filter((x) => x.length === 9);
 const MGMT_GROUP = E.MGMT_GROUP || '120363430128240440@g.us'; // הנהלה מצומצם
 async function handleYesGroup(p) {

@@ -14,7 +14,7 @@ WhatsApp hub on Green API. Replaces these Make scenarios:
 | 10171903 | Health check every 5 min + failover | in-process scheduler (alerts by WhatsApp) |
 | 10125213 / 10125215 | Rep reminders intake / sender | intake via bot, sender every minute |
 
-yes groups (`מנהלים yes` / `משווקי yes`): messages of the senders in `YES_FWD_SENDERS` (יורן טוויטו, שחר קוטיגרו) are forwarded as-is to `הנהלה מצומצם` (`MGMT_GROUP`) and text also goes to the bot's group knowledge. Needs the bot's number to be a member of those groups.
+group `מנהלים yes`: messages of the senders in `YES_FWD_SENDERS` (יורן טוויטו) are forwarded as-is to `הנהלה מצומצם` (`MGMT_GROUP`) and text also goes to the bot's group knowledge. The bot is a member of the group.
 
 Kinds still handled in Make (forwarded to the old Make hook): shikuf, disc, port, cancel, save, shikdone, advance.
 
