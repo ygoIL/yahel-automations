@@ -4,7 +4,7 @@
 //   2. An open follow-up (FOLLOWUP / INCOMING_FOLLOWUP) is sacred: it always stays; every other copy is closed.
 //      Two follow-ups by different reps (should never happen): a rep listed in the דוח מכר 'יעדים' tab beats a rep
 //      who is not there (Steve, 18/11); if both or neither are listed – whoever set it first keeps it
-//      (lastCall, else createDate); less than 10 minutes apart or a missing time → nothing is closed, reported.
+//      (lastCall, else createDate) – always, even minutes apart; only a missing time → nothing is closed, reported.
 //   3. No follow-up anywhere: keep the copy by campaign priority –
 //      פולואפים כל הזמנים → רותחים → תקשורת כל החברות (חדש) → … ; the rest are closed.
 // ToChat caps openLeads at 150,000 rows per hour for the whole tenant (shared with every other automation), so the
@@ -75,8 +75,7 @@ function decide(leads, ours) {
       else {
         // our reps (יעדים) first, then earliest follow-up
         const s = fu.map((l, i) => ({ l, t: t[i] === null ? Infinity : t[i], o: our[i] })).sort((a, b) => (b.o - a.o) || (a.t - b.t));
-        if (!mixed && s[1].t - s[0].t < FU_GAP_MS) review = 'שני פולואפים של נציגים שונים בהפרש של פחות מ-10 דקות';
-        else {
+        { // Steve 18/11: always whoever set it first – also when they are minutes apart
           keep = [s[0].l];
           for (const x of s.slice(1)) if (String(x.l.followByName || '').trim() !== String(s[0].l.followByName || '').trim()) close.push({ lead: x.l, fu: true, why: `${mixed ? 'הנציג לא ביעדים' : 'פולואפ מאוחר יותר'} – הלקוח נשאר אצל ${s[0].l.followByName || '?'} (${s[0].l.campaignName || ''})` });
             else keep.push(x.l);

@@ -27,9 +27,9 @@ d = decide([L('פולואפים כל הזמנים', 'FOLLOWUP', 'עילאי או
 assert.deepStrictEqual(names(d.keep), ['תקשורת כל החברות חדש']);
 assert.deepStrictEqual(names(d.close).sort(), ['בוסט', 'פולואפים כל הזמנים'].sort());
 assert.ok(d.close.find((c) => c.lead.campaignName === 'פולואפים כל הזמנים').fu);
-// Less than 10 minutes apart → no follow-up is closed, reported for review.
+// Minutes apart → still whoever set it first.
 d = decide([L('א', 'FOLLOWUP', 'דני', '2026-11-18T10:00:00Z'), L('ב', 'FOLLOWUP', 'רוני', '2026-11-18T10:05:00Z'), L('ג')]);
-assert.deepStrictEqual(names(d.close), ['ג']); assert.ok(d.review);
+assert.deepStrictEqual(names(d.keep), ['א']); assert.deepStrictEqual(names(d.close).sort(), ['ב', 'ג']); assert.strictEqual(d.review, null);
 // Missing time → review, follow-ups untouched.
 d = decide([L('א', 'FOLLOWUP', 'דני', '', ''), L('ב', 'FOLLOWUP', 'רוני', '2026-11-18T10:05:00Z')]);
 assert.deepStrictEqual(d.close, []); assert.ok(d.review);
@@ -45,7 +45,7 @@ const ours = ['עמית הראל', 'שילת', 'איתמר ששון'];
 d = decide([L('פולואפים כל הזמנים', 'FOLLOWUP', 'עילאי אוחנה', '2026-11-18T07:00:00Z'), L('תקשורת כל החברות חדש', 'FOLLOWUP', 'עמית הראל', '2026-11-18T09:30:00Z')], ours);
 assert.deepStrictEqual(names(d.keep), ['תקשורת כל החברות חדש']); assert.ok(d.close[0].fu);
 d = decide([L('א', 'FOLLOWUP', 'עילאי אוחנה', '2026-11-18T10:00:00Z'), L('ב', 'FOLLOWUP', 'שילת חלפה', '2026-11-18T10:03:00Z')], ours);
-assert.deepStrictEqual(names(d.keep), ['ב']); assert.strictEqual(d.review, null);
+assert.deepStrictEqual(names(d.keep), ['ב']); assert.strictEqual(d.review, null); // יעדים rep wins first
 // both ours → earliest
 d = decide([L('א', 'FOLLOWUP', 'עמית הראל', '2026-11-18T12:00:00Z'), L('ב', 'FOLLOWUP', 'איתמר חסון', '2026-11-18T08:00:00Z')], ours);
 assert.deepStrictEqual(names(d.keep), ['ב']);

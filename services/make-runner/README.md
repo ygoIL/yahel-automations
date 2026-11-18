@@ -44,7 +44,7 @@ Iron rules (ToChat status, checked before upload): open FOLLOW in any campaign; 
 Runs every hour in working hours – Sun–Fri 09:00–17:00 (`DEDUPE_INTERVAL_SEC`), mode `DEDUPE_MODE` = live (default) / dry / off.
 Finds every phone that is open in 2+ campaigns, reads the live customer record, then:
 1. open follow-up anywhere = sacred → every other copy is closed (IRRELEVANT, with a note);
-   two follow-ups by different reps (edge case) → a rep listed in יעדים beats one who is not; otherwise the earlier one (lastCall/createDate) keeps the customer; <10 min apart or no time → not closed, reported;
+   two follow-ups by different reps (edge case) → a rep listed in יעדים beats one who is not; otherwise the earlier one (lastCall/createDate) keeps the customer; no time → not closed, reported (minutes apart: still the earlier one);
 2. no follow-up → keep by priority: פולואפים כל הזמנים → רותחים → תקשורת כל החברות חדש → תקשורת כל החברות → הזדמנות שניה → בוסט → מבצע → מצטרפים → (oldest lead).
 Nightly full scan of all campaigns at 02:10 (`DEDUPE_FULL_TIME`); if the ToChat hourly budget runs out it waits for the next hour and continues.
 WhatsApp to Steve (`DEDUPE_ALERT_PHONE`) only when a follow-up conflict was resolved, a case needs review, or the run had errors.
