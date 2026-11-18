@@ -1,7 +1,7 @@
 // Offline tests for the global dedupe decision rules.
 process.env.DATA_DIR = require('path').join(__dirname, '.data-dedupe'); require('fs').rmSync(process.env.DATA_DIR, { recursive: true, force: true });
 const assert = require('assert');
-const { decide, message } = require('../src/dedupe');
+const { decide, message, isOurRep } = require('../src/dedupe');
 const L = (campaignName, status = 'PENDING', followByName = '', lastCall = '', createDate = '2026-11-01T08:00:00Z') => ({ campaignId: 'id_' + campaignName, campaignName, status, followByName, lastCall, createDate });
 const names = (a) => a.map((x) => (x.lead || x).campaignName);
 
@@ -39,6 +39,17 @@ assert.deepStrictEqual(d.close, []); assert.strictEqual(d.review, null);
 // Single lead / blacklist campaign never touched.
 assert.deepStrictEqual(decide([L('א')]).close, []);
 assert.deepStrictEqual(decide([L('רשימה שחורה'), L('א')]).close, []);
+
+// Two follow-ups, only one rep in יעדים → he keeps it even if he was later; time doesn't matter.
+const ours = ['עמית הראל', 'שילת', 'איתמר ששון'];
+d = decide([L('פולואפים כל הזמנים', 'FOLLOWUP', 'עילאי אוחנה', '2026-11-18T07:00:00Z'), L('תקשורת כל החברות חדש', 'FOLLOWUP', 'עמית הראל', '2026-11-18T09:30:00Z')], ours);
+assert.deepStrictEqual(names(d.keep), ['תקשורת כל החברות חדש']); assert.ok(d.close[0].fu);
+d = decide([L('א', 'FOLLOWUP', 'עילאי אוחנה', '2026-11-18T10:00:00Z'), L('ב', 'FOLLOWUP', 'שילת חלפה', '2026-11-18T10:03:00Z')], ours);
+assert.deepStrictEqual(names(d.keep), ['ב']); assert.strictEqual(d.review, null);
+// both ours → earliest
+d = decide([L('א', 'FOLLOWUP', 'עמית הראל', '2026-11-18T12:00:00Z'), L('ב', 'FOLLOWUP', 'איתמר חסון', '2026-11-18T08:00:00Z')], ours);
+assert.deepStrictEqual(names(d.keep), ['ב']);
+assert.ok(isOurRep('איתמר חסון', ours)); assert.ok(isOurRep('שילת חלפה', ours)); assert.ok(!isOurRep('עילאי אוחנה', ours));
 
 // Message only when something between reps / problems happened.
 assert.strictEqual(message({ closedFU: 0, review: [], failedCampaigns: [], errors: [], failedClose: 0, closed: 40, dupPhones: 40, fuConflicts: [] }, '07:50'), null);

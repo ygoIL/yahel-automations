@@ -2,8 +2,9 @@
 // Iron rules:
 //   1. A customer may be open in ONE campaign only – never two reps on the same customer.
 //   2. An open follow-up (FOLLOWUP / INCOMING_FOLLOWUP) is sacred: it always stays; every other copy is closed.
-//      Two follow-ups by different reps: whoever set it first keeps it (lastCall, else createDate of that lead);
-//      less than 10 minutes apart or a missing time → nothing is closed, the case is reported for a human.
+//      Two follow-ups by different reps (should never happen): a rep listed in the דוח מכר 'יעדים' tab beats a rep
+//      who is not there (Steve, 18/11); if both or neither are listed – whoever set it first keeps it
+//      (lastCall, else createDate); less than 10 minutes apart or a missing time → nothing is closed, reported.
 //   3. No follow-up anywhere: keep the copy by campaign priority –
 //      פולואפים כל הזמנים → רותחים → תקשורת כל החברות (חדש) → … ; the rest are closed.
 // Open leads are only used to FIND phones that are open in 2+ campaigns. Every decision is taken from the live
@@ -38,7 +39,22 @@ const label = (l) => `${l.campaignName || '?'}${isFU(l) ? ` (פולואפ ${l.fo
 
 // Pure decision for one customer. leads = activeLeads from the customer record.
 // Returns { keep: [lead], close: [{ lead, why, fu }], review: string|null }
-function decide(leads) {
+// Our reps = names in 'יעדים'!A of the דוח מכר (not marked fired in L). Matching ToChat ↔ יעדים names.
+const ALIASES = { 'איתמר חסון': 'איתמר ששון', 'עדן שטרית': 'עדן שיטרית', 'אוראל ניקודים 2': 'אוראל ניקודים' };
+const norm = (n) => String(n || '').replace(/[\d.]+/g, ' ').replace(/\s+/g, ' ').trim();
+function isOurRep(name, ours) {
+  if (!ours || !name) return false;
+  const n = norm(ALIASES[String(name).trim()] || name); if (!n) return false;
+  for (const o of ours) { const m = norm(o); if (!m) continue; if (n === m) return true; if (!m.includes(' ') && n.startsWith(m + ' ')) return true; if (!n.includes(' ') && m.startsWith(n + ' ')) return true; }
+  return false;
+}
+async function loadOurReps() {
+  const id = process.env.SALES_REPORT_SHEET_ID || '12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI';
+  const r = await require('../google').sheets({ url: `/spreadsheets/${id}/values/${encodeURIComponent("'יעדים'!A2:L300")}` });
+  return (r.body.values || []).filter((row) => row[0] && String(row[11] || '').toUpperCase() !== 'TRUE').map((row) => String(row[0]).trim());
+}
+
+function decide(leads, ours) {
   const L = (leads || []).filter((l) => !SKIP.test(String(l.campaignName || '')));
   if (L.length < 2) return { keep: L, close: [], review: null };
   const fu = L.filter(isFU);
@@ -46,14 +62,16 @@ function decide(leads) {
     let keep = fu; let review = null; const close = [];
     const reps = new Set(fu.map((l) => String(l.followByName || '').trim()));
     if (fu.length > 1 && reps.size > 1) {
-      const t = fu.map(time);
-      if (t.some((x) => x === null)) review = 'שני פולואפים של נציגים שונים, חסר זמן';
+      const t = fu.map(time); const our = fu.map((l) => isOurRep(l.followByName, ours));
+      const mixed = our.some(Boolean) && !our.every(Boolean);
+      if (!mixed && t.some((x) => x === null)) review = 'שני פולואפים של נציגים שונים, חסר זמן';
       else {
-        const s = fu.map((l, i) => ({ l, t: t[i] })).sort((a, b) => a.t - b.t);
-        if (s[1].t - s[0].t < FU_GAP_MS) review = 'שני פולואפים של נציגים שונים בהפרש של פחות מ-10 דקות';
+        // our reps (יעדים) first, then earliest follow-up
+        const s = fu.map((l, i) => ({ l, t: t[i] === null ? Infinity : t[i], o: our[i] })).sort((a, b) => (b.o - a.o) || (a.t - b.t));
+        if (!mixed && s[1].t - s[0].t < FU_GAP_MS) review = 'שני פולואפים של נציגים שונים בהפרש של פחות מ-10 דקות';
         else {
           keep = [s[0].l];
-          for (const x of s.slice(1)) if (String(x.l.followByName || '').trim() !== String(s[0].l.followByName || '').trim()) close.push({ lead: x.l, fu: true, why: `פולואפ מאוחר יותר – הלקוח נשאר אצל ${s[0].l.followByName || '?'} (${s[0].l.campaignName || ''})` });
+          for (const x of s.slice(1)) if (String(x.l.followByName || '').trim() !== String(s[0].l.followByName || '').trim()) close.push({ lead: x.l, fu: true, why: `${mixed ? 'הנציג לא ביעדים' : 'פולואפ מאוחר יותר'} – הלקוח נשאר אצל ${s[0].l.followByName || '?'} (${s[0].l.campaignName || ''})` });
             else keep.push(x.l);
         }
       }
@@ -106,11 +124,13 @@ async function run({ dry = false, log = () => {} } = {}) {
   res.dupPhones = dups.length;
   log({ ev: 'dedupe_scan', campaigns: res.campaigns, openLeads: res.openLeads, dups: dups.length, failed: res.failedCampaigns.length });
 
+  let ours = null;
+  try { ours = await loadOurReps(); res.ourReps = ours.length; } catch (e) { res.errors.push('לא נקראה לשונית יעדים – בהתנגשות פולואפים הוכרע לפי מי שקבע ראשון'); }
   const plans = [];
   await pool(dups, 4, async (p) => {
     try {
       const st = await tc.customerStatus(p); res.checked++;
-      const d = decide(st.activeLeads);
+      const d = decide(st.activeLeads, ours);
       if (d.review) res.review.push({ p, d: d.review });
       if (d.close.length) plans.push({ p, ...d });
     } catch (e) { res.errors.push(`${p.slice(-4)}: ${String(e.message).slice(0, 120)}`); }
@@ -153,4 +173,4 @@ function message(r, hhmm) {
 // Schedule: Sun–Fri 07:50, 12:30, 16:30 (Asia/Jerusalem). Override with DEDUPE_TIMES="07:50,12:30,16:30".
 const SCHEDULE = { type: 'daily', time: (process.env.DEDUPE_TIMES || '07:50,12:30,16:30').split(',').map((s) => s.trim()), restrict: [{ days: [0, 1, 2, 3, 4, 5] }] };
 
-module.exports = { run, decide, message, SCHEDULE, PRIORITY, rank };
+module.exports = { run, decide, message, isOurRep, SCHEDULE, PRIORITY, rank };
