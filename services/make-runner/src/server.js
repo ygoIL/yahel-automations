@@ -86,6 +86,16 @@ http.createServer(async (req, res) => {
       const method = req.method === 'POST' ? (body.method || 'PUT') : 'GET';
       return send(res, 200, await api({ url: u.searchParams.get('url'), method, body: req.method === 'POST' ? body.body : undefined, qs: body.qs }).catch((e) => ({ error: String(e.message) })));
     }
+    if (u.pathname === '/admin/files') return send(res, 200, store.listFiles());
+    if ((m = /^\/admin\/files\/(.+)$/.exec(u.pathname))) {
+      const buf = store.readFile(decodeURIComponent(m[1])); if (!buf) return send(res, 404, { error: 'no such file' });
+      res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': buf.length }); return res.end(buf);
+    }
+    if ((m = /^\/admin\/watch-forget\/(\d+)$/.exec(u.pathname)) && req.method === 'POST') { // let a mail watcher return a message again
+      const key = `watch/ms_${m[1]}`; const st = store.load(key, { seen: [] }); const before = st.seen.length;
+      st.seen = st.seen.filter((x) => !(body.ids || []).includes(x)); store.save(key, st);
+      return send(res, 200, { removed: before - st.seen.length });
+    }
     if (u.pathname === '/admin/check') return send(res, 200, await require('./tools').check(u.searchParams.get('only')));
     // ---- lead upload to ToChat campaigns (dry run first; a real upload only via /confirm of an approved dry run) ----
     if (u.pathname.startsWith('/admin/leads/')) {
