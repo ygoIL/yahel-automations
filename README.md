@@ -23,3 +23,12 @@ All endpoints except `/health` need `?key=$GATEWAY_KEY`.
 
 ### Deploy
 `cd services/wa-gateway && railway up --service wa-gateway`
+
+## tools/railway_keys.py — keys from Railway, without exposing them
+The single pre-approved way (`.claude/settings.json`) for a Claude session / Cowork to use keys stored in Railway variables. Values are never printed or saved; secrets in responses are masked.
+
+```
+python3 tools/railway_keys.py send --phone 0501234567 --message "text"     # WhatsApp via wa-gateway
+python3 tools/railway_keys.py call make-runner GET /admin/scenarios         # any endpoint, key added
+python3 tools/railway_keys.py names wa-gateway                              # variable names only
+```
