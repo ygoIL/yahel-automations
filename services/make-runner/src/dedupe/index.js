@@ -37,6 +37,26 @@ const MAX_CLOSE = Number(process.env.DEDUPE_MAX_CLOSE || 5000);
 // Nightly full scan may close more: the backlog (19/11: 26,666 dups) must clear in one night instead of eating the daytime ToChat budget.
 const MAX_CLOSE_FULL = Number(process.env.DEDUPE_MAX_CLOSE_FULL || 30000);
 const MAX_FU_CLOSE = Number(process.env.DEDUPE_MAX_FU_CLOSE || 30);
+// Nightly scan reads ~640k open leads; ToChat allows 150k rows/hour, so it must be allowed to wait several clock hours.
+const FULL_MAX_WAITS = Number(process.env.DEDUPE_FULL_MAX_WAITS || 6);
+// The nightly scan also writes the open-follow-up list used to pre-filter morning uploads (replaces scenario 10171978,
+// which could not page campaigns over 50k leads – 'לידים חדשים', 'תקשורת כל החברות חדש' – and ran out of budget in the morning).
+const FU_SHEETS = (process.env.FU_LIST_SHEETS || '1-mXfg-H5pZzGtTLTYOcU_SBgOEu8S2FnTrvz3Brc_7M,1Zr8LinwSfON9R8rmPS5y5WVyHPpQxXdVe7ANwO1n40I').split(',').map((x) => x.trim()).filter(Boolean);
+const FU_TAB = "'פולואפים פתוחים'";
+async function writeFollowupList(phones, partial) {
+  const G = require('../google');
+  let set = new Set(phones);
+  if (partial) { // some campaigns were not read: keep yesterday's numbers too (over-protecting is safe)
+    try { const r = await G.sheets({ url: `spreadsheets/${FU_SHEETS[0]}/values/${encodeURIComponent(FU_TAB + '!A2:A30000')}` }); for (const row of (r.body.values || [])) if (row[0]) set.add(tc.normPhone(row[0]) || String(row[0])); } catch { /* keep new list only */ }
+  }
+  const now = new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
+  const values = [['טלפון', 'עודכן', now + (partial ? ' (חלקי + רשימה קודמת)' : '')]].concat([...set].map((p) => [p]));
+  for (const id of FU_SHEETS) {
+    await G.sheets({ url: `spreadsheets/${id}/values/${encodeURIComponent(FU_TAB + '!A1:C30000')}:clear`, method: 'POST', body: {} });
+    await G.sheets({ url: `spreadsheets/${id}/values/${encodeURIComponent(FU_TAB + '!A1:C' + values.length)}`, method: 'PUT', qs: [{ key: 'valueInputOption', value: 'RAW' }], body: { values } });
+  }
+  return set.size;
+}
 
 // Campaigns Steve asked to prioritize ("pinned") come before the fixed order; open follow-ups still win over everything.
 const pinnedList = () => { try { return require('../guard').pinned(); } catch { return []; } };
@@ -148,23 +168,28 @@ async function run({ dry = false, full: full_, log = () => {} } = {}) {
   res.campaignNames = camps.map((c) => c.name);
   const where = new Map(); // phone -> Set(campaignId)
   const focusPhones = new Set();
+  const fuPhones = new Set();
   let waits = 0;
   for (let i = 0; i < camps.length; i++) {
     const c = camps[i];
     try {
       const L = await openLeads(c.id); res.campaigns++; res.openLeads += L.length;
       memo[c.id] = { ...(memo[c.id] || {}), at: new Date().toISOString(), rows: L.length };
-      for (const l of L) { const p = tc.normPhone(l.displayPhone || l.phone || (l.customer && l.customer.phone)); if (!p) continue; if (!where.has(p)) where.set(p, new Set()); where.get(p).add(c.id); if (!full && isFocus(c)) focusPhones.add(p); }
+      for (const l of L) { const p = tc.normPhone(l.displayPhone || l.phone || (l.customer && l.customer.phone)); if (!p) continue; if (!where.has(p)) where.set(p, new Set()); where.get(p).add(c.id); if (!full && isFocus(c)) focusPhones.add(p); if (isFU(l)) fuPhones.add(p); }
     } catch (e) {
       if (/429/.test(String(e.message))) {
-        // full (nightly) scan: the hourly ToChat budget ran out – wait for the next clock hour and continue (at most twice)
-        if (full && waits < 2) { waits++; const now = new Date(); const next = new Date(now); next.setUTCMinutes(2, 0, 0); next.setUTCHours(now.getUTCHours() + 1); log({ ev: 'dedupe_wait_budget', until: next.toISOString(), at: c.name }); await new Promise((r) => setTimeout(r, next - now)); i--; continue; }
+        // full (nightly) scan: the hourly ToChat budget ran out – wait for the next clock hour and continue (up to FULL_MAX_WAITS hours)
+        if (full && waits < FULL_MAX_WAITS) { waits++; const now = new Date(); const next = new Date(now); next.setUTCMinutes(2, 0, 0); next.setUTCHours(now.getUTCHours() + 1); log({ ev: 'dedupe_wait_budget', until: next.toISOString(), at: c.name }); await new Promise((r) => setTimeout(r, next - now)); i--; continue; }
         res.failedCampaigns.push(c.name); res.errors.push('מכסת השעה של טוצ\'אט לקריאת לידים נגמרה – הבדיקה תושלם בהרצה הבאה'); break;
       }
       res.failedCampaigns.push(c.name);
     }
   }
   store.save('jobs/dedupe-camps', memo);
+  if (full && !dry) {
+    try { res.fuList = await writeFollowupList([...fuPhones], res.failedCampaigns.length > 0); }
+    catch (e) { res.errors.push('רשימת הפולואפים לא נכתבה לגיליון: ' + String(e.message).slice(0, 120)); }
+  }
   // every customer of a focus/prioritized campaign is checked (his other copies are in the customer record);
   // for the rest, a customer open in 2+ of the campaigns read now
   const dups = [...where].filter(([p, s]) => s.size > 1 || focusPhones.has(p)).map(([p]) => p);
