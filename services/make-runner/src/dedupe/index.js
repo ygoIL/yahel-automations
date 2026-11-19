@@ -34,6 +34,8 @@ const FOCUS = [/^פולואפים כל הזמנים$/, /^רותחים/, /^הזד
 const FOLLOW = /FOLLOW/i;
 const FU_GAP_MS = 10 * 60 * 1000;
 const MAX_CLOSE = Number(process.env.DEDUPE_MAX_CLOSE || 5000);
+// Nightly full scan may close more: the backlog (19/11: 26,666 dups) must clear in one night instead of eating the daytime ToChat budget.
+const MAX_CLOSE_FULL = Number(process.env.DEDUPE_MAX_CLOSE_FULL || 30000);
 const MAX_FU_CLOSE = Number(process.env.DEDUPE_MAX_FU_CLOSE || 30);
 
 // Campaigns Steve asked to prioritize ("pinned") come before the fixed order; open follow-ups still win over everything.
@@ -185,11 +187,13 @@ async function run({ dry = false, full: full_, log = () => {} } = {}) {
   const allowFU = fuPlans.length <= MAX_FU_CLOSE;
   if (!allowFU) res.errors.push(`${fuPlans.length} התנגשויות פולואפ בין נציגים – יותר מ-${MAX_FU_CLOSE}, לא נסגר אף פולואפ (לבדיקה ידנית)`);
 
-  let budget = MAX_CLOSE;
+  const cap = full ? MAX_CLOSE_FULL : MAX_CLOSE;
+  let budget = cap;
+  plansLoop:
   for (const pl of plans) {
     for (const c of pl.close) {
       if (c.fu && !allowFU) continue;
-      if (budget-- <= 0) { res.errors.push(`הגעתי למגבלה של ${MAX_CLOSE} סגירות בהרצה`); break; }
+      if (budget-- <= 0) { res.errors.push(`הגעתי למגבלה של ${cap} סגירות בהרצה – ${plans.length} מספרים כפולים, השאר ייסגרו בהרצה הבאה`); break plansLoop; }
       const name = c.lead.campaignName || '?';
       let okc = true;
       if (!dry) { try { okc = await closeLead(c.lead.campaignId, pl.p, `נסגר אוטומטית: ${c.why}`); } catch { okc = false; } }
@@ -218,8 +222,8 @@ function message(r, hhmm) {
 
 // Schedule: every hour during working hours (Steve 18/11) – Sun–Fri 09:00–17:00 (Asia/Jerusalem).
 // Runs on Railway only (ToChat API + Google) – no Make operations, no Claude.
-// Nightly full scan of ALL campaigns (Steve 18/11) – at night nothing else uses the ToChat budget; continues into the next hour if needed.
-const FULL_SCHEDULE = { type: 'daily', time: [process.env.DEDUPE_FULL_TIME || '02:10'] };
+// Nightly full scan of ALL campaigns (Steve 18/11; moved 02:10→23:40 on 19/11 so it ends long before the 05:20 follow-up list and the morning uploads) – at night nothing else uses the ToChat budget; continues into the next hour if needed.
+const FULL_SCHEDULE = { type: 'daily', time: [process.env.DEDUPE_FULL_TIME || '23:40'] };
 const SCHEDULE = { type: 'indefinitely', interval: Number(process.env.DEDUPE_INTERVAL_SEC || 3600), restrict: [{ days: [0, 1, 2, 3, 4, 5], time: ['09:00', '17:00'] }] };
 
 module.exports = { run, decide, message, isOurRep, SCHEDULE, FULL_SCHEDULE, PRIORITY, FOCUS, rank };
