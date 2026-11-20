@@ -14,6 +14,8 @@ import json, os, ssl, sys, urllib.request, urllib.error
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from railway_auth import railway_token
+
 PROJECT = "19c7f318-4dab-455b-91fa-a4eb451cc79f"   # yahel-reps-bot
 ENV = "06bfd280-a128-48bc-8178-fb83d79f9eb4"       # production
 SVC = {"make-runner": "70a1d0df-4dd8-43df-a691-3af96d0cc3d9", "wa-gateway": "adf91129-6fe7-4bf7-a223-b67033fb958a"}
@@ -41,7 +43,7 @@ def http(url, data=None, headers=None, timeout=40):
 
 def railway_vars(service_id):
     q = '{ variables(projectId:"%s", environmentId:"%s", serviceId:"%s") }' % (PROJECT, ENV, service_id)
-    st, body = http("https://backboard.railway.com/graphql/v2", {"query": q}, {"Authorization": "Bearer proxy"})
+    st, body = http("https://backboard.railway.com/graphql/v2", {"query": q}, {"Authorization": "Bearer " + railway_token()})
     if st != 200 or not isinstance(body, dict) or "data" not in body:
         raise SystemExit(f"cannot read Railway variables: {st} {body}")
     return body["data"]["variables"]
@@ -87,6 +89,10 @@ def scheduled_today(sch):
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # Windows consoles default to a legacy code page
+    except Exception:
+        pass
     hours = float(sys.argv[sys.argv.index("--hours") + 1]) if "--hours" in sys.argv else 2
     since = NOW - timedelta(hours=hours)
     problems, notes = [], []
@@ -150,8 +156,10 @@ def main():
     notes.append(f"make-runner: {len(live)} live scenarios, {runs_ok} ok / {runs_err} failed runs in the last {hours:g}h")
 
     # --- Make: scheduled scenarios running in both places
+    # Cloud sessions: the proxy injects the token. Locally: MAKE_API_TOKEN env, else wa-gateway's Railway variable.
+    make_token = "proxy" if railway_token() == "proxy" else (os.environ.get("MAKE_API_TOKEN") or gw_vars.get("MAKE_API_TOKEN") or "proxy")
     st, mk = http(f"https://eu2.make.com/api/v2/scenarios?teamId={MAKE_TEAM}&pg%5Blimit%5D=500&cols%5B%5D=id&cols%5B%5D=name&cols%5B%5D=isActive&cols%5B%5D=scheduling",
-                  headers={"Authorization": "Token proxy"})
+                  headers={"Authorization": "Token " + make_token})
     if st == 200 and isinstance(mk, dict):
         active = [x for x in mk["scenarios"] if x.get("isActive")]
         for x in active:
