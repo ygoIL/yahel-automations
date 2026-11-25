@@ -3,6 +3,7 @@ const iml = require('./iml');
 const { passes } = require('./filters');
 const modules = require('./modules');
 const store = require('./store');
+const blockedReps = require('./blocked-reps');
 const log = (o) => console.log(JSON.stringify({ t: new Date().toISOString(), ...o }));
 
 class Stop extends Error { constructor(kind) { super(kind); this.kind = kind; } }
@@ -27,7 +28,13 @@ async function execModule(m, ctx, rt) {
   if (rt.ops > (rt.maxOps || 5000)) throw new Error('operation limit reached');
   const t0 = Date.now();
   let out;
-  if (rt.dry && def.write && !(def.readOnlyWhen && def.readOnlyWhen(mapper, params))) {
+  const blocked = m.module.startsWith('manychat:') ? await blockedReps.check(m, mapper, ctx) : null;
+  if (blocked) {
+    // Blocked rep (sheet of Bezeq reps): skip the send, the rest of the flow continues as if it was sent.
+    rt.warnings.push({ module: m.id, skipped: 'blocked rep', rep: blocked.name });
+    rt.actions.push({ module: m.id, type: m.module, skipped: 'blocked rep', rep: blocked.name, value: blocked.value });
+    out = def.dryResult ? def.dryResult(mapper, params) : {};
+  } else if (rt.dry && def.write && !(def.readOnlyWhen && def.readOnlyWhen(mapper, params))) {
     rt.actions.push({ module: m.id, type: m.module, input: trunc(mapper, 4000) });
     out = def.dryResult ? def.dryResult(mapper, params) : {};
   } else {
