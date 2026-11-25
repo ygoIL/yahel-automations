@@ -149,6 +149,15 @@ def main():
                 problems.append(f"{sid} {name}: scheduled {due.astimezone(TZ):%H:%M} today, no run (last {s.get('lastRun')})")
     notes.append(f"make-runner: {len(live)} live scenarios, {runs_ok} ok / {runs_err} failed runs in the last {hours:g}h")
 
+    # --- global dedupe (must survive every deploy)
+    st, dd = http(f"{MR}/admin/dedupe/runs?n=1&key={key}")
+    if st != 200 or not isinstance(dd, list):
+        problems.append(f"DEDUPE MISSING: /admin/dedupe/runs -> {st} (a deploy without src/dedupe removed it; redeploy from a branch that has it)")
+    elif dd and ts(dd[0].get("at")) and NOW - ts(dd[0]["at"]) > timedelta(hours=3) and allowed({"restrict": [{"days": [0, 1, 2, 3, 4, 5], "time": ["10:30", "17:30"]}]}, NOW):
+        problems.append(f"dedupe has not run since {dd[0]['at']}")
+    else:
+        notes.append(f"dedupe: last run {dd[0]['at'][11:16]}Z" if dd else "dedupe: no runs yet")
+
     # --- Make: scheduled scenarios running in both places
     st, mk = http(f"https://eu2.make.com/api/v2/scenarios?teamId={MAKE_TEAM}&pg%5Blimit%5D=500&cols%5B%5D=id&cols%5B%5D=name&cols%5B%5D=isActive&cols%5B%5D=scheduling",
                   headers={"Authorization": "Token proxy"})
