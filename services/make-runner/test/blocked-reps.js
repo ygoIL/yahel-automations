@@ -25,3 +25,16 @@ const sc = (rep) => ({ id: 2, name: 't', blueprint: { flow: [
   assert.ok(!r.actions.some((a) => a.skipped));
   console.log('blocked reps test OK');
 })().catch((e) => { console.error(e); process.exit(1); });
+// WhatsApp (wa-gateway) send in a run about a blocked rep is skipped; a digest that only mentions the name is not.
+(async () => {
+  const wa = (result) => ({ id: 3, name: 'wa', blueprint: { flow: [
+    { id: 1, module: 'gateway:CustomWebHook', parameters: {} },
+    { id: 4, module: 'code:ExecuteCode', mapper: { input: [], codeEditorJavascript: 'return ' + JSON.stringify(result) + ';' } },
+    { id: 23, module: 'http:MakeRequest', mapper: { url: 'https://wa-gateway-production-x.up.railway.app/send?key=k', method: 'post', contentType: 'json', inputMethod: 'jsonString', jsonStringBodyContent: '{}' } },
+  ] } });
+  let r = await engine.run(wa({ rep: 'ישראל ישראלי', groupMsg: 'נציג: ישראל ישראלי' }), { type: 'webhook', body: {} }, { dry: true });
+  assert.strictEqual(r.actions.find((a) => a.module === 23).skipped, 'blocked rep');
+  r = await engine.run(wa({ text: 'התקנות מחר: ישראל ישראלי, דנה לוי' }), { type: 'webhook', body: {} }, { dry: true });
+  assert.ok(!r.actions.some((a) => a.skipped), 'digest still sent');
+  console.log('blocked reps whatsapp test OK');
+})().catch((e) => { console.error(e); process.exit(1); });
