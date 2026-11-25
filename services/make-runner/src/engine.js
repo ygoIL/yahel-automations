@@ -28,7 +28,7 @@ async function execModule(m, ctx, rt) {
   if (rt.ops > (rt.maxOps || 5000)) throw new Error('operation limit reached');
   const t0 = Date.now();
   let out;
-  const blocked = m.module.startsWith('manychat:') ? await blockedReps.check(m, mapper, ctx) : null;
+  const blocked = (m.module.startsWith('manychat:') || m.module === 'http:MakeRequest') ? await blockedReps.check(m, mapper, ctx) : null;
   if (blocked) {
     // Blocked rep (sheet of Bezeq reps): skip the send, the rest of the flow continues as if it was sent.
     rt.warnings.push({ module: m.id, skipped: 'blocked rep', rep: blocked.name });
