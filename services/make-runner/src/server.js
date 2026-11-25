@@ -86,6 +86,7 @@ http.createServer(async (req, res) => {
       const method = req.method === 'POST' ? (body.method || 'PUT') : 'GET';
       return send(res, 200, await api({ url: u.searchParams.get('url'), method, body: req.method === 'POST' ? body.body : undefined, qs: body.qs }).catch((e) => ({ error: String(e.message) })));
     }
+    if (u.pathname === '/admin/blocked-reps') { const B = require('./blocked-reps'); if (u.searchParams.get('refresh') === '1') B.reset(); await B.names(); return send(res, 200, B.status()); }
     if (u.pathname === '/admin/files') return send(res, 200, store.listFiles());
     if ((m = /^\/admin\/files\/(.+)$/.exec(u.pathname))) {
       const buf = store.readFile(decodeURIComponent(m[1])); if (!buf) return send(res, 404, { error: 'no such file' });
