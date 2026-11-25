@@ -51,6 +51,8 @@ http.createServer(async (req, res) => {
       if (!rp) return send(res, r && r.status === 'error' ? 500 : 200, r && r.status === 'error' ? 'Scenario failed' : 'Accepted');
       return send(res, rp.status, typeof rp.body === 'string' ? rp.body : JSON.stringify(rp.body), rp.headers);
     }
+    // read-only list of blocked reps for scenarios still in Make (key = GATEWAY_KEY, already in those blueprints)
+    if (u.pathname === '/blocked-reps' && E.GATEWAY_KEY && u.searchParams.get('key') === E.GATEWAY_KEY) { const B = require('./blocked-reps'); const n = await B.names(); return send(res, 200, { names: n, joined: '|' + n.join('|') + '|' }); }
     // ---- admin ----
     if (!E.ADMIN_KEY || (u.searchParams.get('key') !== E.ADMIN_KEY && req.headers['x-admin-key'] !== E.ADMIN_KEY)) return send(res, 401, { error: 'unauthorized' });
     const body = req.method === 'POST' ? parseBody(await readBody(req), 'application/json', []) : {};
