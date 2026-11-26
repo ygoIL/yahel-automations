@@ -26,6 +26,9 @@ All endpoints except `/health` need `?key=$GATEWAY_KEY`.
 ### Deploy
 `cd services/wa-gateway && railway up --service wa-gateway`
 
+## services/social-agent  (Railway service `social-agent`)
+Instagram yahel.tik manager: סושיאל photos/videos from Yarden/Steve on the bot line → reel/story with on-screen Hebrew text → Yarden approves on WhatsApp → published. See `services/social-agent/README.md`.
+
 ## Health check
 `python3 tools/healthcheck.py [--hours 2] [--json]` — WhatsApp line, reps-bot, every `live` make-runner scenario
 (failed runs, interval scenarios that stopped, daily/weekly runs missed today) and Make scenarios that are

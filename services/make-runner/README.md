@@ -20,7 +20,7 @@ Runs exported Make.com scenario blueprints on Railway (project `yahel-reps-bot`,
 
 ## Blocked reps (no ManyChat messages)
 Reps listed in the sheet `BLOCKED_REPS_SHEET_ID` (default `1iV7g5_Gcs…` – Bezeq reps, first tab, one name per cell) get no ManyChat messages:
-before every ManyChat send (`SendFlow`, `SendText`, `PerformAction` with `send_flow`) the engine looks at the run's data (trigger body + row/module outputs);
+before every ManyChat send (`SendFlow`, `SendText`, `PerformAction` with `send_flow`) and every WhatsApp send (wa-gateway `/send` `/gate`, Green API `sendMessage`; exact field match only, so digests listing many reps still go out) the engine looks at the run's data (trigger body + row/module outputs);
 if a value equals a listed name (or contains a full name of 2+ words) the send is skipped, logged as a warning `blocked rep`, and the rest of the flow continues
 (so the row is still marked as handled and is not retried). Field updates/tags are not blocked. The list is re-read every 5 minutes – adding a name needs no deploy.
 The service account needs view access to the sheet; on a read error the last good list is used (`/data/blocked-reps.json`).

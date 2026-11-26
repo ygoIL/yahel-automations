@@ -62,18 +62,23 @@ function strings(ctx) {
   return out;
 }
 
-// A value matches a blocked name when it equals it, or (for names of 2+ words) contains it as whole words.
-function match(list, values) {
+// A value matches a blocked name when it equals it, or (for names of 2+ words, unless exact) contains it as whole words.
+function match(list, values, exact) {
   const multi = list.filter((n) => n.includes(' '));
   for (const raw of values) {
     const v = norm(raw);
     if (!v || v.length > 300 || !hasLetters(v)) continue;
     if (list.includes(v)) return { name: v, value: String(raw).slice(0, 120) };
+    if (exact) continue;
     const padded = ` ${v} `;
     for (const n of multi) if (padded.includes(` ${n} `)) return { name: n, value: String(raw).slice(0, 120) };
   }
   return null;
 }
+
+// WhatsApp sends (wa-gateway /send|/gate, Green API sendMessage) - e.g. "customer answered the follow-up (rep: X)" to the ToChat group.
+const WA_URL = /wa-gateway[^/]*\/(send|gate)\b|api\.green-api\.com\/.*\/send(Message|FileByUrl)/i;
+function isWhatsApp(m, mapper) { return m.module === 'http:MakeRequest' && WA_URL.test(String(mapper.url || '')); }
 
 // ManyChat modules that send a message to someone.
 function isSend(m, mapper) {
@@ -83,10 +88,13 @@ function isSend(m, mapper) {
 }
 
 async function check(m, mapper, ctx) {
-  if (!isSend(m, mapper || {})) return null;
+  const mc = isSend(m, mapper || {});
+  // WhatsApp: exact field match only (a run *about* that rep), so group digests that list many reps still go out.
+  const wa = !mc && isWhatsApp(m, mapper || {});
+  if (!mc && !wa) return null;
   const list = await names();
   if (!list.length) return null;
-  return match(list, strings(ctx));
+  return match(list, strings(ctx), wa);
 }
 
 function status() { return { sheet: SHEET_ID(), count: cache.names ? cache.names.length : null, loadedAt: cache.at ? new Date(cache.at).toISOString() : null, error: cache.error, names: cache.names }; }

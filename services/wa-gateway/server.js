@@ -40,9 +40,22 @@ async function handleYesGroup(p) {
   }
 }
 
+// RULE (Steve 26/11/2026): the social agent (Instagram yahel.tik) uses this same bot line. Private messages of
+// SOCIAL_SENDERS (default ירדן + סטיב) are offered to social-agent first (/claim): photos/videos with the word "סושיאל",
+// "סושיאל ..." texts and answers on a "🎬 סושיאל #" preview. Anything it doesn't claim continues to the reps bot as before. Do not remove.
+const SOCIAL_SENDERS = String(E.SOCIAL_SENDERS || '504445169,544604246').split(',').map((x) => x.replace(/\D/g, '').slice(-9)).filter(Boolean);
+async function socialClaim(p) {
+  if (!E.SOCIAL_URL || !E.SOCIAL_KEY || p.typeWebhook !== 'incomingMessageReceived') return false;
+  const sd = p.senderData || {};
+  if (!String(sd.chatId || '').endsWith('@c.us') || !SOCIAL_SENDERS.includes(String(sd.sender || '').replace(/\D/g, '').slice(-9))) return false;
+  try { const r = await post(`${E.SOCIAL_URL}/claim?key=${E.SOCIAL_KEY}`, p, 8000); return !!(r.data && r.data.handled); }
+  catch (e) { log({ ev: 'social_claim_err', err: String(e) }); return false; }
+}
+
 async function handleIncoming(p, depth = 0) {
   const md = p.messageData || {}, sd = p.senderData || {}, qm = md.quotedMessage || {};
   if (p.typeWebhook === 'incomingMessageReceived' && String(sd.chatId || '').endsWith('@g.us') && YES_GROUP.test(String(sd.chatName || ''))) return handleYesGroup(p);
+  if (depth === 0 && (await socialClaim(p))) { log({ ev: 'social', chat: sd.chatId }); return; }
   const r = classify({
     type: p.typeWebhook, chatId: sd.chatId, sender: sd.sender, senderName: sd.senderName, chatName: sd.chatName,
     t1: md.textMessageData && md.textMessageData.textMessage, t2: md.extendedTextMessageData && md.extendedTextMessageData.text,
@@ -135,7 +148,7 @@ http.createServer(async (req, res) => {
     if (u.pathname === '/gate' && req.method === 'POST') { // former Make Shabbat gate hook
       const r = await wa.gate(body); return ok(r.ok ? 200 : 400, r);
     }
-    if ((m = /^\/green\/([A-Za-z]+)$/.exec(u.pathname))) { // Green API passthrough on the primary account (for scheduled tasks via make-runner)
+    if ((m = /^\/green\/([A-Za-z]+)$/.exec(u.pathname))) { // Green API passthrough on the primary account (make-runner /admin/green, scheduled tasks). Live since 18/11; do not remove.
       const gu = new URL(`${String(E.GREEN_P_BASE).replace(/\/$/, '')}/${m[1]}/${E.GREEN_P_TOKEN}`);
       for (const [k, v] of u.searchParams) if (k !== 'key') gu.searchParams.set(k, v);
       const r = await fetch(gu, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method === 'POST' ? JSON.stringify(body) : undefined });
