@@ -51,10 +51,20 @@ async function writeFollowupList(phones, partial) {
   }
   const now = new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
   const values = [['טלפון', 'עודכן', now + (partial ? ' (חלקי + רשימה קודמת)' : '')]].concat([...set].map((p) => [p]));
-  for (const id of FU_SHEETS) {
-    await G.sheets({ url: `spreadsheets/${id}/values/${encodeURIComponent(FU_TAB + '!A1:C30000')}:clear`, method: 'POST', body: {} });
-    await G.sheets({ url: `spreadsheets/${id}/values/${encodeURIComponent(FU_TAB + '!A1:C' + values.length)}`, method: 'PUT', qs: [{ key: 'valueInputOption', value: 'RAW' }], body: { values } });
+  // Each sheet on its own: the first (main) sheet is what the morning uploads and checks read, so a copy that
+  // refuses the write (e.g. sharing changed) must not hide that the main list was written.
+  const failed = [];
+  for (const [i, id] of FU_SHEETS.entries()) {
+    try {
+      // write first, then clear only the rows below the new list, so a failed write never leaves the sheet empty
+      await G.sheets({ url: `spreadsheets/${id}/values/${encodeURIComponent(FU_TAB + '!A1:C' + values.length)}`, method: 'PUT', qs: [{ key: 'valueInputOption', value: 'RAW' }], body: { values } });
+      await G.sheets({ url: `spreadsheets/${id}/values/${encodeURIComponent(FU_TAB + '!A' + (values.length + 1) + ':C30000')}:clear`, method: 'POST', body: {} });
+    } catch (e) {
+      if (i === 0) throw e;
+      failed.push(`${id.slice(0, 8)}…: ${String(e.message).slice(0, 80)}`);
+    }
   }
+  if (failed.length) writeFollowupList.lastFailed = failed; else writeFollowupList.lastFailed = null;
   return set.size;
 }
 
@@ -188,7 +198,10 @@ async function run({ dry = false, full: full_, log = () => {} } = {}) {
   }
   store.save('jobs/dedupe-camps', memo);
   if (full && !dry) {
-    try { res.fuList = await writeFollowupList([...fuPhones], res.failedCampaigns.length > 0); }
+    try {
+      res.fuList = await writeFollowupList([...fuPhones], res.failedCampaigns.length > 0);
+      if (writeFollowupList.lastFailed) res.errors.push('רשימת הפולואפים נכתבה לגיליון הראשי, אבל עותק לא התעדכן: ' + writeFollowupList.lastFailed.join('; '));
+    }
     catch (e) { res.errors.push('רשימת הפולואפים לא נכתבה לגיליון: ' + String(e.message).slice(0, 120)); }
   }
   // every customer of a focus/prioritized campaign is checked (his other copies are in the customer record);
