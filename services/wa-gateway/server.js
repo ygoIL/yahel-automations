@@ -40,9 +40,22 @@ async function handleYesGroup(p) {
   }
 }
 
+// RULE (Steve 26/11/2026): the social agent (Instagram yahel.tik) uses this same bot line. Private messages of
+// SOCIAL_SENDERS (default ירדן + סטיב) are offered to social-agent first (/claim): photos/videos with the word "סושיאל",
+// "סושיאל ..." texts and answers on a "🎬 סושיאל #" preview. Anything it doesn't claim continues to the reps bot as before. Do not remove.
+const SOCIAL_SENDERS = String(E.SOCIAL_SENDERS || '504445169,544604246').split(',').map((x) => x.replace(/\D/g, '').slice(-9)).filter(Boolean);
+async function socialClaim(p) {
+  if (!E.SOCIAL_URL || !E.SOCIAL_KEY || p.typeWebhook !== 'incomingMessageReceived') return false;
+  const sd = p.senderData || {};
+  if (!String(sd.chatId || '').endsWith('@c.us') || !SOCIAL_SENDERS.includes(String(sd.sender || '').replace(/\D/g, '').slice(-9))) return false;
+  try { const r = await post(`${E.SOCIAL_URL}/claim?key=${E.SOCIAL_KEY}`, p, 8000); return !!(r.data && r.data.handled); }
+  catch (e) { log({ ev: 'social_claim_err', err: String(e) }); return false; }
+}
+
 async function handleIncoming(p, depth = 0) {
   const md = p.messageData || {}, sd = p.senderData || {}, qm = md.quotedMessage || {};
   if (p.typeWebhook === 'incomingMessageReceived' && String(sd.chatId || '').endsWith('@g.us') && YES_GROUP.test(String(sd.chatName || ''))) return handleYesGroup(p);
+  if (depth === 0 && (await socialClaim(p))) { log({ ev: 'social', chat: sd.chatId }); return; }
   const r = classify({
     type: p.typeWebhook, chatId: sd.chatId, sender: sd.sender, senderName: sd.senderName, chatName: sd.chatName,
     t1: md.textMessageData && md.textMessageData.textMessage, t2: md.extendedTextMessageData && md.extendedTextMessageData.text,
