@@ -1,0 +1,2 @@
+{ "name": "social-agent", "version": "1.0.0", "private": true, "main": "server.js",
+  "scripts": { "start": "node server.js", "test": "node test/render-test.js" }, "engines": { "node": ">=20" } }
