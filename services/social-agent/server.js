@@ -97,10 +97,15 @@ async function buildFromBatch(batch) {
   return { dir, base, ai: d, excluded };
 }
 
-async function renderDraft(dft, base, overlays) {
-  const out = path.join(MEDIA, `${dft.id}-v${dft.version}-${dft.token}.mp4`);
-  await render.overlay(base.file, render.timeline(overlays, base.duration), out, dft.dir);
-  dft.file = out; dft.url = `${PUBLIC}/m/${path.basename(out)}`;
+// Every video gets on-screen text, always: reel = hook in white outlined text, story = pink pills (yahel.tik look).
+async function renderDraft(dft, base) {
+  const story = path.join(MEDIA, `${dft.id}-s${dft.version}-${dft.token}.mp4`);
+  await render.styled(base.file, 'story', dft.storyText, story, dft.dir);
+  dft.storyFile = story; dft.storyUrl = `${PUBLIC}/m/${path.basename(story)}`;
+  if (dft.kind === 'story') { dft.file = story; dft.url = dft.storyUrl; return; }
+  const reel = path.join(MEDIA, `${dft.id}-v${dft.version}-${dft.token}.mp4`);
+  await render.styled(base.file, 'reel', dft.reelText, reel, dft.dir);
+  dft.file = reel; dft.url = `${PUBLIC}/m/${path.basename(reel)}`;
 }
 
 function previewCaption(d) {
@@ -112,6 +117,7 @@ function previewCaption(d) {
   return lines.join('\n');
 }
 async function sendPreview(d) {
+  if (d.kind !== 'story') await wa.file(APPROVER, d.storyUrl, `story-${d.id}.mp4`, `📱 הסטורי של #${d.id} (עולה יחד עם הרילס)`);
   await wa.file(APPROVER, d.url, `social-${d.id}.mp4`, previewCaption(d));
   d.sentAt = Date.now(); d.reminded = false;
 }
@@ -123,8 +129,8 @@ async function finalize(who) {
   try {
     const b = await buildFromBatch(batch);
     const d = { id: batch.id, kind: 'reel', version: 1, token: rid(8), status: 'awaiting', from: who, note: batch.note, dir: b.dir,
-      base: b.base, caption: b.ai.caption, overlays: b.ai.overlays, song: b.ai.song || '', warning: b.ai.warning || '', excluded: b.excluded, created: Date.now(), day: ilDay() };
-    await renderDraft(d, b.base, d.overlays);
+      base: b.base, caption: b.ai.caption, reelText: b.ai.reel_text, storyText: b.ai.story_text, song: b.ai.song || '', warning: b.ai.warning || '', excluded: b.excluded, created: Date.now(), day: ilDay() };
+    await renderDraft(d, b.base);
     await sendPreview(d);
     const s2 = S(); s2.drafts[d.id] = d; put(s2);
     if (who !== APPROVER) wa.text(who, `✅ הטיוטה מוכנה ונשלחה לירדן לאישור (#${d.id}).`);
@@ -150,7 +156,7 @@ async function reply(id, text, who) {
     try {
       let link = '';
       if (d.kind !== 'story') { const r = await ig.reel(d.url, d.caption); link = r.link; d.reelId = r.id; }
-      try { const st = await ig.story(d.url); d.storyId = st.id; } catch (e) { log({ ev: 'story_err', err: String(e) }); d.storyErr = String(e.message || e).slice(0, 200); }
+      try { const st = await ig.story(d.storyUrl || d.url); d.storyId = st.id; } catch (e) { log({ ev: 'story_err', err: String(e) }); d.storyErr = String(e.message || e).slice(0, 200); }
       const s2 = S(); Object.assign(s2.drafts[id], d, { status: 'published', link, publishedAt: Date.now(), day: ilDay() }); put(s2);
       return wa.text(who, `✅ עלה לאינסטגרם${d.kind !== 'story' ? ' (רילס' + (d.storyId ? ' + סטורי' : '') + ')' : ' (סטורי)'}${link ? '\n' + link : ''}${d.storyErr ? '\n⚠️ הסטורי לא עלה: ' + d.storyErr : ''}`);
     } catch (e) {
@@ -166,10 +172,10 @@ async function reply(id, text, who) {
   wa.text(who, '✍️ מתקן...');
   try {
     const fr = await render.frames(d.base.segments, d.dir);
-    const prev = { caption: d.caption, overlays: d.overlays };
+    const prev = { caption: d.caption, reel_text: d.reelText, story_text: d.storyText };
     const n = await ai.draft({ note: d.note, framesList: fr, feedback: text, previous: prev });
-    d.caption = n.caption; d.overlays = n.overlays; d.song = n.song || d.song; d.warning = n.warning || ''; d.version += 1; d.status = 'awaiting';
-    await renderDraft(d, d.base, d.overlays); await sendPreview(d);
+    d.caption = n.caption; d.reelText = n.reel_text; d.storyText = n.story_text; d.song = n.song || d.song; d.warning = n.warning || ''; d.version += 1; d.status = 'awaiting';
+    await renderDraft(d, d.base); await sendPreview(d);
     const s2 = S(); s2.drafts[id] = d; put(s2);
   } catch (e) {
     log({ ev: 'revise_err', err: String(e.stack || e) });
@@ -200,10 +206,10 @@ async function fallbackStory(force) {
     const st = await ai.storyText();
     const id = rid(4), dir = path.join(MEDIA, 'w-' + id); fs.mkdirSync(dir, { recursive: true });
     const base = path.join(dir, 'bg.mp4'); // written by render.textStory, reused for corrections
-    const d = { id, kind: 'story', version: 1, token: rid(8), status: 'awaiting', from: 'auto', note: 'סטורי גיוס', dir, caption: st.caption || '', overlays: [st.lines], song: '', warning: '', excluded: [], created: Date.now(), day: today };
+    const d = { id, kind: 'story', version: 1, token: rid(8), status: 'awaiting', from: 'auto', note: 'סטורי גיוס', dir, caption: st.caption || '', reelText: [], storyText: st.lines, song: '', warning: '', excluded: [], created: Date.now(), day: today };
     const out = path.join(MEDIA, `${id}-v1-${d.token}.mp4`);
     await render.textStory(st.lines, out, dir);
-    d.file = out; d.url = `${PUBLIC}/m/${path.basename(out)}`; d.base = { file: base, duration: 7, segments: [] };
+    d.file = out; d.url = `${PUBLIC}/m/${path.basename(out)}`; d.storyFile = out; d.storyUrl = d.url; d.base = { file: base, duration: 7, segments: [] };
     d.caption = 'היום לא היה סרטון חדש, אז הכנתי סטורי גיוס.';
     await sendPreview(d);
     const s2 = S(); s2.drafts[id] = d; put(s2);
@@ -238,7 +244,7 @@ http.createServer(async (req, res) => {
   if (u.pathname === '/health') return ok(200, { ok: true, ig: ig.enabled(), public: !!PUBLIC });
   if (u.pathname.startsWith('/m/') && req.method === 'GET') { // public media for Instagram + WhatsApp (unguessable names)
     const f = path.join(MEDIA, path.basename(u.pathname));
-    if (!/^[a-f0-9]+-v\d+-[a-f0-9]{16}\.mp4$/.test(path.basename(f)) || !fs.existsSync(f)) return ok(404, { error: 'not found' });
+    if (!/^[a-f0-9]+-[vs]\d+-[a-f0-9]{16}\.mp4$/.test(path.basename(f)) || !fs.existsSync(f)) return ok(404, { error: 'not found' });
     const st = fs.statSync(f); res.writeHead(200, { 'Content-Type': 'video/mp4', 'Content-Length': st.size }); return fs.createReadStream(f).pipe(res);
   }
   if (!KEY || u.searchParams.get('key') !== KEY) return ok(401, { error: 'unauthorized' });

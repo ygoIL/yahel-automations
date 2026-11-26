@@ -15,7 +15,7 @@ const fake = http.createServer((req, res) => {
       claudeCalls++;
       const fix = claudeCalls > 1;
       return j({ content: [{ type: 'text', text: JSON.stringify({ caption: fix ? 'חמישי שמח מתוקן 🥁 #יהלתקשורת' : 'חמישי שמח… לא נשאר מקום ברכב 😂🍔🥁 #יהלתקשורת #דרושים',
-        overlays: [['כל חמישי', 'אנחנו מפנקים את הצוות'], ['רוצים להצטרף?', 'מגייסים עכשיו בנהריה']], song: 'נועה קירל – טרנד', exclude: [], warning: '' }) }] });
+        reel_text: fix ? ['כל חמישי ככה 🍔'] : ['כשמזמינים מקדונלדס לכל המוקד', 'ולא נשאר מקום ברכב 😂'], story_text: ['ככה סוגרים חמישי ביהל 🍔🍟', 'ואתם עדיין לא עובדים אצלנו?', 'שלחו לנו הודעה 💪🏼🚀'], song: 'נועה קירל – טרנד', exclude: [], warning: '' }) }] });
     }
     if (req.url.includes('/media_publish')) { igCalls.push('publish'); return j({ id: 'MEDIA' + igCalls.length }); }
     if (req.url.includes('/media')) { igCalls.push(JSON.parse(b).media_type); return j({ id: 'C' + igCalls.length }); }
@@ -46,15 +46,18 @@ const ok = (c, m) => { if (!c) { console.error('FAIL', m, '\n', logs.slice(-2000
     ok(r.handled, `media ${i} claimed`);
   }
   for (let t = 0; t < 120 && !sent.some((s) => s.urlFile); t++) await sleep(1000);
-  const prev = sent.find((s) => s.urlFile); ok(prev && /🎬 סושיאל #/.test(prev.caption), 'preview with video sent to Yarden');
+  for (let t = 0; t < 30 && !sent.some((s) => s.urlFile && /🎬 סושיאל #/.test(s.caption)); t++) await sleep(1000);
+  ok(sent.some((s) => s.urlFile && /הסטורי של/.test(s.caption)), 'story preview sent to Yarden');
+  const prev = sent.find((s) => s.urlFile && /🎬 סושיאל #/.test(s.caption)); ok(prev, 'reel preview with video sent to Yarden');
   ok(prev.chatId === Y + '@c.us', 'preview goes to Yarden');
   const id = prev.caption.match(/סושיאל #(\w+)/)[1];
   const vid = await fetch(prev.urlFile); ok(vid.status === 200, 'public media URL serves the video');
   fs.writeFileSync(path.join(__dirname, 'out-preview.mp4'), Buffer.from(await vid.arrayBuffer()));
+  const sv = await fetch(sent.find((s) => /הסטורי של/.test(s.caption || '')).urlFile); fs.writeFileSync(path.join(__dirname, 'out-story.mp4'), Buffer.from(await sv.arrayBuffer()));
   // correction
   ok((await claim(msg(Y, { typeMessage: 'extendedTextMessage', extendedTextMessageData: { text: 'תוסיף שזה כל חמישי' }, quotedMessage: { caption: prev.caption } }))).handled, 'correction claimed via quote');
-  for (let t = 0; t < 90 && sent.filter((s) => s.urlFile).length < 2; t++) await sleep(1000);
-  ok(sent.filter((s) => s.urlFile).length === 2 && claudeCalls === 2, 'corrected preview re-sent');
+    for (let t = 0; t < 90 && sent.filter((s) => s.urlFile).length < 4; t++) await sleep(1000);
+  ok(sent.filter((s) => s.urlFile).length === 4 && claudeCalls === 2, 'corrected preview re-sent');
   // approve twice -> one publish
   ok((await claim(msg(Y, { typeMessage: 'textMessage', textMessageData: { textMessage: 'כן' } }))).handled, 'bare כן claimed');
   await sleep(300);
