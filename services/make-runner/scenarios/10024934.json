@@ -1,6 +1,6 @@
 {
  "id": 10024934,
- "name": "Claude - לקוח מוטרד ממייל יורן ← רשימת חסומים טוצ'אט (כל בוקר)",
+ "name": "Claude - לקוח מוטרד ממייל יורן/שחר ← רשימת חסומים טוצ'אט (כל בוקר)",
  "scheduling": {
   "time": "07:30",
   "type": "daily"
@@ -14,7 +14,7 @@
     "id": 1,
     "mapper": {
      "limit": 50,
-     "search": "from:YTwito@yes.co.il AND subject:מוטרד"
+     "search": "from:YTwito@yes.co.il OR from:SKotigaro@yes.co.il"
     },
     "module": "microsoft-email:listMessages",
     "version": 2,
@@ -31,18 +31,18 @@
    {
     "id": 2,
     "filter": {
-     "name": "מיורן, נושא מוטרד, מ-48 השעות האחרונות",
+     "name": "מיורן או משחר, מוטרד/חסום/הסרה, מ-48 השעות האחרונות",
      "conditions": [
       [
        {
         "a": "{{1.from.emailAddress.address}}",
-        "b": "YTwito@yes.co.il",
-        "o": "text:equal:ci"
+        "b": "^(YTwito|SKotigaro)@yes\\.co\\.il$",
+        "o": "text:pattern:ci"
        },
        {
-        "a": "{{1.subject}}",
-        "b": "מוטרד",
-        "o": "text:contain"
+        "a": "{{1.subject}} {{replace(stripHTML(1.body.content); \"/(From:|מאת:)[\\s\\S]*$/\"; emptystring)}}",
+        "b": "מוטרד|חסום|חסימ|הטרד|להסיר|הסרה|להסרה",
+        "o": "text:pattern"
        },
        {
         "a": "{{1.receivedDateTime}}",
@@ -53,7 +53,7 @@
      ]
     },
     "mapper": {
-     "text": "{{1.subject}} {{stripHTML(1.body.content)}}"
+     "text": "{{if(lower(1.from.emailAddress.address) = \"skotigaro@yes.co.il\"; 1.subject + \" \" + replace(stripHTML(1.body.content); \"/(From:|מאת:)[\\s\\S]*$/\"; emptystring); 1.subject + \" \" + stripHTML(1.body.content))}}"
     },
     "module": "regexp:Parser",
     "version": 1,
@@ -76,7 +76,7 @@
    {
     "id": 3,
     "filter": {
-     "name": "לא המספרים של יורן",
+     "name": "לא מספרי צוות yes",
      "conditions": [
       [
        {
@@ -88,6 +88,11 @@
         "a": "{{replace(2.phone; \"/[^0-9]/g\"; emptystring)}}",
         "b": "097615532",
         "o": "text:notequal"
+       },
+       {
+        "a": "{{replace(2.phone; \"/[^0-9]/g\"; emptystring)}}",
+        "b": "^09761",
+        "o": "text:notpattern"
        }
       ]
      ]
@@ -96,7 +101,7 @@
      "items": [
       {
        "name": "",
-       "note": "לקוח מוטרד - מייל מיורן טויטו {{formatDate(1.receivedDateTime; \"DD/MM/YYYY\"; \"Asia/Jerusalem\")}}",
+       "note": "לקוח מוטרד - מייל מ{{if(lower(1.from.emailAddress.address) = \"skotigaro@yes.co.il\"; \"שחר קוטיגרו\"; \"יורן טויטו\")}} {{formatDate(1.receivedDateTime; \"DD/MM/YYYY\"; \"Asia/Jerusalem\")}}",
        "phone": "{{replace(2.phone; \"/[^0-9]/g\"; emptystring)}}"
       }
      ],
