@@ -1,6 +1,6 @@
 {
  "id": 10024934,
- "name": "Claude - לקוח מוטרד ממייל יורן ← רשימת חסומים טוצ'אט (כל בוקר)",
+ "name": "Claude - לקוח מוטרד/הסרה ממייל יורן ← רשימת חסומים טוצ'אט (כל בוקר 07:30)",
  "scheduling": {
   "time": "07:30",
   "type": "daily"
@@ -14,7 +14,7 @@
     "id": 1,
     "mapper": {
      "limit": 50,
-     "search": "from:YTwito@yes.co.il AND subject:מוטרד"
+     "search": "from:YTwito@yes.co.il AND (subject:מוטרד OR subject:מוטרדים OR subject:להסיר OR subject:הסרה)"
     },
     "module": "microsoft-email:listMessages",
     "version": 2,
@@ -31,7 +31,7 @@
    {
     "id": 2,
     "filter": {
-     "name": "מיורן, נושא מוטרד, מ-48 השעות האחרונות",
+     "name": "מיורן, נושא מוטרד/הסרה, מ-48 השעות האחרונות",
      "conditions": [
       [
        {
@@ -42,6 +42,40 @@
        {
         "a": "{{1.subject}}",
         "b": "מוטרד",
+        "o": "text:contain"
+       },
+       {
+        "a": "{{1.receivedDateTime}}",
+        "b": "{{addHours(now; -48)}}",
+        "o": "date:greater"
+       }
+      ],
+      [
+       {
+        "a": "{{1.from.emailAddress.address}}",
+        "b": "YTwito@yes.co.il",
+        "o": "text:equal:ci"
+       },
+       {
+        "a": "{{1.subject}}",
+        "b": "הסיר",
+        "o": "text:contain"
+       },
+       {
+        "a": "{{1.receivedDateTime}}",
+        "b": "{{addHours(now; -48)}}",
+        "o": "date:greater"
+       }
+      ],
+      [
+       {
+        "a": "{{1.from.emailAddress.address}}",
+        "b": "YTwito@yes.co.il",
+        "o": "text:equal:ci"
+       },
+       {
+        "a": "{{1.subject}}",
+        "b": "הסרה",
         "o": "text:contain"
        },
        {
@@ -143,7 +177,7 @@
     }
    }
   ],
-  "name": "Claude - לקוח מוטרד ממייל יורן ← רשימת חסומים טוצ'אט (כל בוקר)",
+  "name": "Claude - לקוח מוטרד/הסרה ממייל יורן ← רשימת חסומים טוצ'אט (כל בוקר 07:30)",
   "metadata": {
    "instant": false,
    "version": 1,
