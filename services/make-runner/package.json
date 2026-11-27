@@ -4,7 +4,7 @@
   "private": true,
   "description": "Runs exported Make.com blueprints on Railway",
   "main": "src/server.js",
-  "scripts": { "start": "node src/server.js", "test": "node test/run.js && node test/leads.js && node test/blocked-reps.js" },
+  "scripts": { "start": "node src/server.js", "test": "node test/run.js && node test/leads.js && node test/dedupe.js && node test/blocked-reps.js" },
   "engines": { "node": ">=20" },
   "dependencies": { "imapflow": "1.0.164", "nodemailer": "6.9.16", "mailparser": "3.7.1" }
 }
