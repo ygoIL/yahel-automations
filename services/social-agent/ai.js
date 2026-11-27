@@ -7,6 +7,8 @@ const MODEL = E.CLAUDE_MODEL || 'claude-sonnet-5-5';
 // one-line captions with an emoji, 🥁 is the signature, fixed hashtags. Best performers were short teasers.
 const STYLE = `אתה מנהל הסושיאל של יהל תקשורת – מוקד מכירות טלפוני בנהריה (yes, בזק, פלאפון). מטרת העמוד yahel.tik: להביא עובדים.
 סגנון העמוד: רילסים קצרים מהטלפון, הומור עצמי, אווירה של צוות צעיר וכיפי. כיתוב של שורה-שתיים, אימוג'י, 🥁 הוא סימן ההיכר.
+טקסט על המסך ברילסים: משפט הוק אחד בסגנון מם/סקיט שמחזיק את כל הסרטון, למשל "Pov: אתה העובד שאחראי על המורל במוקד", "כשהמנהל עובר בהפתעה", "כשהבוס שלך במוד מנהל ולא במוד חבר:", "עונת המעבר במוקד: ...".
+טקסט על המסך בסטורים: 2–4 שורות קצרות ושמחות עם אימוג'י בסוף שורה (💪🏼🚀💸✨🍔), למשל "ככה סוגרים שבוע 💪🏼🚀" / "רק במשרד שלנו תראו ארוחות צהריים כאלו 😋" / "ואתם עדיין לא עובדים אצלנו?" / "למה אתם מחכים? שלחו לנו הודעה".
 האשטגים קבועים: #יהלתקשורת #מוקדמכירות #דרושים #דרושיםבנהריה.
 עברית טבעית ויומיומית. אסור שיישמע כמו AI: בלי "לא רק X אלא Y", בלי רשימות של שלוש, בלי מילים מליציות.
 חוקים קשיחים: אסור להזכיר yes כשם העסק או לוגו yes; אסור מספרי מכירות, הכנסות או כסף של העסק; המשמרת היחידה 09:30–17:30;
@@ -31,15 +33,19 @@ async function draft({ note, framesList, feedback, previous }) {
 ${previous ? `הטיוטה הקודמת: ${JSON.stringify(previous)}\nהתיקון שירדן ביקש: "${feedback}"\nתקן לפי הבקשה ושמור על כל השאר.` : ''}
 החזר JSON בלבד:
 {"caption":"כיתוב לפוסט – שורה-שתיים קצרות, אימוג'י, קריאה קצרה להצטרף, והאשטגים",
- "overlays":[["שורה 1","שורה 2"],["..."]],
+ "reel_text":["הוק לרילס – 1–2 שורות, עד 30 תווים בשורה, אפשר אימוג'י אחד בסוף"],
+ "story_text":["2–4 שורות לסטורי, עד 28 תווים בשורה, אימוג'י בסוף שורות, השורה האחרונה קריאה לשלוח הודעה"],
  "song":"שם שיר טרנדי שמתאים (אמן – שיר), או ריק",
  "exclude":[מספרי פריטים שרואים בהם מסך מחשב/טלפון, מסמך או דוח עם פרטי לקוחות],
  "warning":"משפט קצר אם משהו לא מתאים לפרסום, אחרת ריק"}
-overlays = הכיתוב על המסך: 2–3 כרטיסים לפי סדר הסרטון, כל כרטיס 1–2 שורות, עד 22 תווים בשורה, בלי אימוג'י.
-הכרטיס האחרון תמיד קריאה להצטרף (למשל "מגייסים עכשיו בנהריה").` });
+הטקסט על המסך חובה תמיד, גם ברילס וגם בסטורי.` });
   const out = json(await claude([{ role: 'user', content }]));
-  if (!out || !out.caption || !Array.isArray(out.overlays)) throw new Error('bad draft from AI');
-  out.overlays = out.overlays.map((o) => (Array.isArray(o) ? o : [String(o)]).map((l) => String(l).replace(/\p{Extended_Pictographic}/gu, '').trim()).filter(Boolean)).filter((o) => o.length);
+  const arr = (a) => (Array.isArray(a) ? a : a ? [a] : []).map((l) => String(l).trim()).filter(Boolean).slice(0, 4);
+  if (!out || !out.caption) throw new Error('bad draft from AI');
+  out.reel_text = arr(out.reel_text); out.story_text = arr(out.story_text);
+  if (!out.reel_text.length && Array.isArray(out.overlays)) out.reel_text = arr([].concat(...out.overlays.map((o) => (Array.isArray(o) ? o : [o]))).slice(0, 2));
+  if (!out.reel_text.length) throw new Error('AI returned no on-screen text');
+  if (!out.story_text.length) out.story_text = out.reel_text.concat(['שלחו לנו הודעה 💪🏼']);
   out.exclude = Array.isArray(out.exclude) ? out.exclude.map(Number).filter((n) => Number.isInteger(n)) : [];
   return out;
 }
@@ -57,7 +63,7 @@ async function dailyIdea(recentCaptions) {
 async function storyText() {
   const out = json(await claude([{ role: 'user', content: `כתוב סטורי גיוס טקסטואלי לאינסטגרם ליום שאין בו סרטון חדש.
 החזר JSON בלבד: {"lines":["שורה 1","שורה 2","שורה 3"],"caption":""}
-3 שורות על המסך, עד 22 תווים בשורה, בלי אימוג'י. אפשר להזכיר: 100 ₪ לשעה, ממוצע 13,000+, 09:30–17:30, נהריה, צוות צעיר, הכשרה מלאה.
+3 שורות על המסך, עד 26 תווים בשורה, עם אימוג'י בסוף שורות (בסגנון הסטורים שלנו). אפשר להזכיר: 100 ₪ לשעה, ממוצע 13,000+, 09:30–17:30, נהריה, צוות צעיר, הכשרה מלאה.
 שורה אחרונה: "שחר 054-2607144".` }], { max: 400 }));
   if (!out || !Array.isArray(out.lines)) throw new Error('bad story from AI');
   return out;

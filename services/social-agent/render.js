@@ -47,7 +47,18 @@ async function assemble(items, out) {
   return { file: out, duration: t, segments: segs };
 }
 
-// overlays: [{lines:['...','...'], from, to}] seconds. Text is written to files (no escaping problems) and forced RTL.
+// yahel.tik look (text_png.py): style 'reel' = white outlined text, 'story' = pink pills with purple text.
+async function textPng(style, lines, out, y) {
+  await run('python3', [path.join(__dirname, 'text_png.py'), JSON.stringify({ style, lines, out, y })]);
+  return out;
+}
+async function styled(input, style, lines, out, workDir) {
+  const png = await textPng(style, lines, path.join(workDir, `t-${style}-${Date.now()}.png`), style === 'reel' ? 0.2 : 0.16);
+  await run('ffmpeg', ['-v', 'error', '-y', '-i', input, '-i', png, '-filter_complex', '[0:v][1:v]overlay=0:0', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'copy', '-movflags', '+faststart', out]);
+  return out;
+}
+
+// (legacy) overlays: [{lines:['...','...'], from, to}] seconds. Text is written to files (no escaping problems) and forced RTL.
 async function overlay(input, overlays, out, workDir) {
   const parts = []; let n = 0;
   for (const o of overlays) {
@@ -83,7 +94,7 @@ async function textStory(lines, out, workDir) {
   const base = path.join(workDir, 'bg.mp4');
   await run('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', `color=c=0x5b2a86:s=${W}x${H}:d=7:r=30`, '-f', 'lavfi', '-t', '7', '-i', 'anullsrc=r=44100:cl=stereo',
     '-vf', 'format=yuv420p', '-c:v', 'libx264', '-preset', 'veryfast', '-c:a', 'aac', '-shortest', base]);
-  return overlay(base, [{ lines, from: 0, to: 7 }], out, workDir);
+  return styled(base, 'story', lines, out, workDir);
 }
 
 // Spread AI overlays over the video; the last one always stays to the end.
@@ -92,4 +103,4 @@ function timeline(texts, duration) {
   return texts.map((lines, i) => ({ lines, from: i * step, to: i === k - 1 ? duration + 1 : (i + 1) * step }));
 }
 
-module.exports = { probe, assemble, overlay, frames, textStory, timeline, FONT };
+module.exports = { probe, assemble, overlay, styled, textPng, frames, textStory, timeline, FONT };

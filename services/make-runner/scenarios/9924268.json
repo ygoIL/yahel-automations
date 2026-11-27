@@ -766,6 +766,114 @@
         }
        }
       ]
+     },
+     {
+      "flow": [
+       {
+        "id": 80,
+        "filter": {
+         "name": "ענה \"חשמל\" (לידים חשמל)",
+         "conditions": [
+          [
+           {
+            "a": "{{ifempty(1.last_input_text; 2.last_input_text)}}",
+            "b": "חשמל",
+            "o": "text:contain"
+           },
+           {
+            "a": "{{ifempty(1.last_input_text; 2.last_input_text)}}",
+            "b": "^\\s*(לא|אין צורך|לא צריך|לא מעוניי)",
+            "o": "text:notpattern"
+           },
+           {
+            "a": "{{2.whatsapp_phone}}",
+            "o": "exist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "key": "elec_{{replace(2.whatsapp_phone; \"+\"; \"\")}}",
+         "returnWrapped": true
+        },
+        "module": "datastore:GetRecord",
+        "onerror": [
+         {
+          "id": 81,
+          "module": "builtin:Ignore",
+          "version": 1
+         }
+        ],
+        "version": 1,
+        "parameters": {
+         "datastore": 207742
+        }
+       },
+       {
+        "id": 82,
+        "filter": {
+         "name": "עוד לא נרשם (פעם אחת ללקוח)",
+         "conditions": [
+          [
+           {
+            "a": "{{80.data.sentAt}}",
+            "o": "notexist"
+           }
+          ]
+         ]
+        },
+        "mapper": {
+         "from": "drive",
+         "mode": "select",
+         "values": {
+          "0": "{{first(map(2.custom_fields; \"value\"; \"name\"; \"שם נציג\"))}}",
+          "1": "{{ifempty(2.name; 2.first_name)}}",
+          "2": "'0{{substring(replace(2.whatsapp_phone; \"+\"; \"\"); 3)}}"
+         },
+         "sheetId": "לידים חשמל",
+         "spreadsheetId": "/12NkSDD2emzTYb4n5Zt5P9aLdEcgtrIGelZCKRoU7dZI",
+         "includesHeaders": true,
+         "insertDataOption": "INSERT_ROWS",
+         "useColumnHeaders": false,
+         "valueInputOption": "USER_ENTERED",
+         "insertUnformatted": false
+        },
+        "module": "google-sheets:addRow",
+        "onerror": [
+         {
+          "id": 83,
+          "module": "builtin:Ignore",
+          "version": 1
+         }
+        ],
+        "version": 2,
+        "parameters": {
+         "__IMTCONN__": 13008399
+        }
+       },
+       {
+        "id": 84,
+        "mapper": {
+         "key": "elec_{{replace(2.whatsapp_phone; \"+\"; \"\")}}",
+         "data": {
+          "sentAt": "{{now}}"
+         },
+         "overwrite": true
+        },
+        "module": "datastore:AddRecord",
+        "onerror": [
+         {
+          "id": 85,
+          "module": "builtin:Ignore",
+          "version": 1
+         }
+        ],
+        "version": 1,
+        "parameters": {
+         "datastore": 207742
+        }
+       }
+      ]
      }
     ],
     "version": 1,
